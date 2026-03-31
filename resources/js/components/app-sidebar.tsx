@@ -24,6 +24,11 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Workspaces',
+        href: '/workspaces',
+        icon: LayoutGrid,
+    },
 ];
 
 const footerNavItems: NavItem[] = [

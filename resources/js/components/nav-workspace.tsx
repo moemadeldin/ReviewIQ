@@ -7,6 +7,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import {
     SidebarMenu,
     SidebarMenuButton,
@@ -29,31 +30,45 @@ export function NavWorkspace() {
         <SidebarMenu>
             <SidebarMenuItem>
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuButton
-                            size="lg"
-                            className="group text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent"
-                            data-test="workspace-switcher-button"
+                    <div className="flex w-full items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => window.location.href = '/workspaces'}
+                            className="flex-1"
                         >
-                            <div className="flex size-6 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-                                <span className="text-xs font-bold">
-                                    {auth.currentWorkspace.name
-                                        .charAt(0)
-                                        .toUpperCase()}
-                                </span>
-                            </div>
-                            <div className="grid flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-semibold">
-                                    {auth.currentWorkspace.name}
-                                </span>
-                                <span className="truncate text-xs text-muted-foreground">
-                                    {auth.currentWorkspace.pivot?.role ??
-                                        'member'}
-                                </span>
-                            </div>
-                            <ChevronsUpDown className="ml-auto size-4" />
-                        </SidebarMenuButton>
-                    </DropdownMenuTrigger>
+                            <SidebarMenuButton
+                                size="lg"
+                                className="group w-full justify-start text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent"
+                                data-test="workspace-switcher-button"
+                            >
+                                <div className="flex size-6 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
+                                    <span className="text-xs font-bold">
+                                        {auth.currentWorkspace.name
+                                            .charAt(0)
+                                            .toUpperCase()}
+                                    </span>
+                                </div>
+                                <div className="grid flex-1 text-left text-sm leading-tight">
+                                    <span className="truncate font-semibold">
+                                        {auth.currentWorkspace.name}
+                                    </span>
+                                    <span className="truncate text-xs text-muted-foreground">
+                                        {auth.currentWorkspace.pivot?.role ??
+                                            'member'}
+                                    </span>
+                                </div>
+                            </SidebarMenuButton>
+                        </button>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 shrink-0"
+                            >
+                                <ChevronsUpDown className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                    </div>
                     <DropdownMenuContent
                         className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
                         align="start"
