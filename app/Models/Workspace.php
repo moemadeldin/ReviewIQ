@@ -1,0 +1,88 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use Carbon\CarbonInterface;
+use Database\Factories\WorkspaceFactory;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\Pivot;
+
+/**
+ * @property-read string $id
+ * @property-read string $name
+ * @property-read string $slug
+ * @property-read string $owner_id
+ * @property-read CarbonInterface $created_at
+ * @property-read CarbonInterface $updated_at
+ */
+final class Workspace extends Model
+{
+    /** @use HasFactory<WorkspaceFactory> */
+    use HasFactory;
+
+    use HasUuids;
+
+    public static function slugFromName(string $name): string
+    {
+        return str($name)->slug()->toString();
+    }
+
+    /**
+     * @return BelongsTo<User, Workspace>
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /**
+     * @return BelongsToMany<User, Workspace, Pivot>
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'workspace_users')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    public function addUser(User $user, string $role = 'member'): void
+    {
+        $this->users()->syncWithoutDetaching([
+            $user->id => ['role' => $role],
+        ]);
+    }
+
+    public function roleOf(User $user): ?string
+    {
+        $membership = $this->users()->where('user_id', $user->id)->first();
+
+        if ($membership === null) {
+            return null;
+        }
+
+        $pivot = $membership->pivot;
+
+        return (string) $pivot->role;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function casts(): array
+    {
+        return [
+            'id' => 'string',
+            'name' => 'string',
+            'slug' => 'string',
+            'owner_id' => 'string',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
+    }
+}
