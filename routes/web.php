@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\GitHubController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserEmailResetNotificationController;
@@ -51,6 +52,10 @@ Route::middleware('auth')->group(function (): void {
 });
 
 Route::middleware('guest')->group(function (): void {
+    // GitHub OAuth...
+    Route::get('auth/github', [GitHubController::class, 'redirect'])->name('auth.github');
+    Route::get('auth/github/callback', [GitHubController::class, 'callback'])->name('auth.github.callback');
+
     // User...
     Route::get('register', [UserController::class, 'create'])
         ->name('register');

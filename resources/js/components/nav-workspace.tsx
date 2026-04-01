@@ -1,5 +1,6 @@
 import { Form, Link, usePage } from '@inertiajs/react';
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -7,7 +8,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import {
     SidebarMenu,
     SidebarMenuButton,
@@ -33,7 +33,9 @@ export function NavWorkspace() {
                     <div className="flex w-full items-center gap-2">
                         <button
                             type="button"
-                            onClick={() => window.location.href = '/workspaces'}
+                            onClick={() =>
+                                (window.location.href = '/workspaces')
+                            }
                             className="flex-1"
                         >
                             <SidebarMenuButton

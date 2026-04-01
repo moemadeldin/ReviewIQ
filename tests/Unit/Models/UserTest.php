@@ -14,6 +14,8 @@ test('to array', function (): void {
             'email',
             'email_verified_at',
             'two_factor_confirmed_at',
+            'github_id',
+            'github_avatar',
             'created_at',
             'updated_at',
         ]);
