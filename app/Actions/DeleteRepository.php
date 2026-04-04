@@ -9,7 +9,7 @@ use App\Models\Workspace;
 use App\Services\GitHubApiService;
 use Illuminate\Support\Facades\Auth;
 
-final readonly class DeleteRepositoryAction
+final readonly class DeleteRepository
 {
     public function __construct(private GitHubApiService $github) {}
 
@@ -22,9 +22,7 @@ final readonly class DeleteRepositoryAction
             ->where('full_name', $fullName)
             ->first();
 
-        if (! $repository) {
-            abort(404, 'Repository not found');
-        }
+        abort_unless($repository, 404, 'Repository not found');
 
         if ($repository->webhook_id) {
             $this->github->deleteWebhook($user->github_token, $fullName, $repository->webhook_id);

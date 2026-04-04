@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 
 final readonly class GitHubApiService
 {
-    private const BASE_URL = 'https://api.github.com';
+    private const string BASE_URL = 'https://api.github.com';
 
     public function getUserRepos(string $token, int $perPage = 100): array
     {

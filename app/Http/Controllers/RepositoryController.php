@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Actions\DeleteRepositoryAction;
-use App\Actions\StoreRepositoryAction;
+use App\Actions\AttachRepository;
+use App\Actions\DeleteRepository;
 use App\Models\Workspace;
 use App\Queries\GetRepositoriesData;
 use App\Traits\APIResponses;
@@ -34,7 +34,7 @@ final readonly class RepositoryController
         return $this->success($data, 'ok');
     }
 
-    public function store(Request $request, StoreRepositoryAction $action, string $fullName): JsonResponse|Response
+    public function store(Request $request, AttachRepository $action, string $fullName): JsonResponse|Response
     {
         $workspace = $request->attributes->get('currentWorkspace');
 
@@ -47,7 +47,7 @@ final readonly class RepositoryController
         return $this->success(['repository' => $repository], 'Repository connected');
     }
 
-    public function destroy(Request $request, DeleteRepositoryAction $action, string $fullName): JsonResponse|Response
+    public function destroy(Request $request, DeleteRepository $action, string $fullName): JsonResponse|Response
     {
         $workspace = $request->attributes->get('currentWorkspace');
 

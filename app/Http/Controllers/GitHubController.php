@@ -20,7 +20,9 @@ final readonly class GitHubController
     public function callback(): RedirectResponse
     {
         $githubUser = Socialite::driver('github')->user();
-        $user = User::query()->where('email', $githubUser->email)->first();
+        $user = User::query()
+            ->where('email', $githubUser->email)
+            ->first();
         if ($user === null) {
             $user = User::query()->create([
                 'name' => $githubUser->name ?? $githubUser->nickname,

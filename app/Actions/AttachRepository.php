@@ -9,7 +9,7 @@ use App\Models\Workspace;
 use App\Services\GitHubApiService;
 use Illuminate\Support\Facades\Auth;
 
-final readonly class StoreRepositoryAction
+final readonly class AttachRepository
 {
     public function __construct(private GitHubApiService $github) {}
 
@@ -20,9 +20,7 @@ final readonly class StoreRepositoryAction
         $githubRepos = $this->github->getUserRepos($user->github_token);
         $repoData = collect($githubRepos)->firstWhere('full_name', $fullName);
 
-        if (! $repoData) {
-            abort(404, 'Repository not found');
-        }
+        abort_unless($repoData, 404, 'Repository not found');
 
         $webhookId = $this->github->registerWebhook($user->github_token, $fullName);
 

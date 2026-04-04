@@ -27,6 +27,7 @@ it('creates user from github oauth', function (): void {
             'nickname' => 'testuser',
             'email' => 'test@example.com',
             'avatar' => 'https://example.com/avatar.jpg',
+            'token' => 'mock-token',
         ]);
 
     $response = $this->get(route('auth.github.callback'));
@@ -61,6 +62,7 @@ it('updates existing user with github info', function (): void {
             'nickname' => 'existinguser',
             'email' => 'existing@example.com',
             'avatar' => 'https://example.com/new-avatar.jpg',
+            'token' => 'mock-token',
         ]);
 
     $response = $this->get(route('auth.github.callback'));
@@ -93,6 +95,7 @@ it('logs in existing user without github info', function (): void {
             'nickname' => 'nogithub',
             'email' => 'no-github@example.com',
             'avatar' => 'https://example.com/avatar.jpg',
+            'token' => 'mock-token',
         ]);
 
     $response = $this->get(route('auth.github.callback'));

@@ -2,8 +2,8 @@ import { Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Spinner } from '@/components/ui/spinner';
-import { cn } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import type { Auth, BreadcrumbItem } from '@/types';
 
 interface GitHubRepo {
@@ -45,7 +45,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Index() {
     const { auth } = usePage<{ auth: Auth }>().props;
     const [repos, setRepos] = useState<GitHubRepo[]>([]);
-    const [connectedRepos, setConnectedRepos] = useState<Record<string, ConnectedRepo>>({});
+    const [connectedRepos, setConnectedRepos] = useState<
+        Record<string, ConnectedRepo>
+    >({});
     const [loading, setLoading] = useState(true);
     const [toggling, setToggling] = useState<Record<string, boolean>>({});
 
@@ -92,7 +94,8 @@ export default function Index() {
                 });
 
                 if (res.ok) {
-                    const data: { data: { repository: ConnectedRepo } } = await res.json();
+                    const data: { data: { repository: ConnectedRepo } } =
+                        await res.json();
                     setConnectedRepos((prev) => ({
                         ...prev,
                         [repo.full_name]: {
@@ -127,9 +130,12 @@ export default function Index() {
 
                 {!isGitHubConnected ? (
                     <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
-                        <p className="font-medium">Connect your GitHub account</p>
+                        <p className="font-medium">
+                            Connect your GitHub account
+                        </p>
                         <p className="mt-1 text-sm">
-                            Sign in with GitHub to see and manage your repositories.
+                            Sign in with GitHub to see and manage your
+                            repositories.
                         </p>
                         <a
                             href="/auth/github"
@@ -145,8 +151,8 @@ export default function Index() {
                 ) : repos.length === 0 ? (
                     <div className="rounded-lg border p-4 text-center">
                         <p className="text-muted-foreground">
-                            No repositories found. Make sure your GitHub account has access to
-                            repositories.
+                            No repositories found. Make sure your GitHub account
+                            has access to repositories.
                         </p>
                     </div>
                 ) : (
@@ -154,24 +160,35 @@ export default function Index() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b bg-muted/50 text-left">
-                                    <th className="px-4 py-3 text-sm font-medium">Repository</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Language</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Status</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Toggle</th>
+                                    <th className="px-4 py-3 text-sm font-medium">
+                                        Repository
+                                    </th>
+                                    <th className="px-4 py-3 text-sm font-medium">
+                                        Language
+                                    </th>
+                                    <th className="px-4 py-3 text-sm font-medium">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-3 text-sm font-medium">
+                                        Toggle
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {repos.map((repo) => {
-                                    const connected = connectedRepos[repo.full_name];
-                                    const isActive = connected?.is_active ?? false;
-                                    const isToggling = toggling[repo.full_name] ?? false;
+                                    const connected =
+                                        connectedRepos[repo.full_name];
+                                    const isActive =
+                                        connected?.is_active ?? false;
+                                    const isToggling =
+                                        toggling[repo.full_name] ?? false;
 
                                     return (
                                         <tr
                                             key={repo.full_name}
                                             className={cn(
                                                 'border-b transition-colors',
-                                                isActive && 'bg-green-50/50'
+                                                isActive && 'bg-green-50/50',
                                             )}
                                         >
                                             <td className="px-4 py-3">
@@ -194,7 +211,9 @@ export default function Index() {
                                                     {repo.full_name}
                                                 </p>
                                             </td>
-                                            <td className="px-4 py-3 text-sm">{repo.language ?? '-'}</td>
+                                            <td className="px-4 py-3 text-sm">
+                                                {repo.language ?? '-'}
+                                            </td>
                                             <td className="px-4 py-3">
                                                 {isActive ? (
                                                     <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
@@ -208,13 +227,15 @@ export default function Index() {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <button
-                                                    onClick={() => handleToggle(repo)}
+                                                    onClick={() =>
+                                                        handleToggle(repo)
+                                                    }
                                                     disabled={isToggling}
                                                     className={cn(
-                                                        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                                                        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                                                         isActive
                                                             ? 'bg-green-600'
-                                                            : 'bg-muted'
+                                                            : 'bg-muted',
                                                     )}
                                                 >
                                                     <span
@@ -222,7 +243,7 @@ export default function Index() {
                                                             'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform',
                                                             isActive
                                                                 ? 'translate-x-5'
-                                                                : 'translate-x-0'
+                                                                : 'translate-x-0',
                                                         )}
                                                     />
                                                     {isToggling && (
@@ -245,5 +266,9 @@ export default function Index() {
 }
 
 function csrfToken(): string {
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+    return (
+        document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content') ?? ''
+    );
 }
