@@ -21,6 +21,7 @@ return new class extends Migration
             $table->timestamp('two_factor_confirmed_at')->nullable();
             $table->string('github_id')->nullable()->unique();
             $table->string('github_avatar')->nullable();
+            $table->string('github_token')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

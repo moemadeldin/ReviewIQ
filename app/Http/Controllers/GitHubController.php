@@ -27,12 +27,14 @@ final readonly class GitHubController
                 'email' => $githubUser->email,
                 'github_id' => $githubUser->id,
                 'github_avatar' => $githubUser->avatar,
+                'github_token' => $githubUser->token,
                 'email_verified_at' => now(),
             ]);
         } else {
             $user->update([
                 'github_id' => $githubUser->id,
                 'github_avatar' => $githubUser->avatar,
+                'github_token' => $githubUser->token,
             ]);
         }
 

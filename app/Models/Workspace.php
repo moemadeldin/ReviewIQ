@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
@@ -49,6 +50,14 @@ final class Workspace extends Model
         return $this->belongsToMany(User::class, 'workspace_users')
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<Repository>
+     */
+    public function repositories(): HasMany
+    {
+        return $this->hasMany(Repository::class);
     }
 
     public function addUser(User $user, string $role = 'member'): void

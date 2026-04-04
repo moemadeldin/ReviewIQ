@@ -26,6 +26,12 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('workspaces/create', [WorkspaceController::class, 'create'])->name('workspaces.create');
     Route::post('workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
     Route::post('workspaces/{workspace}/select', WorkspaceSwitchController::class)->name('workspaces.select');
+
+    // Repositories...
+    Route::get('repos', fn () => Inertia::render('repos/index'))->name('repos.index');
+    Route::get('repos/data', [RepositoryController::class, 'index'])->name('repos.data');
+    Route::post('repos/{fullName}', [RepositoryController::class, 'store'])->name('repos.store');
+    Route::delete('repos/{fullName}', [RepositoryController::class, 'destroy'])->name('repos.destroy');
 });
 
 Route::middleware('auth')->group(function (): void {
