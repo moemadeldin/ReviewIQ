@@ -23,8 +23,18 @@ final readonly class GitHubApiService
             ]);
 
         $response->throw();
+        \Log::info('GitHub repos response', [
+            'status' => $response->status(),
+            'count' => count($response->json()),
+            'body' => $response->body(),
+        ]);
+        $data = $response->json();
 
-        return $response->json();
+        \Log::info('GitHub repos', [
+    'count' => count($data),
+    'first' => $data[0] ?? 'empty',
+]);
+return $data;
     }
 
     public function registerWebhook(string $token, string $fullName): string

@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Heading from '@/components/heading';
 import { Spinner } from '@/components/ui/spinner';
 import AppLayout from '@/layouts/app-layout';
@@ -53,18 +53,22 @@ export default function Index() {
 
     const isGitHubConnected = !!auth.user.github_token;
 
-    if (isGitHubConnected && repos.length === 0 && loading) {
+    useEffect(() => {
+        if (!isGitHubConnected) {
+            setLoading(false);
+            return;
+        }
+
         fetch('/repos/data')
             .then((res) => res.json())
             .then((data: RepositoryPageProps) => {
+                console.log('API Response:', data)
                 setRepos(data.data.repositories || []);
                 setConnectedRepos(data.data.connected_repos || {});
-                setLoading(false);
             })
-            .catch(() => {
-                setLoading(false);
-            });
-    }
+            .catch(() => { })
+            .finally(() => setLoading(false));
+    }, []);
 
     const handleToggle = async (repo: GitHubRepo) => {
         const isConnected = !!connectedRepos[repo.full_name]?.is_active;

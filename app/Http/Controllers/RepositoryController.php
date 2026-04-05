@@ -8,14 +8,14 @@ use App\Actions\AttachRepository;
 use App\Actions\DeleteRepository;
 use App\Models\Workspace;
 use App\Queries\GetRepositoriesData;
-use App\Traits\APIResponses;
+use App\Traits\APIResponder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 final readonly class RepositoryController
 {
-    use APIResponses;
+    use APIResponder;
 
     public function __construct(
         private GetRepositoriesData $getRepositoriesData,
@@ -23,7 +23,7 @@ final readonly class RepositoryController
 
     public function index(Request $request): JsonResponse
     {
-        $workspace = $request->attributes->get('currentWorkspace');
+        $workspace = $request->attributes->get('current_workspace');
 
         if (! $workspace instanceof Workspace) {
             return $this->success(['repositories' => [], 'connected_repos' => []], 'ok');

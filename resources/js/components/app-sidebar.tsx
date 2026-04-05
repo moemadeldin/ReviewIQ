@@ -29,6 +29,11 @@ const mainNavItems: NavItem[] = [
         href: '/workspaces',
         icon: LayoutGrid,
     },
+    {
+        title: 'Repositories',
+        href: '/repos',
+        icon: LayoutGrid,
+    },
 ];
 
 export function AppSidebar() {

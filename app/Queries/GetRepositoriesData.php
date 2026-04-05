@@ -27,7 +27,11 @@ final readonly class GetRepositoriesData
             ->where('workspace_id', $workspace->id)
             ->get()
             ->keyBy('full_name');
-
+        \Log::info('GetRepositoriesData called', [
+            'user_id' => $user->id,
+            'has_token' => !!$user->github_token,
+            'workspace_id' => $workspace->id,
+        ]);
         return [
             'repositories' => $githubRepos,
             'connected_repos' => $connectedRepos,

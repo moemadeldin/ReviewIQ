@@ -7,7 +7,7 @@ namespace App\Traits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 
-trait APIResponses
+trait APIResponder
 {
     /**
      * @param  array<string, mixed>|object  $data

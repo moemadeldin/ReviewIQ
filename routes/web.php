@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\GitHubController;
+use App\Http\Controllers\RepositoryController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserEmailResetNotificationController;
