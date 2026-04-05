@@ -4,37 +4,35 @@ declare(strict_types=1);
 
 namespace App\Queries;
 
+use App\Contracts\GitHubApi;
 use App\Models\Repository;
+use App\Models\User;
 use App\Models\Workspace;
-use App\Services\GitHubApiService;
-use Illuminate\Support\Facades\Auth;
 
 final readonly class GetRepositoriesData
 {
-    public function __construct(private GitHubApiService $github) {}
+    public function __construct(private GitHubApi $github) {}
 
-    public function handle(Workspace $workspace): array
+    public function handle(User $user, Workspace $workspace, int $page = 1): array
     {
-        $user = Auth::user();
-
         if (! $user?->github_token) {
-            return ['repositories' => [], 'connected_repos' => []];
+            return ['repositories' => [], 'connected_repos' => [], 'has_more' => false];
         }
 
-        $githubRepos = $this->github->getUserRepos($user->github_token);
+        $githubRepos = $this->github->getUserRepos($user->github_token, $page);
 
         $connectedRepos = Repository::query()
             ->where('workspace_id', $workspace->id)
             ->get()
             ->keyBy('full_name');
-        \Log::info('GetRepositoriesData called', [
-            'user_id' => $user->id,
-            'has_token' => !!$user->github_token,
-            'workspace_id' => $workspace->id,
-        ]);
+
+        $hasMore = count($githubRepos) === 10;
+
         return [
             'repositories' => $githubRepos,
             'connected_repos' => $connectedRepos,
+            'has_more' => $hasMore,
+            'current_page' => $page,
         ];
     }
 }

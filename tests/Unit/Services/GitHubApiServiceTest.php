@@ -33,19 +33,19 @@ it('gets user repositories', function (): void {
         ->and($repos[1]['full_name'])->toBe('test/repo2');
 
     Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer test-token')
-        && $request->url() === 'https://api.github.com/user/repos?per_page=100&sort=updated');
+        && $request->url() === 'https://api.github.com/user/repos?page=1&per_page=10&sort=updated');
 });
 
 it('registers webhook and returns webhook id', function (): void {
     Http::fake([
         'https://api.github.com/repos/test/repo/hooks' => Http::response([
-            'id' => 'webhook_123',
+            'id' => 123,
         ], 201),
     ]);
 
     $webhookId = $this->github->registerWebhook('test-token', 'test/repo');
 
-    expect($webhookId)->toBe('webhook_123');
+    expect($webhookId)->toBe(123);
 
     Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer test-token')
         && $request->method() === 'POST'

@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Contracts\GitHubApi;
 use App\Models\Repository;
+use App\Models\User;
 use App\Models\Workspace;
-use App\Services\GitHubApiService;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 
 final readonly class DeleteRepository
 {
-    public function __construct(private GitHubApiService $github) {}
+    public function __construct(private GitHubApi $github) {}
 
-    public function handle(Workspace $workspace, string $fullName): void
+    public function handle(Workspace $workspace, User $user, string $fullName): void
     {
-        $user = Auth::user();
 
         $repository = Repository::query()
             ->where('workspace_id', $workspace->id)

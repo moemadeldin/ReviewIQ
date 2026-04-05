@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\GitHubApi;
 use Illuminate\Support\Facades\Http;
 
-final readonly class GitHubApiService
+final readonly class GitHubApiService implements GitHubApi
 {
     private const string BASE_URL = 'https://api.github.com';
 
-    public function getUserRepos(string $token, int $perPage = 100): array
+    public function getUserRepos(string $token, int $page = 1, int $perPage = 10): array
     {
         $response = Http::withToken($token)
             ->withHeaders([
@@ -18,26 +19,17 @@ final readonly class GitHubApiService
                 'X-GitHub-Api-Version' => '2022-11-28',
             ])
             ->get(self::BASE_URL.'/user/repos', [
+                'page' => $page,
                 'per_page' => $perPage,
                 'sort' => 'updated',
             ]);
 
         $response->throw();
-        \Log::info('GitHub repos response', [
-            'status' => $response->status(),
-            'count' => count($response->json()),
-            'body' => $response->body(),
-        ]);
-        $data = $response->json();
 
-        \Log::info('GitHub repos', [
-    'count' => count($data),
-    'first' => $data[0] ?? 'empty',
-]);
-return $data;
+        return $response->json();
     }
 
-    public function registerWebhook(string $token, string $fullName): string
+    public function registerWebhook(string $token, string $fullName): int
     {
         $response = Http::withToken($token)
             ->withHeaders([
@@ -55,7 +47,7 @@ return $data;
 
         $response->throw();
 
-        return (string) $response->json('id');
+        return (int) $response->json('id');
     }
 
     public function deleteWebhook(string $token, string $fullName, string $webhookId): void

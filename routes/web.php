@@ -31,8 +31,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     // Repositories...
     Route::get('repos', fn () => Inertia::render('repos/index'))->name('repos.index');
     Route::get('repos/data', [RepositoryController::class, 'index'])->name('repos.data');
-    Route::post('repos/{fullName}', [RepositoryController::class, 'store'])->name('repos.store');
-    Route::delete('repos/{fullName}', [RepositoryController::class, 'destroy'])->name('repos.destroy');
+    Route::post('repos/{fullName}', [RepositoryController::class, 'store'])->name('repos.store')->where('fullName', '.+');
+    Route::delete('repos/{fullName}', [RepositoryController::class, 'destroy'])->name('repos.destroy')->where('fullName', '.+');
 });
 
 Route::middleware('auth')->group(function (): void {

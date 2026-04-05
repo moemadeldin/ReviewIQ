@@ -17,9 +17,13 @@ export default function Register() {
             <Head title="Register" />
 
             <div className="grid gap-6">
-                <Button variant="outline" className="w-full cursor-pointer" onClick={() => {
-                    window.location.href = "/auth/github";
-                }}>
+                <Button
+                    variant="outline"
+                    className="w-full cursor-pointer"
+                    onClick={() => {
+                        window.location.href = '/auth/github';
+                    }}
+                >
                     <svg
                         className="mr-2 h-5 w-5"
                         viewBox="0 0 24 24"

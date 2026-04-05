@@ -32,6 +32,8 @@ interface RepositoryPageProps {
     data: {
         repositories: GitHubRepo[];
         connected_repos: Record<string, ConnectedRepo>;
+        has_more: boolean;
+        current_page: number;
     };
 }
 
@@ -50,8 +52,24 @@ export default function Index() {
     >({});
     const [loading, setLoading] = useState(true);
     const [toggling, setToggling] = useState<Record<string, boolean>>({});
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
 
     const isGitHubConnected = !!auth.user.github_token;
+
+    const fetchRepos = (pageNum: number) => {
+        setLoading(true);
+        fetch(`/repos/data?page=${pageNum}`)
+            .then((res) => res.json())
+            .then((data: RepositoryPageProps) => {
+                setRepos(data.data.repositories || []);
+                setConnectedRepos(data.data.connected_repos || {});
+                setHasMore(data.data.has_more ?? false);
+                setPage(data.data.current_page ?? pageNum);
+            })
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    };
 
     useEffect(() => {
         if (!isGitHubConnected) {
@@ -59,16 +77,20 @@ export default function Index() {
             return;
         }
 
-        fetch('/repos/data')
-            .then((res) => res.json())
-            .then((data: RepositoryPageProps) => {
-                console.log('API Response:', data)
-                setRepos(data.data.repositories || []);
-                setConnectedRepos(data.data.connected_repos || {});
-            })
-            .catch(() => { })
-            .finally(() => setLoading(false));
+        fetchRepos(1);
     }, []);
+
+    const prevPage = () => {
+        if (page > 1) {
+            fetchRepos(page - 1);
+        }
+    };
+
+    const nextPage = () => {
+        if (hasMore) {
+            fetchRepos(page + 1);
+        }
+    };
 
     const handleToggle = async (repo: GitHubRepo) => {
         const isConnected = !!connectedRepos[repo.full_name]?.is_active;
@@ -160,109 +182,142 @@ export default function Index() {
                         </p>
                     </div>
                 ) : (
-                    <div className="rounded-md border">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b bg-muted/50 text-left">
-                                    <th className="px-4 py-3 text-sm font-medium">
-                                        Repository
-                                    </th>
-                                    <th className="px-4 py-3 text-sm font-medium">
-                                        Language
-                                    </th>
-                                    <th className="px-4 py-3 text-sm font-medium">
-                                        Status
-                                    </th>
-                                    <th className="px-4 py-3 text-sm font-medium">
-                                        Toggle
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {repos.map((repo) => {
-                                    const connected =
-                                        connectedRepos[repo.full_name];
-                                    const isActive =
-                                        connected?.is_active ?? false;
-                                    const isToggling =
-                                        toggling[repo.full_name] ?? false;
+                    <>
+                        <div className="rounded-md border">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b bg-muted/50 text-left">
+                                        <th className="px-4 py-3 text-sm font-medium">
+                                            Repository
+                                        </th>
+                                        <th className="px-4 py-3 text-sm font-medium">
+                                            Language
+                                        </th>
+                                        <th className="px-4 py-3 text-sm font-medium">
+                                            Status
+                                        </th>
+                                        <th className="px-4 py-3 text-sm font-medium">
+                                            Toggle
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {repos.map((repo) => {
+                                        const connected =
+                                            connectedRepos[repo.full_name];
+                                        const isActive =
+                                            connected?.is_active ?? false;
+                                        const isToggling =
+                                            toggling[repo.full_name] ?? false;
 
-                                    return (
-                                        <tr
-                                            key={repo.full_name}
-                                            className={cn(
-                                                'border-b transition-colors',
-                                                isActive && 'bg-green-50/50',
-                                            )}
-                                        >
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center gap-2">
-                                                    <a
-                                                        href={repo.html_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="font-medium hover:underline"
-                                                    >
-                                                        {repo.name}
-                                                    </a>
-                                                    {repo.private && (
-                                                        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                                                            Private
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {repo.full_name}
-                                                </p>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm">
-                                                {repo.language ?? '-'}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                {isActive ? (
-                                                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                                                        Active
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-sm text-muted-foreground">
-                                                        Inactive
-                                                    </span>
+                                        return (
+                                            <tr
+                                                key={repo.full_name}
+                                                className={cn(
+                                                    'border-b transition-colors',
+                                                    isActive &&
+                                                        'bg-green-50/50',
                                                 )}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <button
-                                                    onClick={() =>
-                                                        handleToggle(repo)
-                                                    }
-                                                    disabled={isToggling}
-                                                    className={cn(
-                                                        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
-                                                        isActive
-                                                            ? 'bg-green-600'
-                                                            : 'bg-muted',
-                                                    )}
-                                                >
-                                                    <span
-                                                        className={cn(
-                                                            'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform',
-                                                            isActive
-                                                                ? 'translate-x-5'
-                                                                : 'translate-x-0',
+                                            >
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <a
+                                                            href={repo.html_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="font-medium hover:underline"
+                                                        >
+                                                            {repo.name}
+                                                        </a>
+                                                        {repo.private && (
+                                                            <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                                                                Private
+                                                            </span>
                                                         )}
-                                                    />
-                                                    {isToggling && (
-                                                        <span className="absolute inset-0 flex items-center justify-center">
-                                                            <Spinner className="size-3 text-white" />
+                                                    </div>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {repo.full_name}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm">
+                                                    {repo.language ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {isActive ? (
+                                                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                                            Active
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-sm text-muted-foreground">
+                                                            Inactive
                                                         </span>
                                                     )}
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <button
+                                                        onClick={() =>
+                                                            handleToggle(repo)
+                                                        }
+                                                        disabled={isToggling}
+                                                        className={cn(
+                                                            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
+                                                            isActive
+                                                                ? 'bg-green-600'
+                                                                : 'bg-muted',
+                                                        )}
+                                                    >
+                                                        <span
+                                                            className={cn(
+                                                                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform',
+                                                                isActive
+                                                                    ? 'translate-x-5'
+                                                                    : 'translate-x-0',
+                                                            )}
+                                                        />
+                                                        {isToggling && (
+                                                            <span className="absolute inset-0 flex items-center justify-center">
+                                                                <Spinner className="size-3 text-white" />
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <button
+                                onClick={prevPage}
+                                disabled={page <= 1}
+                                className={cn(
+                                    'inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors',
+                                    page <= 1
+                                        ? 'cursor-not-allowed opacity-50'
+                                        : 'hover:bg-muted',
+                                )}
+                            >
+                                Previous
+                            </button>
+                            <span className="text-sm text-muted-foreground">
+                                Page {page}
+                            </span>
+                            <button
+                                onClick={nextPage}
+                                disabled={!hasMore}
+                                className={cn(
+                                    'inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors',
+                                    !hasMore
+                                        ? 'cursor-not-allowed opacity-50'
+                                        : 'hover:bg-muted',
+                                )}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </>
                 )}
             </div>
         </AppLayout>
