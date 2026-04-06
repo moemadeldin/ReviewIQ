@@ -1,12 +1,10 @@
 import { Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -15,6 +13,14 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Workspace } from '@/types';
 
@@ -30,6 +36,7 @@ interface Member {
 interface MembersPageProps {
     workspace: Workspace;
     userRole: string;
+    [key: string]: unknown;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -57,11 +64,14 @@ export default function Members() {
     const fetchMembers = async (pageNum: number) => {
         setLoading(true);
         try {
-            const response = await fetch(`/workspaces/${workspace.slug}/members/data?page=${pageNum}`, {
-                headers: {
-                    'Accept': 'application/json',
+            const response = await fetch(
+                `/workspaces/${workspace.slug}/members/data?page=${pageNum}`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                    },
                 },
-            });
+            );
             const result = await response.json();
             if (result.status === 'Success') {
                 setMembers(result.data.members);
@@ -81,18 +91,26 @@ export default function Members() {
 
         setInviting(true);
         try {
-            const response = await fetch(`/workspaces/${workspace.slug}/invitations`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+            const response = await fetch(
+                `/workspaces/${workspace.slug}/invitations`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN':
+                            (
+                                document.querySelector(
+                                    'meta[name="csrf-token"]',
+                                ) as HTMLMetaElement
+                            )?.content || '',
+                    },
+                    body: JSON.stringify({
+                        email: inviteEmail,
+                        role: inviteRole,
+                    }),
                 },
-                body: JSON.stringify({
-                    email: inviteEmail,
-                    role: inviteRole,
-                }),
-            });
+            );
 
             const result = await response.json();
 
@@ -117,13 +135,21 @@ export default function Members() {
 
         setRemoving(userId);
         try {
-            const response = await fetch(`/workspaces/${workspace.slug}/members/${userId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+            const response = await fetch(
+                `/workspaces/${workspace.slug}/members/${userId}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN':
+                            (
+                                document.querySelector(
+                                    'meta[name="csrf-token"]',
+                                ) as HTMLMetaElement
+                            )?.content || '',
+                    },
                 },
-            });
+            );
 
             const result = await response.json();
 
@@ -142,13 +168,13 @@ export default function Members() {
 
     const prevPage = () => {
         if (page > 1) {
-            fetchMembers(page - 1);
+            void fetchMembers(page - 1);
         }
     };
 
     const nextPage = () => {
         if (hasMore) {
-            fetchMembers(page + 1);
+            void fetchMembers(page + 1);
         }
     };
 
@@ -175,7 +201,10 @@ export default function Members() {
                         description={`${members.length} member${members.length !== 1 ? 's' : ''} in ${workspace.name}`}
                     />
                     {canInvite && (
-                        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                        <Dialog
+                            open={isModalOpen}
+                            onOpenChange={setIsModalOpen}
+                        >
                             <DialogTrigger asChild>
                                 <Button>Invite Member</Button>
                             </DialogTrigger>
@@ -183,34 +212,58 @@ export default function Members() {
                                 <DialogHeader>
                                     <DialogTitle>Invite Member</DialogTitle>
                                     <DialogDescription>
-                                        Send an invitation to join {workspace.name}
+                                        Send an invitation to join{' '}
+                                        {workspace.name}
                                     </DialogDescription>
                                 </DialogHeader>
-                                <form onSubmit={handleInvite} className="space-y-4">
+                                <form
+                                    onSubmit={handleInvite}
+                                    className="space-y-4"
+                                >
                                     <div>
                                         <Input
                                             type="email"
                                             placeholder="Email address"
                                             value={inviteEmail}
-                                            onChange={(e) => setInviteEmail(e.target.value)}
+                                            onChange={(e) =>
+                                                setInviteEmail(e.target.value)
+                                            }
                                             required
                                         />
                                     </div>
-                                    <Select value={inviteRole} onValueChange={setInviteRole}>
+                                    <Select
+                                        value={inviteRole}
+                                        onValueChange={setInviteRole}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="admin">Admin</SelectItem>
-                                            <SelectItem value="member">Member</SelectItem>
+                                            <SelectItem value="admin">
+                                                Admin
+                                            </SelectItem>
+                                            <SelectItem value="member">
+                                                Member
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <div className="flex justify-end gap-2">
-                                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setIsModalOpen(false)
+                                            }
+                                        >
                                             Cancel
                                         </Button>
-                                        <Button type="submit" disabled={inviting || !inviteEmail}>
-                                            {inviting ? 'Sending...' : 'Send Invite'}
+                                        <Button
+                                            type="submit"
+                                            disabled={inviting || !inviteEmail}
+                                        >
+                                            {inviting
+                                                ? 'Sending...'
+                                                : 'Send Invite'}
                                         </Button>
                                     </div>
                                 </form>
@@ -226,7 +279,7 @@ export default function Members() {
                                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
                             </div>
                         ) : members.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
+                            <div className="py-8 text-center text-muted-foreground">
                                 No members found
                             </div>
                         ) : (
@@ -235,47 +288,88 @@ export default function Members() {
                                     <table className="w-full">
                                         <thead>
                                             <tr className="border-b bg-muted/50 text-left">
-                                                <th className="px-4 py-3 text-sm font-medium">Member</th>
-                                                <th className="px-4 py-3 text-sm font-medium">Role</th>
-                                                <th className="px-4 py-3 text-sm font-medium">Joined</th>
-                                                {isOwner && <th className="px-4 py-3 text-sm font-medium text-right">Actions</th>}
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Member
+                                                </th>
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Role
+                                                </th>
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Joined
+                                                </th>
+                                                {isOwner && (
+                                                    <th className="px-4 py-3 text-right text-sm font-medium">
+                                                        Actions
+                                                    </th>
+                                                )}
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {members.map((member) => (
-                                                <tr key={member.id} className="border-b">
+                                                <tr
+                                                    key={member.id}
+                                                    className="border-b"
+                                                >
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center gap-3">
                                                             <Avatar>
-                                                                <AvatarImage src={member.avatar || undefined} />
+                                                                <AvatarImage
+                                                                    src={
+                                                                        member.avatar ||
+                                                                        undefined
+                                                                    }
+                                                                />
                                                                 <AvatarFallback>
-                                                                    {member.name?.charAt(0) || '?'}
+                                                                    {member.name?.charAt(
+                                                                        0,
+                                                                    ) || '?'}
                                                                 </AvatarFallback>
                                                             </Avatar>
                                                             <div>
-                                                                <div className="font-medium">{member.name}</div>
+                                                                <div className="font-medium">
+                                                                    {
+                                                                        member.name
+                                                                    }
+                                                                </div>
                                                                 <div className="text-sm text-muted-foreground">
-                                                                    {member.email}
+                                                                    {
+                                                                        member.email
+                                                                    }
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <RoleBadge role={member.role} />
+                                                        <RoleBadge
+                                                            role={member.role}
+                                                        />
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-muted-foreground">
-                                                        {new Date(member.joined_at).toLocaleDateString()}
+                                                        {new Date(
+                                                            member.joined_at,
+                                                        ).toLocaleDateString()}
                                                     </td>
                                                     {isOwner && (
                                                         <td className="px-4 py-3 text-right">
-                                                            {member.role !== 'owner' && (
+                                                            {member.role !==
+                                                                'owner' && (
                                                                 <Button
                                                                     variant="destructive"
                                                                     size="sm"
-                                                                    onClick={() => handleRemove(member.id)}
-                                                                    disabled={removing === member.id}
+                                                                    onClick={() =>
+                                                                        handleRemove(
+                                                                            member.id,
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        removing ===
+                                                                        member.id
+                                                                    }
                                                                 >
-                                                                    {removing === member.id ? 'Removing...' : 'Remove'}
+                                                                    {removing ===
+                                                                    member.id
+                                                                        ? 'Removing...'
+                                                                        : 'Remove'}
                                                                 </Button>
                                                             )}
                                                         </td>
@@ -294,7 +388,9 @@ export default function Members() {
                                     >
                                         Previous
                                     </Button>
-                                    <span className="text-sm text-muted-foreground">Page {page}</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        Page {page}
+                                    </span>
                                     <Button
                                         variant="outline"
                                         onClick={nextPage}

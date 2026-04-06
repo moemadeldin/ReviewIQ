@@ -23,7 +23,7 @@ final readonly class WorkspaceInvitationController
         #[CurrentUser()] User $user,
         string $workspace,
     ): JsonResponse {
-        $workspaceModel = Workspace::where('slug', $workspace)->first();
+        $workspaceModel = Workspace::query()->where('slug', $workspace)->first();
 
         if (! $workspaceModel) {
             return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
@@ -38,7 +38,7 @@ final readonly class WorkspaceInvitationController
             ->orderBy('created_at', 'desc')
             ->simplePaginate($limit, page: $page);
 
-        $items = $invitations->getCollection()->map(fn ($invitation) => [
+        $items = $invitations->getCollection()->map(fn ($invitation): array => [
             'id' => $invitation->id,
             'email' => $invitation->email,
             'role' => $invitation->role,
@@ -59,7 +59,7 @@ final readonly class WorkspaceInvitationController
         string $workspace,
         CreateInvitationAction $action,
     ): JsonResponse {
-        $workspaceModel = Workspace::where('slug', $workspace)->first();
+        $workspaceModel = Workspace::query()->where('slug', $workspace)->first();
 
         if (! $workspaceModel) {
             return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
@@ -76,8 +76,8 @@ final readonly class WorkspaceInvitationController
                 $request->validated('email'),
                 $request->validated('role'),
             );
-        } catch (RuntimeException $e) {
-            return $this->fail($e->getMessage(), Response::HTTP_CONFLICT);
+        } catch (RuntimeException $runtimeException) {
+            return $this->fail($runtimeException->getMessage(), Response::HTTP_CONFLICT);
         }
 
         return $this->success([
@@ -90,7 +90,7 @@ final readonly class WorkspaceInvitationController
         string $workspace,
         string $invitation,
     ): JsonResponse {
-        $workspaceModel = Workspace::where('slug', $workspace)->first();
+        $workspaceModel = Workspace::query()->where('slug', $workspace)->first();
 
         if (! $workspaceModel) {
             return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
@@ -123,7 +123,7 @@ final readonly class WorkspaceInvitationController
         #[CurrentUser()] User $user,
         string $workspace,
     ): JsonResponse {
-        $workspaceModel = Workspace::where('slug', $workspace)->first();
+        $workspaceModel = Workspace::query()->where('slug', $workspace)->first();
 
         if (! $workspaceModel) {
             return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
@@ -133,10 +133,10 @@ final readonly class WorkspaceInvitationController
         $limit = 10;
 
         $members = $workspaceModel->users()
-            ->orderBy('workspace_users.created_at', 'desc')
+            ->latest('workspace_users.created_at')
             ->simplePaginate($limit, page: $page);
 
-        $items = $members->getCollection()->map(fn ($member) => [
+        $items = $members->getCollection()->map(fn ($member): array => [
             'id' => $member->id,
             'name' => $member->name,
             'email' => $member->email,

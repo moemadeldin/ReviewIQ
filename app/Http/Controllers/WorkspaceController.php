@@ -49,7 +49,7 @@ final readonly class WorkspaceController
 
     public function show(Request $request, string $workspace): Response
     {
-        $workspaceModel = Workspace::where('slug', $workspace)->firstOrFail();
+        $workspaceModel = Workspace::query()->where('slug', $workspace)->firstOrFail();
 
         return Inertia::render('workspaces/show', [
             'workspace' => $workspaceModel,

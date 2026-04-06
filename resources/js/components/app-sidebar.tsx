@@ -1,7 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { LayoutGrid, Building2, GitBranch } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { NavWorkspace } from '@/components/nav-workspace';

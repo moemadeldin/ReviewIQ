@@ -78,7 +78,7 @@ export default function Index() {
         }
 
         fetchRepos(1);
-    }, []);
+    }, [isGitHubConnected]);
 
     const prevPage = () => {
         if (page > 1) {

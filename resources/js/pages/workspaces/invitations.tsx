@@ -1,9 +1,9 @@
 import { Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Workspace } from '@/types';
 
@@ -18,6 +18,7 @@ interface Invitation {
 interface InvitationsPageProps {
     workspace: Workspace;
     userRole: string;
+    [key: string]: unknown;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -40,11 +41,14 @@ export default function Invitations() {
     const fetchInvitations = async (pageNum: number) => {
         setLoading(true);
         try {
-            const response = await fetch(`/workspaces/${workspace.slug}/invitations/data?page=${pageNum}`, {
-                headers: {
-                    'Accept': 'application/json',
+            const response = await fetch(
+                `/workspaces/${workspace.slug}/invitations/data?page=${pageNum}`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                    },
                 },
-            });
+            );
             const result = await response.json();
             if (result.status === 'Success') {
                 setInvitations(result.data.invitations);
@@ -59,17 +63,26 @@ export default function Invitations() {
     };
 
     const handleCancel = async (invitationId: string) => {
-        if (!confirm('Are you sure you want to cancel this invitation?')) return;
+        if (!confirm('Are you sure you want to cancel this invitation?'))
+            return;
 
         setCancelling(invitationId);
         try {
-            const response = await fetch(`/workspaces/${workspace.slug}/invitations/${invitationId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+            const response = await fetch(
+                `/workspaces/${workspace.slug}/invitations/${invitationId}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN':
+                            (
+                                document.querySelector(
+                                    'meta[name="csrf-token"]',
+                                ) as HTMLMetaElement
+                            )?.content || '',
+                    },
                 },
-            });
+            );
 
             const result = await response.json();
 
@@ -88,13 +101,13 @@ export default function Invitations() {
 
     const prevPage = () => {
         if (page > 1) {
-            fetchInvitations(page - 1);
+            void fetchInvitations(page - 1);
         }
     };
 
     const nextPage = () => {
         if (hasMore) {
-            fetchInvitations(page + 1);
+            void fetchInvitations(page + 1);
         }
     };
 
@@ -127,7 +140,7 @@ export default function Invitations() {
                                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
                             </div>
                         ) : invitations.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
+                            <div className="py-8 text-center text-muted-foreground">
                                 No pending invitations
                             </div>
                         ) : (
@@ -136,18 +149,35 @@ export default function Invitations() {
                                     <table className="w-full">
                                         <thead>
                                             <tr className="border-b bg-muted/50 text-left">
-                                                <th className="px-4 py-3 text-sm font-medium">Email</th>
-                                                <th className="px-4 py-3 text-sm font-medium">Role</th>
-                                                <th className="px-4 py-3 text-sm font-medium">Sent</th>
-                                                <th className="px-4 py-3 text-sm font-medium">Expires</th>
-                                                {canManage && <th className="px-4 py-3 text-sm font-medium text-right">Actions</th>}
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Email
+                                                </th>
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Role
+                                                </th>
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Sent
+                                                </th>
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Expires
+                                                </th>
+                                                {canManage && (
+                                                    <th className="px-4 py-3 text-right text-sm font-medium">
+                                                        Actions
+                                                    </th>
+                                                )}
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {invitations.map((invitation) => (
-                                                <tr key={invitation.id} className="border-b">
+                                                <tr
+                                                    key={invitation.id}
+                                                    className="border-b"
+                                                >
                                                     <td className="px-4 py-3">
-                                                        <span className="font-medium">{invitation.email}</span>
+                                                        <span className="font-medium">
+                                                            {invitation.email}
+                                                        </span>
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <Badge variant="secondary">
@@ -155,20 +185,34 @@ export default function Invitations() {
                                                         </Badge>
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-muted-foreground">
-                                                        {new Date(invitation.created_at).toLocaleDateString()}
+                                                        {new Date(
+                                                            invitation.created_at,
+                                                        ).toLocaleDateString()}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-muted-foreground">
-                                                        {new Date(invitation.expires_at).toLocaleDateString()}
+                                                        {new Date(
+                                                            invitation.expires_at,
+                                                        ).toLocaleDateString()}
                                                     </td>
                                                     {canManage && (
                                                         <td className="px-4 py-3 text-right">
                                                             <Button
                                                                 variant="destructive"
                                                                 size="sm"
-                                                                onClick={() => handleCancel(invitation.id)}
-                                                                disabled={cancelling === invitation.id}
+                                                                onClick={() =>
+                                                                    handleCancel(
+                                                                        invitation.id,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    cancelling ===
+                                                                    invitation.id
+                                                                }
                                                             >
-                                                                {cancelling === invitation.id ? 'Cancelling...' : 'Cancel'}
+                                                                {cancelling ===
+                                                                invitation.id
+                                                                    ? 'Cancelling...'
+                                                                    : 'Cancel'}
                                                             </Button>
                                                         </td>
                                                     )}
@@ -186,7 +230,9 @@ export default function Invitations() {
                                     >
                                         Previous
                                     </Button>
-                                    <span className="text-sm text-muted-foreground">Page {page}</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        Page {page}
+                                    </span>
                                     <Button
                                         variant="outline"
                                         onClick={nextPage}

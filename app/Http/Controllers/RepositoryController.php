@@ -39,7 +39,7 @@ final readonly class RepositoryController
 
     public function connected(Request $request, #[CurrentUser()] User $user, string $workspace): JsonResponse
     {
-        $workspaceModel = Workspace::where('slug', $workspace)->first();
+        $workspaceModel = Workspace::query()->where('slug', $workspace)->first();
 
         if (! $workspaceModel) {
             return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
@@ -49,10 +49,10 @@ final readonly class RepositoryController
         $limit = 10;
 
         $repos = $workspaceModel->repositories()
-            ->orderBy('repositories.created_at', 'desc')
+            ->latest('repositories.created_at')
             ->simplePaginate($limit, page: $page);
 
-        $items = $repos->getCollection()->map(fn ($repo) => [
+        $items = $repos->getCollection()->map(fn ($repo): array => [
             'id' => $repo->id,
             'full_name' => $repo->full_name,
             'language' => $repo->language,
@@ -94,7 +94,7 @@ final readonly class RepositoryController
         return $this->success(['message' => 'Repository disconnected'], 'ok');
     }
 
-    public function toggle(Request $request, #[CurrentUser()] User $user): JsonResponse
+    public function toggle(Request $request): JsonResponse
     {
         $workspace = $request->attributes->get('current_workspace');
 

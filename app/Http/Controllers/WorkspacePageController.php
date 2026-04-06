@@ -14,7 +14,7 @@ final readonly class WorkspacePageController
 {
     public function members(#[CurrentUser()] User $user, string $workspace): Response
     {
-        $workspaceModel = Workspace::where('slug', $workspace)->firstOrFail();
+        $workspaceModel = Workspace::query()->where('slug', $workspace)->firstOrFail();
         $userRole = $workspaceModel->roleOf($user);
 
         return Inertia::render('workspaces/members', [
@@ -25,7 +25,7 @@ final readonly class WorkspacePageController
 
     public function repos(#[CurrentUser()] User $user, string $workspace): Response
     {
-        $workspaceModel = Workspace::where('slug', $workspace)->firstOrFail();
+        $workspaceModel = Workspace::query()->where('slug', $workspace)->firstOrFail();
         $userRole = $workspaceModel->roleOf($user);
 
         return Inertia::render('workspaces/repos', [
@@ -36,7 +36,7 @@ final readonly class WorkspacePageController
 
     public function invitations(#[CurrentUser()] User $user, string $workspace): Response
     {
-        $workspaceModel = Workspace::where('slug', $workspace)->firstOrFail();
+        $workspaceModel = Workspace::query()->where('slug', $workspace)->firstOrFail();
         $userRole = $workspaceModel->roleOf($user);
 
         return Inertia::render('workspaces/invitations', [

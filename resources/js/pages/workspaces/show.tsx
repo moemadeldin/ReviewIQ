@@ -6,6 +6,7 @@ import type { BreadcrumbItem, Workspace } from '@/types';
 
 interface WorkspaceShowProps {
     workspace: Workspace;
+    [key: string]: unknown;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [

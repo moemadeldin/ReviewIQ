@@ -1,11 +1,11 @@
 import { Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, Workspace } from '@/types';
 
 interface ConnectedRepo {
@@ -20,6 +20,7 @@ interface ConnectedRepo {
 interface ReposPageProps {
     workspace: Workspace;
     userRole: string;
+    [key: string]: unknown;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -30,7 +31,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Repos() {
-    const { workspace, userRole } = usePage<ReposPageProps>().props;
+    const { workspace } = usePage<ReposPageProps>().props;
     const [repos, setRepos] = useState<ConnectedRepo[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -40,11 +41,14 @@ export default function Repos() {
     const fetchRepos = async (pageNum: number) => {
         setLoading(true);
         try {
-            const response = await fetch(`/workspaces/${workspace.slug}/repos?page=${pageNum}`, {
-                headers: {
-                    'Accept': 'application/json',
+            const response = await fetch(
+                `/workspaces/${workspace.slug}/repos?page=${pageNum}`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                    },
                 },
-            });
+            );
             const result = await response.json();
             if (result.status === 'Success') {
                 setRepos(result.data.repositories);
@@ -60,14 +64,19 @@ export default function Repos() {
 
     const handleToggle = async (repoId: string, currentStatus: boolean) => {
         setToggling((prev) => ({ ...prev, [repoId]: true }));
-        
+
         try {
             const response = await fetch(`/repos/toggle`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN':
+                        (
+                            document.querySelector(
+                                'meta[name="csrf-token"]',
+                            ) as HTMLMetaElement
+                        )?.content || '',
                 },
                 body: JSON.stringify({
                     repo_id: repoId,
@@ -80,8 +89,10 @@ export default function Repos() {
             if (result.status === 'Success') {
                 setRepos((prev) =>
                     prev.map((repo) =>
-                        repo.id === repoId ? { ...repo, is_active: !currentStatus } : repo
-                    )
+                        repo.id === repoId
+                            ? { ...repo, is_active: !currentStatus }
+                            : repo,
+                    ),
                 );
             }
         } catch (error) {
@@ -93,13 +104,13 @@ export default function Repos() {
 
     const prevPage = () => {
         if (page > 1) {
-            fetchRepos(page - 1);
+            void fetchRepos(page - 1);
         }
     };
 
     const nextPage = () => {
         if (hasMore) {
-            fetchRepos(page + 1);
+            void fetchRepos(page + 1);
         }
     };
 
@@ -134,7 +145,7 @@ export default function Repos() {
                                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
                             </div>
                         ) : repos.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
+                            <div className="py-8 text-center text-muted-foreground">
                                 No repositories connected yet
                             </div>
                         ) : (
@@ -143,11 +154,21 @@ export default function Repos() {
                                     <table className="w-full">
                                         <thead>
                                             <tr className="border-b bg-muted/50 text-left">
-                                                <th className="px-4 py-3 text-sm font-medium">Repository</th>
-                                                <th className="px-4 py-3 text-sm font-medium">Language</th>
-                                                <th className="px-4 py-3 text-sm font-medium">Status</th>
-                                                <th className="px-4 py-3 text-sm font-medium">Connected</th>
-                                                <th className="px-4 py-3 text-sm font-medium">Toggle</th>
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Repository
+                                                </th>
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Language
+                                                </th>
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Status
+                                                </th>
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Connected
+                                                </th>
+                                                <th className="px-4 py-3 text-sm font-medium">
+                                                    Toggle
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -156,33 +177,63 @@ export default function Repos() {
                                                     key={repo.id}
                                                     className={cn(
                                                         'border-b',
-                                                        repo.is_active && 'bg-green-50/50'
+                                                        repo.is_active &&
+                                                            'bg-green-50/50',
                                                     )}
                                                 >
                                                     <td className="px-4 py-3">
-                                                        <span className="font-medium">{repo.full_name}</span>
+                                                        <span className="font-medium">
+                                                            {repo.full_name}
+                                                        </span>
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         {repo.language ? (
-                                                            <Badge variant="outline">{repo.language}</Badge>
+                                                            <Badge variant="outline">
+                                                                {repo.language}
+                                                            </Badge>
                                                         ) : (
-                                                            <span className="text-muted-foreground">-</span>
+                                                            <span className="text-muted-foreground">
+                                                                -
+                                                            </span>
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <Badge variant={repo.is_active ? 'default' : 'secondary'}>
-                                                            {repo.is_active ? 'Active' : 'Inactive'}
+                                                        <Badge
+                                                            variant={
+                                                                repo.is_active
+                                                                    ? 'default'
+                                                                    : 'secondary'
+                                                            }
+                                                        >
+                                                            {repo.is_active
+                                                                ? 'Active'
+                                                                : 'Inactive'}
                                                         </Badge>
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-muted-foreground">
-                                                        {new Date(repo.connected_at).toLocaleDateString()}
+                                                        {new Date(
+                                                            repo.connected_at,
+                                                        ).toLocaleDateString()}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <Button
                                                             size="sm"
-                                                            variant={repo.is_active ? 'destructive' : 'default'}
-                                                            onClick={() => handleToggle(repo.id, repo.is_active)}
-                                                            disabled={toggling[repo.id]}
+                                                            variant={
+                                                                repo.is_active
+                                                                    ? 'destructive'
+                                                                    : 'default'
+                                                            }
+                                                            onClick={() =>
+                                                                handleToggle(
+                                                                    repo.id,
+                                                                    repo.is_active,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                toggling[
+                                                                    repo.id
+                                                                ]
+                                                            }
                                                         >
                                                             {toggling[repo.id]
                                                                 ? '...'
@@ -205,7 +256,9 @@ export default function Repos() {
                                     >
                                         Previous
                                     </Button>
-                                    <span className="text-sm text-muted-foreground">Page {page}</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        Page {page}
+                                    </span>
                                     <Button
                                         variant="outline"
                                         onClick={nextPage}

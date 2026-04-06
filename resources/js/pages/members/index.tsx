@@ -1,12 +1,24 @@
 import { Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import type { Auth, BreadcrumbItem } from '@/types';
 
@@ -36,14 +48,15 @@ export default function Index() {
     const [removing, setRemoving] = useState<string | null>(null);
 
     const currentUserRole = auth.currentWorkspace?.pivot?.role as string;
-    const canInvite = currentUserRole === 'owner' || currentUserRole === 'admin';
+    const canInvite =
+        currentUserRole === 'owner' || currentUserRole === 'admin';
     const isOwner = currentUserRole === 'owner';
 
     const fetchMembers = async () => {
         try {
             const response = await fetch('/members/data', {
                 headers: {
-                    'Accept': 'application/json',
+                    Accept: 'application/json',
                 },
             });
             const result = await response.json();
@@ -67,8 +80,13 @@ export default function Index() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN':
+                        (
+                            document.querySelector(
+                                'meta[name="csrf-token"]',
+                            ) as HTMLMetaElement
+                        )?.content || '',
                 },
                 body: JSON.stringify({
                     email: inviteEmail,
@@ -101,8 +119,13 @@ export default function Index() {
             const response = await fetch(`/members/${userId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN':
+                        (
+                            document.querySelector(
+                                'meta[name="csrf-token"]',
+                            ) as HTMLMetaElement
+                        )?.content || '',
                 },
             });
 
@@ -142,26 +165,41 @@ export default function Index() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleInvite} className="flex gap-4">
+                            <form
+                                onSubmit={handleInvite}
+                                className="flex gap-4"
+                            >
                                 <div className="flex-1">
                                     <Input
                                         type="email"
                                         placeholder="Email address"
                                         value={inviteEmail}
-                                        onChange={(e) => setInviteEmail(e.target.value)}
+                                        onChange={(e) =>
+                                            setInviteEmail(e.target.value)
+                                        }
                                         required
                                     />
                                 </div>
-                                <Select value={inviteRole} onValueChange={setInviteRole}>
+                                <Select
+                                    value={inviteRole}
+                                    onValueChange={setInviteRole}
+                                >
                                     <SelectTrigger className="w-[140px]">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="admin">Admin</SelectItem>
-                                        <SelectItem value="member">Member</SelectItem>
+                                        <SelectItem value="admin">
+                                            Admin
+                                        </SelectItem>
+                                        <SelectItem value="member">
+                                            Member
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <Button type="submit" disabled={inviting || !inviteEmail}>
+                                <Button
+                                    type="submit"
+                                    disabled={inviting || !inviteEmail}
+                                >
                                     {inviting ? 'Sending...' : 'Send Invite'}
                                 </Button>
                             </form>
@@ -173,7 +211,8 @@ export default function Index() {
                     <CardHeader>
                         <CardTitle>Workspace Members</CardTitle>
                         <CardDescription>
-                            {members.length} member{members.length !== 1 ? 's' : ''}
+                            {members.length} member
+                            {members.length !== 1 ? 's' : ''}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -182,7 +221,7 @@ export default function Index() {
                                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
                             </div>
                         ) : members.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
+                            <div className="py-8 text-center text-muted-foreground">
                                 No members found
                             </div>
                         ) : (
@@ -190,25 +229,47 @@ export default function Index() {
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b bg-muted/50 text-left">
-                                            <th className="px-4 py-3 text-sm font-medium">Member</th>
-                                            <th className="px-4 py-3 text-sm font-medium">Role</th>
-                                            <th className="px-4 py-3 text-sm font-medium">Joined</th>
-                                            {isOwner && <th className="px-4 py-3 text-sm font-medium text-right">Actions</th>}
+                                            <th className="px-4 py-3 text-sm font-medium">
+                                                Member
+                                            </th>
+                                            <th className="px-4 py-3 text-sm font-medium">
+                                                Role
+                                            </th>
+                                            <th className="px-4 py-3 text-sm font-medium">
+                                                Joined
+                                            </th>
+                                            {isOwner && (
+                                                <th className="px-4 py-3 text-right text-sm font-medium">
+                                                    Actions
+                                                </th>
+                                            )}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {members.map((member) => (
-                                            <tr key={member.id} className="border-b">
+                                            <tr
+                                                key={member.id}
+                                                className="border-b"
+                                            >
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-3">
                                                         <Avatar>
-                                                            <AvatarImage src={member.avatar || undefined} />
+                                                            <AvatarImage
+                                                                src={
+                                                                    member.avatar ||
+                                                                    undefined
+                                                                }
+                                                            />
                                                             <AvatarFallback>
-                                                                {member.name?.charAt(0) || '?'}
+                                                                {member.name?.charAt(
+                                                                    0,
+                                                                ) || '?'}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <div>
-                                                            <div className="font-medium">{member.name}</div>
+                                                            <div className="font-medium">
+                                                                {member.name}
+                                                            </div>
                                                             <div className="text-sm text-muted-foreground">
                                                                 {member.email}
                                                             </div>
@@ -216,21 +277,36 @@ export default function Index() {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <RoleBadge role={member.role} />
+                                                    <RoleBadge
+                                                        role={member.role}
+                                                    />
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-muted-foreground">
-                                                    {new Date(member.joined_at).toLocaleDateString()}
+                                                    {new Date(
+                                                        member.joined_at,
+                                                    ).toLocaleDateString()}
                                                 </td>
                                                 {isOwner && (
                                                     <td className="px-4 py-3 text-right">
-                                                        {member.role !== 'owner' && (
+                                                        {member.role !==
+                                                            'owner' && (
                                                             <Button
                                                                 variant="destructive"
                                                                 size="sm"
-                                                                onClick={() => handleRemove(member.id)}
-                                                                disabled={removing === member.id}
+                                                                onClick={() =>
+                                                                    handleRemove(
+                                                                        member.id,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    removing ===
+                                                                    member.id
+                                                                }
                                                             >
-                                                                {removing === member.id ? 'Removing...' : 'Remove'}
+                                                                {removing ===
+                                                                member.id
+                                                                    ? 'Removing...'
+                                                                    : 'Remove'}
                                                             </Button>
                                                         )}
                                                     </td>

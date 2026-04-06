@@ -1,5 +1,5 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight, Users, GitBranch } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import {
@@ -68,9 +68,7 @@ function WorkspaceCard({
         >
             <CardHeader>
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
-                        {workspace.name}
-                    </CardTitle>
+                    <CardTitle className="text-lg">{workspace.name}</CardTitle>
                     {isCurrent && (
                         <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
                             Current
