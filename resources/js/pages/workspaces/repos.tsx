@@ -19,6 +19,10 @@ interface ConnectedRepo {
 
 interface ReposPageProps {
     workspace: Workspace;
+    userRole: string;
+    initialRepos: ConnectedRepo[];
+    reposCurrentPage: number;
+    reposHasMore: boolean;
     [key: string]: unknown;
 }
 
@@ -30,22 +34,26 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Repos() {
-    const { workspace } = usePage<{ auth: Auth } & ReposPageProps>().props;
-    const role = usePage().props.auth?.currentWorkspace?.pivot?.role as
-        | string
-        | undefined;
+    const {
+        workspace,
+        userRole,
+        initialRepos,
+        reposCurrentPage,
+        reposHasMore,
+    } = usePage<{ auth: Auth } & ReposPageProps>().props;
+    const role = userRole;
     const isOwner = role === 'owner';
-    const [repos, setRepos] = useState<ConnectedRepo[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(false);
+    const [repos, setRepos] = useState<ConnectedRepo[]>(initialRepos || []);
+    const [loading, setLoading] = useState(false);
+    const [page, setPage] = useState(reposCurrentPage || 1);
+    const [hasMore, setHasMore] = useState(reposHasMore || false);
     const [toggling, setToggling] = useState<Record<string, boolean>>({});
 
     const fetchRepos = async (pageNum: number) => {
         setLoading(true);
         try {
             const response = await fetch(
-                `/workspaces/${workspace.slug}/repos?page=${pageNum}`,
+                `/workspaces/${workspace.slug}/repos/data?page=${pageNum}`,
                 {
                     headers: {
                         Accept: 'application/json',
@@ -137,7 +145,7 @@ export default function Repos() {
                 <div className="flex items-center justify-between">
                     <Heading
                         title="Connected Repositories"
-                        description={`${repos.length} repository${repos.length !== 1 ? 's' : ''} connected to ${workspace.name}`}
+                        description={`${repos.length} repositor${repos.length !== 1 ? 'y' : 'ies'} connected to ${workspace.name}`}
                     />
                 </div>
 

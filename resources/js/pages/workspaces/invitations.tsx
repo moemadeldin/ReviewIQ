@@ -17,6 +17,10 @@ interface Invitation {
 
 interface InvitationsPageProps {
     workspace: Workspace;
+    userRole: string;
+    initialInvitations: Invitation[];
+    invitationsCurrentPage: number;
+    invitationsHasMore: boolean;
     [key: string]: unknown;
 }
 
@@ -28,14 +32,21 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Invitations() {
-    const { workspace } = usePage<{ auth: Auth } & InvitationsPageProps>()
-        .props;
-    const role = usePage().props.auth?.role;
+    const {
+        workspace,
+        userRole,
+        initialInvitations,
+        invitationsCurrentPage,
+        invitationsHasMore,
+    } = usePage<{ auth: Auth } & InvitationsPageProps>().props;
+    const role = userRole;
     const isOwner = role === 'owner';
-    const [invitations, setInvitations] = useState<Invitation[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(false);
+    const [invitations, setInvitations] = useState<Invitation[]>(
+        initialInvitations || [],
+    );
+    const [loading, setLoading] = useState(false);
+    const [page, setPage] = useState(invitationsCurrentPage || 1);
+    const [hasMore, setHasMore] = useState(invitationsHasMore || false);
     const [cancelling, setCancelling] = useState<string | null>(null);
 
     const canManage = isOwner;

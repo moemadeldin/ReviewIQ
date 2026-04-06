@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Queries\GetUserNotifications;
 use App\Traits\APIResponder;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
@@ -14,29 +15,16 @@ final readonly class NotificationController
 {
     use APIResponder;
 
+    public function __construct(private GetUserNotifications $getNotifications) {}
+
     public function index(#[CurrentUser()] User $user, Request $request): JsonResponse
     {
         $page = (int) $request->query('page', 1);
         $limit = (int) $request->query('limit', 10);
 
-        $notifications = $user->notifications()
-            ->latest()
-            ->simplePaginate($limit, page: $page);
+        $data = $this->getNotifications->handle($user, $page, $limit);
 
-        $items = $notifications->getCollection()->map(fn ($notification): array => [
-            'id' => $notification->id,
-            'type' => $notification->type,
-            'data' => $notification->data,
-            'read_at' => $notification->read_at?->toIsoString(),
-            'created_at' => $notification->created_at->toIsoString(),
-        ]);
-
-        return $this->success([
-            'notifications' => $items,
-            'current_page' => $notifications->currentPage(),
-            'has_more' => $notifications->hasMorePages(),
-            'unread_count' => $user->unreadNotifications()->count(),
-        ], 'ok');
+        return $this->success($data, 'ok');
     }
 
     public function markAsRead(#[CurrentUser()] User $user, string $id): JsonResponse

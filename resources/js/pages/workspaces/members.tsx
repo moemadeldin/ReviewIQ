@@ -35,6 +35,10 @@ interface Member {
 
 interface MembersPageProps {
     workspace: Workspace;
+    userRole: string;
+    initialMembers: Member[];
+    membersCurrentPage: number;
+    membersHasMore: boolean;
     [key: string]: unknown;
 }
 
@@ -46,12 +50,18 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Members() {
-    const { workspace } = usePage<{ auth: Auth } & MembersPageProps>().props;
-    const role = usePage().props.auth?.role;
-    const [members, setMembers] = useState<Member[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(false);
+    const {
+        workspace,
+        userRole,
+        initialMembers,
+        membersCurrentPage,
+        membersHasMore,
+    } = usePage<{ auth: Auth } & MembersPageProps>().props;
+    const role = userRole;
+    const [members, setMembers] = useState<Member[]>(initialMembers || []);
+    const [loading, setLoading] = useState(false);
+    const [page, setPage] = useState(membersCurrentPage || 1);
+    const [hasMore, setHasMore] = useState(membersHasMore || false);
     const [inviting, setInviting] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteRole, setInviteRole] = useState('member');

@@ -10,12 +10,11 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class CreateWorkspace
 {
-    public function handle(User $owner, string $name, string $slug): Workspace
+    public function handle(User $owner, string $name): Workspace
     {
-        return DB::transaction(function () use ($owner, $name, $slug): Workspace {
+        return DB::transaction(function () use ($owner, $name): Workspace {
             $workspace = Workspace::query()->create([
                 'name' => $name,
-                'slug' => $slug,
                 'owner_id' => $owner->id,
             ]);
 

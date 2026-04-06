@@ -45,18 +45,12 @@ final readonly class RepositoryController
         return $this->success($data, 'ok');
     }
 
-    public function connected(Request $request, #[CurrentUser()] User $user, string $workspace): JsonResponse
+    public function connected(Request $request, #[CurrentUser()] User $user, Workspace $workspace): JsonResponse
     {
-        $workspaceModel = Workspace::query()->where('slug', $workspace)->first();
-
-        if (! $workspaceModel) {
-            return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
-        }
-
         $page = (int) $request->query('page', 1);
         $limit = 10;
 
-        $repos = $workspaceModel->repositories()
+        $repos = $workspace->repositories()
             ->latest('repositories.created_at')
             ->simplePaginate($limit, page: $page);
 

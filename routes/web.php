@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\AcceptInvitationController;
 use App\Http\Controllers\GenerateInvitationController;
+use App\Http\Controllers\GetConnectedRepositoriesController;
+use App\Http\Controllers\GetWorkspaceMembersController;
 use App\Http\Controllers\GitHubController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RepositoryController;
@@ -48,10 +50,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::delete('workspaces/{workspace}/invitations/{invitation}', [WorkspaceInvitationController::class, 'destroy'])->name('workspaces.invitations.destroy');
 
     // Workspace Members API...
-    Route::get('workspaces/{workspace}/members/data', [WorkspaceInvitationController::class, 'members'])->name('workspaces.members');
+    Route::get('workspaces/{workspace}/members/data', GetWorkspaceMembersController::class)->name('workspaces.members');
 
     // Workspace Repos API...
-    Route::get('workspaces/{workspace}/repos/data', [RepositoryController::class, 'connected'])->name('workspaces.repos');
+    Route::get('workspaces/{workspace}/repos/data', GetConnectedRepositoriesController::class)->name('workspaces.repos');
 
     // Repositories...
     Route::get('repos', fn () => Inertia::render('repos/index'))->name('repos.index');

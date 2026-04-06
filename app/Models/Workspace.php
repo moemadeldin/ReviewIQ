@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Traits\Sluggable;
 use Carbon\CarbonInterface;
 use Database\Factories\WorkspaceFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -28,10 +29,11 @@ final class Workspace extends Model
     use HasFactory;
 
     use HasUuids;
+    use Sluggable;
 
-    public static function slugFromName(string $name): string
+    public function getRouteKeyName()
     {
-        return str($name)->slug()->toString();
+        return 'slug';
     }
 
     /**

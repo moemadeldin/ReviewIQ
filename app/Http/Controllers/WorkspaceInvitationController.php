@@ -10,6 +10,7 @@ use App\Http\Requests\GenerateInvitationRequest;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
+use App\Queries\GetWorkspaceInvitations;
 use App\Traits\APIResponder;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
@@ -20,57 +21,30 @@ final readonly class WorkspaceInvitationController
 {
     use APIResponder;
 
+    public function __construct(private GetWorkspaceInvitations $getInvitations) {}
+
     public function index(
         #[CurrentUser()] User $user,
-        string $workspace,
+        Workspace $workspace,
     ): JsonResponse {
-        $workspaceModel = Workspace::query()->where('slug', $workspace)->first();
-
-        if (! $workspaceModel) {
-            return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
-        }
-
         $page = (int) request()->query('page', 1);
-        $limit = 10;
+        $data = $this->getInvitations->handle($workspace, $page);
 
-        $invitations = WorkspaceInvitation::query()
-            ->where('workspace_id', $workspaceModel->id)
-            ->whereNull('accepted_at')->latest()
-            ->simplePaginate($limit, page: $page);
-
-        $items = $invitations->getCollection()->map(fn ($invitation): array => [
-            'id' => $invitation->id,
-            'email' => $invitation->email,
-            'role' => $invitation->role,
-            'expires_at' => $invitation->expires_at,
-            'created_at' => $invitation->created_at,
-        ]);
-
-        return $this->success([
-            'invitations' => $items,
-            'current_page' => $invitations->currentPage(),
-            'has_more' => $invitations->hasMorePages(),
-        ], 'ok');
+        return $this->success($data, 'ok');
     }
 
     public function store(
         GenerateInvitationRequest $request,
         #[CurrentUser()] User $user,
-        string $workspace,
+        Workspace $workspace,
         CreateInvitationAction $action,
     ): JsonResponse {
-        $workspaceModel = Workspace::query()->where('slug', $workspace)->first();
-
-        if (! $workspaceModel) {
-            return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
-        }
-
         try {
             $invitation = $action->handle(
-                $workspaceModel,
+                $workspace,
                 $user,
-                $request->validated('email'),
-                $request->validated('role'),
+                $request->safe()->email,
+                $request->safe()->role,
             );
         } catch (RuntimeException $runtimeException) {
             return $this->fail($runtimeException->getMessage(), Response::HTTP_CONFLICT);
@@ -84,22 +58,16 @@ final readonly class WorkspaceInvitationController
     public function destroy(
         CancelInvitationRequest $request,
         #[CurrentUser()] User $user,
-        string $workspace,
-        string $invitation,
+        Workspace $workspace,
+        WorkspaceInvitation $invitation,
     ): JsonResponse {
-        $workspaceModel = Workspace::query()->where('slug', $workspace)->first();
-
-        if (! $workspaceModel) {
-            return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
-        }
-
         $invitationModel = WorkspaceInvitation::query()->find($invitation);
 
         if (! $invitationModel) {
             return $this->fail('Invitation not found', Response::HTTP_NOT_FOUND);
         }
 
-        if ($invitationModel->workspace_id !== $workspaceModel->id) {
+        if ($invitationModel->workspace_id !== $workspace->id) {
             return $this->fail('Invitation does not belong to this workspace', Response::HTTP_FORBIDDEN);
         }
 
@@ -110,38 +78,5 @@ final readonly class WorkspaceInvitationController
         $invitationModel->delete();
 
         return $this->success(['message' => 'Invitation cancelled'], 'ok');
-    }
-
-    public function members(
-        #[CurrentUser()] User $user,
-        string $workspace,
-    ): JsonResponse {
-        $workspaceModel = Workspace::query()->where('slug', $workspace)->first();
-
-        if (! $workspaceModel) {
-            return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
-        }
-
-        $page = (int) request()->query('page', 1);
-        $limit = 10;
-
-        $members = $workspaceModel->users()
-            ->latest('workspace_users.created_at')
-            ->simplePaginate($limit, page: $page);
-
-        $items = $members->getCollection()->map(fn ($member): array => [
-            'id' => $member->id,
-            'name' => $member->name,
-            'email' => $member->email,
-            'avatar' => $member->github_avatar,
-            'role' => $member->pivot->role,
-            'joined_at' => $member->pivot->created_at,
-        ]);
-
-        return $this->success([
-            'members' => $items,
-            'current_page' => $members->currentPage(),
-            'has_more' => $members->hasMorePages(),
-        ], 'ok');
     }
 }
