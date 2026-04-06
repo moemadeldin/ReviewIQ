@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers;
+
+use App\Actions\CreateInvitationAction;
+use App\Http\Requests\GenerateInvitationRequest;
+use App\Models\User;
+use App\Models\Workspace;
+use App\Traits\APIResponder;
+use Illuminate\Container\Attributes\CurrentUser;
+use Illuminate\Http\JsonResponse;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\Response;
+
+final readonly class GenerateInvitationController
+{
+    use APIResponder;
+
+    public function __invoke(
+        GenerateInvitationRequest $request,
+        #[CurrentUser()] User $user,
+        CreateInvitationAction $action,
+    ): JsonResponse {
+        $workspace = $request->attributes->get('current_workspace');
+
+        if (! $workspace instanceof Workspace) {
+            return $this->fail('Workspace not selected', Response::HTTP_BAD_REQUEST);
+        }
+
+        if (! $workspace->isOwnerOrAdmin($user)) {
+            return $this->fail('Only owners and admins can invite users', Response::HTTP_FORBIDDEN);
+        }
+
+        try {
+            $invitation = $action->handle(
+                $workspace,
+                $user,
+                $request->safe()->email,
+                $request->safe()->role,
+            );
+        } catch (RuntimeException $runtimeException) {
+            return $this->fail($runtimeException->getMessage(), Response::HTTP_CONFLICT);
+        }
+
+        return $this->success([
+            'invitation' => $invitation,
+        ], 'Invitation sent', Response::HTTP_CREATED);
+    }
+}

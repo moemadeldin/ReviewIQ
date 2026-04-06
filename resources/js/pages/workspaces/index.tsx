@@ -1,4 +1,5 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { ArrowRight, Users, GitBranch } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import {
@@ -60,49 +61,63 @@ function WorkspaceCard({
     isCurrent: boolean;
 }) {
     return (
-        <Form
-            action={`/workspaces/${workspace.id}/select`}
-            method="post"
-            disableWhileProcessing
+        <Card
+            className={`transition-colors hover:bg-muted/50 ${
+                isCurrent ? 'ring-2 ring-primary' : ''
+            }`}
         >
-            {({ processing }) => (
-                <Card
-                    className={`cursor-pointer transition-colors hover:bg-muted/50 ${
-                        isCurrent ? 'ring-2 ring-primary' : ''
-                    }`}
-                >
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">
-                                {workspace.name}
-                            </CardTitle>
-                            {isCurrent && (
-                                <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
-                                    Current
-                                </span>
-                            )}
-                        </div>
-                        <CardDescription>
-                            {workspace.pivot?.role === 'owner'
-                                ? 'Owner'
-                                : workspace.pivot?.role === 'admin'
-                                  ? 'Admin'
-                                  : 'Member'}
-                        </CardDescription>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">
+                        {workspace.name}
+                    </CardTitle>
+                    {isCurrent && (
+                        <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+                            Current
+                        </span>
+                    )}
+                </div>
+                <CardDescription>
+                    {workspace.pivot?.role === 'owner'
+                        ? 'Owner'
+                        : workspace.pivot?.role === 'admin'
+                          ? 'Admin'
+                          : 'Member'}
+                </CardDescription>
+                <div className="mt-2 flex gap-2">
+                    <Link
+                        href={`/workspaces/${workspace.slug}`}
+                        className="flex-1"
+                    >
                         <Button
-                            type="submit"
-                            variant={isCurrent ? 'secondary' : 'outline'}
-                            className="mt-2"
-                            disabled={processing || isCurrent}
-                            data-test={`switch-workspace-${workspace.slug}`}
+                            type="button"
+                            variant="outline"
+                            className="w-full"
                         >
-                            {isCurrent
-                                ? 'Current workspace'
-                                : 'Switch to workspace'}
+                            <ArrowRight className="mr-2 h-4 w-4" />
+                            View
                         </Button>
-                    </CardHeader>
-                </Card>
-            )}
-        </Form>
+                    </Link>
+                    {!isCurrent && (
+                        <Form
+                            action={`/workspaces/${workspace.id}/select`}
+                            method="post"
+                            className="flex-1"
+                        >
+                            {({ processing }) => (
+                                <Button
+                                    type="submit"
+                                    variant="secondary"
+                                    className="w-full"
+                                    disabled={processing}
+                                >
+                                    {processing ? '...' : 'Switch'}
+                                </Button>
+                            )}
+                        </Form>
+                    )}
+                </div>
+            </CardHeader>
+        </Card>
     );
 }

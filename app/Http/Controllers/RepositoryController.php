@@ -37,6 +37,37 @@ final readonly class RepositoryController
         return $this->success($data, 'ok');
     }
 
+    public function connected(Request $request, #[CurrentUser()] User $user, string $workspace): JsonResponse
+    {
+        $workspaceModel = Workspace::where('slug', $workspace)->first();
+
+        if (! $workspaceModel) {
+            return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
+        }
+
+        $page = (int) $request->query('page', 1);
+        $limit = 10;
+
+        $repos = $workspaceModel->repositories()
+            ->orderBy('repositories.created_at', 'desc')
+            ->simplePaginate($limit, page: $page);
+
+        $items = $repos->getCollection()->map(fn ($repo) => [
+            'id' => $repo->id,
+            'full_name' => $repo->full_name,
+            'language' => $repo->language,
+            'is_active' => $repo->is_active,
+            'webhook_id' => $repo->webhook_id,
+            'connected_at' => $repo->pivot->created_at,
+        ]);
+
+        return $this->success([
+            'repositories' => $items,
+            'current_page' => $repos->currentPage(),
+            'has_more' => $repos->hasMorePages(),
+        ], 'ok');
+    }
+
     public function store(Request $request, #[CurrentUser()] User $user, AttachRepository $action, string $fullName): JsonResponse|Response
     {
         $workspace = $request->attributes->get('current_workspace');
@@ -61,5 +92,31 @@ final readonly class RepositoryController
         $action->handle($workspace, $user, $fullName);
 
         return $this->success(['message' => 'Repository disconnected'], 'ok');
+    }
+
+    public function toggle(Request $request, #[CurrentUser()] User $user): JsonResponse
+    {
+        $workspace = $request->attributes->get('current_workspace');
+
+        if (! $workspace instanceof Workspace) {
+            return $this->fail('Unauthorized', Response::HTTP_UNAUTHORIZED);
+        }
+
+        $validated = $request->validate([
+            'repo_id' => ['required', 'string'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $repo = $workspace->repositories()->where('repositories.id', $validated['repo_id'])->first();
+
+        if (! $repo) {
+            return $this->fail('Repository not found', Response::HTTP_NOT_FOUND);
+        }
+
+        $workspace->repositories()->updateExistingPivot($repo->id, [
+            'is_active' => $validated['is_active'],
+        ]);
+
+        return $this->success(['message' => 'Repository toggled'], 'ok');
     }
 }

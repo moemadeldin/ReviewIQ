@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Actions\CreateWorkspace;
 use App\Http\Requests\StoreWorkspaceRequest;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,5 +45,14 @@ final readonly class WorkspaceController
         $request->session()->put('current_workspace_id', $workspace->id);
 
         return to_route('dashboard');
+    }
+
+    public function show(Request $request, string $workspace): Response
+    {
+        $workspaceModel = Workspace::where('slug', $workspace)->firstOrFail();
+
+        return Inertia::render('workspaces/show', [
+            'workspace' => $workspaceModel,
+        ]);
     }
 }

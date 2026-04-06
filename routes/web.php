@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AcceptInvitationController;
+use App\Http\Controllers\GenerateInvitationController;
 use App\Http\Controllers\GitHubController;
 use App\Http\Controllers\RepositoryController;
 use App\Http\Controllers\SessionController;
@@ -13,6 +15,8 @@ use App\Http\Controllers\UserPasswordController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\UserTwoFactorAuthenticationController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\WorkspaceInvitationController;
+use App\Http\Controllers\WorkspacePageController;
 use App\Http\Controllers\WorkspaceSwitchController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -27,12 +31,31 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('workspaces/create', [WorkspaceController::class, 'create'])->name('workspaces.create');
     Route::post('workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
     Route::post('workspaces/{workspace}/select', WorkspaceSwitchController::class)->name('workspaces.select');
+    Route::get('workspaces/{workspace}', [WorkspaceController::class, 'show'])->name('workspaces.show');
+    Route::get('workspaces/{workspace}/members', [WorkspacePageController::class, 'members'])->name('workspaces.members.page');
+    Route::get('workspaces/{workspace}/repos', [WorkspacePageController::class, 'repos'])->name('workspaces.repos.page');
+    Route::get('workspaces/{workspace}/invitations', [WorkspacePageController::class, 'invitations'])->name('workspaces.invitations.page');
+
+    // Workspace Invitations API...
+    Route::get('workspaces/{workspace}/invitations/data', [WorkspaceInvitationController::class, 'index'])->name('workspaces.invitations');
+    Route::post('workspaces/{workspace}/invitations', [WorkspaceInvitationController::class, 'store'])->name('workspaces.invitations.store');
+    Route::delete('workspaces/{workspace}/invitations/{invitation}', [WorkspaceInvitationController::class, 'destroy'])->name('workspaces.invitations.destroy');
+
+    // Workspace Members API...
+    Route::get('workspaces/{workspace}/members/data', [WorkspaceInvitationController::class, 'members'])->name('workspaces.members');
+
+    // Workspace Repos API...
+    Route::get('workspaces/{workspace}/repos/data', [RepositoryController::class, 'connected'])->name('workspaces.repos');
 
     // Repositories...
     Route::get('repos', fn () => Inertia::render('repos/index'))->name('repos.index');
     Route::get('repos/data', [RepositoryController::class, 'index'])->name('repos.data');
     Route::post('repos/{fullName}', [RepositoryController::class, 'store'])->name('repos.store')->where('fullName', '.+');
     Route::delete('repos/{fullName}', [RepositoryController::class, 'destroy'])->name('repos.destroy')->where('fullName', '.+');
+    Route::post('repos/toggle', [RepositoryController::class, 'toggle'])->name('repos.toggle');
+
+    // Invitations...
+    Route::post('invitations', GenerateInvitationController::class)->name('invitations.store');
 });
 
 Route::middleware('auth')->group(function (): void {
@@ -59,6 +82,10 @@ Route::middleware('auth')->group(function (): void {
 });
 
 Route::middleware('guest')->group(function (): void {
+    // Invitations...
+    Route::post('invitations/{token}/accept', AcceptInvitationController::class)
+        ->name('invitations.accept');
+
     // GitHub OAuth...
     Route::get('auth/github', [GitHubController::class, 'redirect'])->name('auth.github');
     Route::get('auth/github/callback', [GitHubController::class, 'callback'])->name('auth.github.callback');
