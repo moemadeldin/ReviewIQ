@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\AcceptInvitationController;
 use App\Http\Controllers\GenerateInvitationController;
 use App\Http\Controllers\GitHubController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RepositoryController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\UserController;
@@ -25,6 +26,11 @@ Route::get('/', fn () => Inertia::render('welcome'))->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
+
+    // Notifications...
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
 
     // Workspaces...
     Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');

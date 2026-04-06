@@ -9,8 +9,10 @@ use App\Jobs\SendInvitationEmail;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
+use App\Notifications\WorkspaceInvitationNotification;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 final readonly class CreateInvitationAction
 {
@@ -40,7 +42,21 @@ final readonly class CreateInvitationAction
             'expires_at' => $expiresAt,
         ]);
 
+        try {
+            $acceptUrl = route('invitations.accept', ['token' => $token], absolute: false);
+        } catch (RouteNotFoundException) {
+            $acceptUrl = url('/invitations/'.$token.'/accept');
+        }
+
         dispatch(new SendInvitationEmail($invitation, $invitedBy));
+
+        if ($existingUser instanceof User) {
+            $existingUser->notify(new WorkspaceInvitationNotification(
+                $workspace,
+                $invitedBy,
+                $acceptUrl,
+            ));
+        }
 
         return $invitation;
     }
