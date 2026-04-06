@@ -28,10 +28,15 @@ final readonly class RepositoryController
 
     public function index(Request $request, #[CurrentUser()] User $user): JsonResponse
     {
-        $workspace = $request->attributes->get('current_workspace');
+        $workspaceId = $request->query('workspace_id');
 
-        if (! $workspace instanceof Workspace) {
-            return $this->success(['repositories' => [], 'connected_repos' => [], 'has_more' => false], 'ok');
+        $workspace = null;
+        if ($workspaceId) {
+            $workspace = Workspace::query()->find($workspaceId);
+        }
+
+        if (! $workspace) {
+            $workspace = $request->attributes->get('current_workspace');
         }
 
         $page = (int) $request->query('page', 1);
@@ -73,7 +78,16 @@ final readonly class RepositoryController
 
     public function store(AttachRepositoryRequest $request, #[CurrentUser()] User $user, AttachRepository $action, string $fullName): JsonResponse|Response
     {
-        $workspace = $request->attributes->get('current_workspace');
+        $workspaceId = $request->query('workspace_id');
+
+        $workspace = null;
+        if ($workspaceId) {
+            $workspace = Workspace::query()->find($workspaceId);
+        }
+
+        if (! $workspace instanceof Workspace) {
+            $workspace = $request->attributes->get('current_workspace');
+        }
 
         if (! $workspace instanceof Workspace) {
             return $this->fail('Unauthorized', Response::HTTP_UNAUTHORIZED);
@@ -86,7 +100,16 @@ final readonly class RepositoryController
 
     public function destroy(DeleteRepositoryRequest $request, #[CurrentUser()] User $user, DeleteRepository $action, string $fullName): JsonResponse|Response
     {
-        $workspace = $request->attributes->get('current_workspace');
+        $workspaceId = $request->query('workspace_id');
+
+        $workspace = null;
+        if ($workspaceId) {
+            $workspace = Workspace::query()->find($workspaceId);
+        }
+
+        if (! $workspace instanceof Workspace) {
+            $workspace = $request->attributes->get('current_workspace');
+        }
 
         if (! $workspace instanceof Workspace) {
             return $this->fail('Unauthorized', Response::HTTP_UNAUTHORIZED);

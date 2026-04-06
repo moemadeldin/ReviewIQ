@@ -19,7 +19,16 @@ final class AttachRepositoryRequest extends FormRequest
             return false;
         }
 
-        $workspace = $this->attributes->get('current_workspace');
+        $workspaceId = $this->query('workspace_id');
+
+        $workspace = null;
+        if ($workspaceId) {
+            $workspace = Workspace::query()->find($workspaceId);
+        }
+
+        if (! $workspace instanceof Workspace) {
+            $workspace = $this->attributes->get('current_workspace');
+        }
 
         if (! $workspace instanceof Workspace) {
             return false;

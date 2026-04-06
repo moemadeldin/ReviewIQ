@@ -279,8 +279,14 @@ export default function Members() {
                                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
                             </div>
                         ) : members.length === 0 ? (
-                            <div className="py-8 text-center text-muted-foreground">
-                                No members found
+                            <div className="py-12 text-center">
+                                <div className="mb-2 text-lg font-medium text-muted-foreground">
+                                    No members yet
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                    Invite members to collaborate in this
+                                    workspace
+                                </div>
                             </div>
                         ) : (
                             <>

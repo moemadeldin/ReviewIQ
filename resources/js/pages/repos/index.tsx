@@ -46,8 +46,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Index() {
     const { auth } = usePage<{ auth: Auth }>().props;
-    const role = auth.role;
-    const isOwner = role === 'owner';
+    const currentWorkspace = auth.currentWorkspace;
+    const workspaces = auth.workspaces || [];
+    const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<
+        string | null
+    >(currentWorkspace?.id || null);
     const [repos, setRepos] = useState<GitHubRepo[]>([]);
     const [connectedRepos, setConnectedRepos] = useState<
         Record<string, ConnectedRepo>
@@ -57,11 +60,22 @@ export default function Index() {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
 
+    const selectedWorkspace = workspaces.find(
+        (w) => w.id === selectedWorkspaceId,
+    );
+    const selectedRole = selectedWorkspace?.pivot?.role as string | undefined;
+    const canToggleSelected =
+        selectedWorkspaceId !== null && selectedRole === 'owner';
+
     const isGitHubConnected = !!auth.user.github_token;
 
-    const fetchRepos = (pageNum: number) => {
+    const fetchRepos = (pageNum: number, workspaceId?: string | null) => {
         setLoading(true);
-        fetch(`/repos/data?page=${pageNum}`)
+        const url = workspaceId
+            ? `/repos/data?page=${pageNum}&workspace_id=${workspaceId}`
+            : `/repos/data?page=${pageNum}`;
+
+        fetch(url)
             .then((res) => res.json())
             .then((data: RepositoryPageProps) => {
                 setRepos(data.data.repositories || []);
@@ -79,18 +93,18 @@ export default function Index() {
             return;
         }
 
-        fetchRepos(1);
-    }, [isGitHubConnected]);
+        fetchRepos(1, selectedWorkspaceId);
+    }, [isGitHubConnected, selectedWorkspaceId]);
 
     const prevPage = () => {
         if (page > 1) {
-            fetchRepos(page - 1);
+            fetchRepos(page - 1, selectedWorkspaceId);
         }
     };
 
     const nextPage = () => {
         if (hasMore) {
-            fetchRepos(page + 1);
+            fetchRepos(page + 1, selectedWorkspaceId);
         }
     };
 
@@ -99,9 +113,13 @@ export default function Index() {
 
         setToggling((prev) => ({ ...prev, [repo.full_name]: true }));
 
+        const wsParam = selectedWorkspaceId
+            ? `?workspace_id=${selectedWorkspaceId}`
+            : '';
+
         try {
             if (isConnected) {
-                const res = await fetch(`/repos/${repo.full_name}`, {
+                const res = await fetch(`/repos/${repo.full_name}${wsParam}`, {
                     method: 'DELETE',
                     headers: { 'X-CSRF-TOKEN': csrfToken() },
                 });
@@ -116,7 +134,7 @@ export default function Index() {
                     }));
                 }
             } else {
-                const res = await fetch(`/repos/${repo.full_name}`, {
+                const res = await fetch(`/repos/${repo.full_name}${wsParam}`, {
                     method: 'POST',
                     headers: { 'X-CSRF-TOKEN': csrfToken() },
                 });
@@ -156,6 +174,32 @@ export default function Index() {
                     />
                 </div>
 
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <label
+                            htmlFor="workspace-select"
+                            className="text-sm font-medium"
+                        >
+                            Workspace:
+                        </label>
+                        <select
+                            id="workspace-select"
+                            value={selectedWorkspaceId || ''}
+                            onChange={(e) =>
+                                setSelectedWorkspaceId(e.target.value || null)
+                            }
+                            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                            <option value="">All Workspaces</option>
+                            {workspaces.map((workspace) => (
+                                <option key={workspace.id} value={workspace.id}>
+                                    {workspace.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
                 {!isGitHubConnected ? (
                     <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
                         <p className="font-medium">
@@ -177,11 +221,14 @@ export default function Index() {
                         <Spinner className="size-8" />
                     </div>
                 ) : repos.length === 0 ? (
-                    <div className="rounded-lg border p-4 text-center">
-                        <p className="text-muted-foreground">
-                            No repositories found. Make sure your GitHub account
-                            has access to repositories.
-                        </p>
+                    <div className="py-12 text-center">
+                        <div className="mb-2 text-lg font-medium text-muted-foreground">
+                            No repositories found
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                            Make sure your GitHub account has access to
+                            repositories
+                        </div>
                     </div>
                 ) : (
                     <>
@@ -198,7 +245,7 @@ export default function Index() {
                                         <th className="px-4 py-3 text-sm font-medium">
                                             Status
                                         </th>
-                                        {isOwner && (
+                                        {canToggleSelected && (
                                             <th className="px-4 py-3 text-sm font-medium">
                                                 Toggle
                                             </th>
@@ -257,7 +304,7 @@ export default function Index() {
                                                         </span>
                                                     )}
                                                 </td>
-                                                {isOwner && (
+                                                {canToggleSelected && (
                                                     <td className="px-4 py-3">
                                                         <button
                                                             onClick={() =>

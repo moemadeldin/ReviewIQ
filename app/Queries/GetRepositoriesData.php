@@ -13,7 +13,7 @@ final readonly class GetRepositoriesData
 {
     public function __construct(private GitHubApi $github) {}
 
-    public function handle(User $user, Workspace $workspace, int $page = 1): array
+    public function handle(User $user, ?Workspace $workspace = null, int $page = 1): array
     {
         if (! $user?->github_token) {
             return ['repositories' => [], 'connected_repos' => [], 'has_more' => false];
@@ -21,10 +21,17 @@ final readonly class GetRepositoriesData
 
         $githubRepos = $this->github->getUserRepos($user->github_token, $page);
 
-        $connectedRepos = Repository::query()
-            ->where('workspace_id', $workspace->id)
-            ->get()
-            ->keyBy('full_name');
+        if ($workspace instanceof Workspace) {
+            $connectedRepos = Repository::query()
+                ->where('workspace_id', $workspace->id)
+                ->get()
+                ->keyBy('full_name');
+        } else {
+            $connectedRepos = Repository::query()
+                ->whereIn('workspace_id', $user->workspaces()->pluck('workspace_id'))
+                ->get()
+                ->keyBy('full_name');
+        }
 
         $hasMore = count($githubRepos) === 10;
 

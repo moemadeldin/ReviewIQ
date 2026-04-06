@@ -36,6 +36,8 @@ final readonly class RequireWorkspace
         'verification.notice',
         'verification.send',
         'verification.verify',
+        'repos.index',
+        'repos.data',
     ];
 
     public function handle(Request $request, Closure $next): Response

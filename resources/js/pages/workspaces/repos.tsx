@@ -31,7 +31,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Repos() {
     const { workspace } = usePage<{ auth: Auth } & ReposPageProps>().props;
-    const role = usePage().props.auth?.role;
+    const role = usePage().props.auth?.currentWorkspace?.pivot?.role as
+        | string
+        | undefined;
     const isOwner = role === 'owner';
     const [repos, setRepos] = useState<ConnectedRepo[]>([]);
     const [loading, setLoading] = useState(true);
@@ -146,8 +148,14 @@ export default function Repos() {
                                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
                             </div>
                         ) : repos.length === 0 ? (
-                            <div className="py-8 text-center text-muted-foreground">
-                                No repositories connected yet
+                            <div className="py-12 text-center">
+                                <div className="mb-2 text-lg font-medium text-muted-foreground">
+                                    No repositories connected
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                    Connect repositories from the Repositories
+                                    page to start tracking PRs
+                                </div>
                             </div>
                         ) : (
                             <>
