@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Workspace } from '@/types';
+import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
 interface Member {
     id: string;
@@ -35,7 +35,6 @@ interface Member {
 
 interface MembersPageProps {
     workspace: Workspace;
-    userRole: string;
     [key: string]: unknown;
 }
 
@@ -47,7 +46,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Members() {
-    const { workspace, userRole } = usePage<MembersPageProps>().props;
+    const { workspace } = usePage<{ auth: Auth } & MembersPageProps>().props;
+    const role = usePage().props.auth?.role;
     const [members, setMembers] = useState<Member[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -58,8 +58,8 @@ export default function Members() {
     const [removing, setRemoving] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const canInvite = userRole === 'owner' || userRole === 'admin';
-    const isOwner = userRole === 'owner';
+    const canInvite = role === 'owner';
+    const isOwner = role === 'owner';
 
     const fetchMembers = async (pageNum: number) => {
         setLoading(true);

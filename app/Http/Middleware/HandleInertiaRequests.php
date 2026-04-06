@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -31,13 +33,21 @@ final class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $currentWorkspace = $request->attributes->get('current_workspace');
+
+        $currentRole = null;
+        if ($currentWorkspace instanceof Workspace && $request->user() instanceof User) {
+            $currentRole = $currentWorkspace->roleOf($request->user());
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
                 'workspaces' => $request->user()?->workspaces->toArray() ?: [],
-                'currentWorkspace' => $request->attributes->get('current_workspace'),
+                'currentWorkspace' => $currentWorkspace,
+                'role' => $currentRole,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

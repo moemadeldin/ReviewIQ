@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use App\Enums\Roles;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Enum;
 
-final class GenerateInvitationRequest extends FormRequest
+final class CancelInvitationRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -28,13 +26,5 @@ final class GenerateInvitationRequest extends FormRequest
         }
 
         return $workspace->isOwner($user);
-    }
-
-    public function rules(): array
-    {
-        return [
-            'email' => ['required', 'email', 'max:255'],
-            'role' => ['nullable', 'string', new Enum(Roles::class)],
-        ];
     }
 }

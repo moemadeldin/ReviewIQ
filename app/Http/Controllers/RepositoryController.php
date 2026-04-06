@@ -6,6 +6,9 @@ namespace App\Http\Controllers;
 
 use App\Actions\AttachRepository;
 use App\Actions\DeleteRepository;
+use App\Http\Requests\AttachRepositoryRequest;
+use App\Http\Requests\DeleteRepositoryRequest;
+use App\Http\Requests\ToggleRepositoryRequest;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Queries\GetRepositoriesData;
@@ -68,7 +71,7 @@ final readonly class RepositoryController
         ], 'ok');
     }
 
-    public function store(Request $request, #[CurrentUser()] User $user, AttachRepository $action, string $fullName): JsonResponse|Response
+    public function store(AttachRepositoryRequest $request, #[CurrentUser()] User $user, AttachRepository $action, string $fullName): JsonResponse|Response
     {
         $workspace = $request->attributes->get('current_workspace');
 
@@ -81,7 +84,7 @@ final readonly class RepositoryController
         return $this->success(['repository' => $repository], 'Repository connected');
     }
 
-    public function destroy(Request $request, #[CurrentUser()] User $user, DeleteRepository $action, string $fullName): JsonResponse|Response
+    public function destroy(DeleteRepositoryRequest $request, #[CurrentUser()] User $user, DeleteRepository $action, string $fullName): JsonResponse|Response
     {
         $workspace = $request->attributes->get('current_workspace');
 
@@ -94,7 +97,7 @@ final readonly class RepositoryController
         return $this->success(['message' => 'Repository disconnected'], 'ok');
     }
 
-    public function toggle(Request $request): JsonResponse
+    public function toggle(ToggleRepositoryRequest $request): JsonResponse
     {
         $workspace = $request->attributes->get('current_workspace');
 
@@ -102,10 +105,7 @@ final readonly class RepositoryController
             return $this->fail('Unauthorized', Response::HTTP_UNAUTHORIZED);
         }
 
-        $validated = $request->validate([
-            'repo_id' => ['required', 'string'],
-            'is_active' => ['required', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $repo = $workspace->repositories()->where('repositories.id', $validated['repo_id'])->first();
 

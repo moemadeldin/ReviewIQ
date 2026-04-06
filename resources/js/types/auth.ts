@@ -29,6 +29,7 @@ export type Auth = {
     user: User;
     workspaces: Workspace[];
     currentWorkspace: Workspace | null;
+    role: string | null;
 };
 
 export type TwoFactorSetupData = {

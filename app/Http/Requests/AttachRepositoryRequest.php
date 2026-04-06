@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use App\Enums\Roles;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Enum;
 
-final class GenerateInvitationRequest extends FormRequest
+final class AttachRepositoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -21,20 +19,12 @@ final class GenerateInvitationRequest extends FormRequest
             return false;
         }
 
-        $workspace = Workspace::query()->where('slug', $this->route('workspace'))->first();
+        $workspace = $this->attributes->get('current_workspace');
 
         if (! $workspace instanceof Workspace) {
             return false;
         }
 
         return $workspace->isOwner($user);
-    }
-
-    public function rules(): array
-    {
-        return [
-            'email' => ['required', 'email', 'max:255'],
-            'role' => ['nullable', 'string', new Enum(Roles::class)],
-        ];
     }
 }

@@ -46,6 +46,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Index() {
     const { auth } = usePage<{ auth: Auth }>().props;
+    const role = auth.role;
+    const isOwner = role === 'owner';
     const [repos, setRepos] = useState<GitHubRepo[]>([]);
     const [connectedRepos, setConnectedRepos] = useState<
         Record<string, ConnectedRepo>
@@ -196,9 +198,11 @@ export default function Index() {
                                         <th className="px-4 py-3 text-sm font-medium">
                                             Status
                                         </th>
-                                        <th className="px-4 py-3 text-sm font-medium">
-                                            Toggle
-                                        </th>
+                                        {isOwner && (
+                                            <th className="px-4 py-3 text-sm font-medium">
+                                                Toggle
+                                            </th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -253,34 +257,40 @@ export default function Index() {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    <button
-                                                        onClick={() =>
-                                                            handleToggle(repo)
-                                                        }
-                                                        disabled={isToggling}
-                                                        className={cn(
-                                                            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
-                                                            isActive
-                                                                ? 'bg-green-600'
-                                                                : 'bg-muted',
-                                                        )}
-                                                    >
-                                                        <span
+                                                {isOwner && (
+                                                    <td className="px-4 py-3">
+                                                        <button
+                                                            onClick={() =>
+                                                                handleToggle(
+                                                                    repo,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                isToggling
+                                                            }
                                                             className={cn(
-                                                                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform',
+                                                                'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                                                                 isActive
-                                                                    ? 'translate-x-5'
-                                                                    : 'translate-x-0',
+                                                                    ? 'bg-green-600'
+                                                                    : 'bg-muted',
                                                             )}
-                                                        />
-                                                        {isToggling && (
-                                                            <span className="absolute inset-0 flex items-center justify-center">
-                                                                <Spinner className="size-3 text-white" />
-                                                            </span>
-                                                        )}
-                                                    </button>
-                                                </td>
+                                                        >
+                                                            <span
+                                                                className={cn(
+                                                                    'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform',
+                                                                    isActive
+                                                                        ? 'translate-x-5'
+                                                                        : 'translate-x-0',
+                                                                )}
+                                                            />
+                                                            {isToggling && (
+                                                                <span className="absolute inset-0 flex items-center justify-center">
+                                                                    <Spinner className="size-3 text-white" />
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         );
                                     })}

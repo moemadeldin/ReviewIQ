@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Workspace } from '@/types';
+import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
 interface Invitation {
     id: string;
@@ -17,7 +17,6 @@ interface Invitation {
 
 interface InvitationsPageProps {
     workspace: Workspace;
-    userRole: string;
     [key: string]: unknown;
 }
 
@@ -29,14 +28,17 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Invitations() {
-    const { workspace, userRole } = usePage<InvitationsPageProps>().props;
+    const { workspace } = usePage<{ auth: Auth } & InvitationsPageProps>()
+        .props;
+    const role = usePage().props.auth?.role;
+    const isOwner = role === 'owner';
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
     const [cancelling, setCancelling] = useState<string | null>(null);
 
-    const canManage = userRole === 'owner' || userRole === 'admin';
+    const canManage = isOwner;
 
     const fetchInvitations = async (pageNum: number) => {
         setLoading(true);

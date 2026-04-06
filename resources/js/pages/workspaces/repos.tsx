@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
-import type { BreadcrumbItem, Workspace } from '@/types';
+import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
 interface ConnectedRepo {
     id: string;
@@ -19,7 +19,6 @@ interface ConnectedRepo {
 
 interface ReposPageProps {
     workspace: Workspace;
-    userRole: string;
     [key: string]: unknown;
 }
 
@@ -31,7 +30,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Repos() {
-    const { workspace } = usePage<ReposPageProps>().props;
+    const { workspace } = usePage<{ auth: Auth } & ReposPageProps>().props;
+    const role = usePage().props.auth?.role;
+    const isOwner = role === 'owner';
     const [repos, setRepos] = useState<ConnectedRepo[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -166,9 +167,11 @@ export default function Repos() {
                                                 <th className="px-4 py-3 text-sm font-medium">
                                                     Connected
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
-                                                    Toggle
-                                                </th>
+                                                {isOwner && (
+                                                    <th className="px-4 py-3 text-sm font-medium">
+                                                        Toggle
+                                                    </th>
+                                                )}
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -215,33 +218,37 @@ export default function Repos() {
                                                             repo.connected_at,
                                                         ).toLocaleDateString()}
                                                     </td>
-                                                    <td className="px-4 py-3">
-                                                        <Button
-                                                            size="sm"
-                                                            variant={
-                                                                repo.is_active
-                                                                    ? 'destructive'
-                                                                    : 'default'
-                                                            }
-                                                            onClick={() =>
-                                                                handleToggle(
-                                                                    repo.id,
-                                                                    repo.is_active,
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                toggling[
+                                                    {isOwner && (
+                                                        <td className="px-4 py-3">
+                                                            <Button
+                                                                size="sm"
+                                                                variant={
+                                                                    repo.is_active
+                                                                        ? 'destructive'
+                                                                        : 'default'
+                                                                }
+                                                                onClick={() =>
+                                                                    handleToggle(
+                                                                        repo.id,
+                                                                        repo.is_active,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    toggling[
+                                                                        repo.id
+                                                                    ]
+                                                                }
+                                                            >
+                                                                {toggling[
                                                                     repo.id
                                                                 ]
-                                                            }
-                                                        >
-                                                            {toggling[repo.id]
-                                                                ? '...'
-                                                                : repo.is_active
-                                                                  ? 'Disable'
-                                                                  : 'Enable'}
-                                                        </Button>
-                                                    </td>
+                                                                    ? '...'
+                                                                    : repo.is_active
+                                                                      ? 'Disable'
+                                                                      : 'Enable'}
+                                                            </Button>
+                                                        </td>
+                                                    )}
                                                 </tr>
                                             ))}
                                         </tbody>

@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\CreateInvitationAction;
+use App\Http\Requests\CancelInvitationRequest;
 use App\Http\Requests\GenerateInvitationRequest;
-use App\Models\Invitation;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Models\WorkspaceInvitation;
 use App\Traits\APIResponder;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
@@ -32,10 +33,9 @@ final readonly class WorkspaceInvitationController
         $page = (int) request()->query('page', 1);
         $limit = 10;
 
-        $invitations = Invitation::query()
+        $invitations = WorkspaceInvitation::query()
             ->where('workspace_id', $workspaceModel->id)
-            ->whereNull('accepted_at')
-            ->orderBy('created_at', 'desc')
+            ->whereNull('accepted_at')->latest()
             ->simplePaginate($limit, page: $page);
 
         $items = $invitations->getCollection()->map(fn ($invitation): array => [
@@ -65,10 +65,6 @@ final readonly class WorkspaceInvitationController
             return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
         }
 
-        if (! $workspaceModel->isOwnerOrAdmin($user)) {
-            return $this->fail('Only owners and admins can invite users', Response::HTTP_FORBIDDEN);
-        }
-
         try {
             $invitation = $action->handle(
                 $workspaceModel,
@@ -86,6 +82,7 @@ final readonly class WorkspaceInvitationController
     }
 
     public function destroy(
+        CancelInvitationRequest $request,
         #[CurrentUser()] User $user,
         string $workspace,
         string $invitation,
@@ -96,11 +93,7 @@ final readonly class WorkspaceInvitationController
             return $this->fail('Workspace not found', Response::HTTP_NOT_FOUND);
         }
 
-        if (! $workspaceModel->isOwnerOrAdmin($user)) {
-            return $this->fail('Only owners and admins can cancel invitations', Response::HTTP_FORBIDDEN);
-        }
-
-        $invitationModel = Invitation::query()->find($invitation);
+        $invitationModel = WorkspaceInvitation::query()->find($invitation);
 
         if (! $invitationModel) {
             return $this->fail('Invitation not found', Response::HTTP_NOT_FOUND);

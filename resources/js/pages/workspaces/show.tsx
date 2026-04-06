@@ -2,7 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { Users, GitBranch, Mail } from 'lucide-react';
 import Heading from '@/components/heading';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Workspace } from '@/types';
+import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
 interface WorkspaceShowProps {
     workspace: Workspace;
@@ -17,7 +17,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Show() {
-    const { workspace } = usePage<WorkspaceShowProps>().props;
+    const { workspace } = usePage<{ auth: Auth } & WorkspaceShowProps>().props;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
