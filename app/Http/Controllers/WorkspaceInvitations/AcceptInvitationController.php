@@ -33,7 +33,7 @@ final readonly class AcceptInvitationController
             return $this->fail('Invitation already used', Response::HTTP_CONFLICT);
         }
 
-        $user = User::query()->where('email', $invitation->email)->first();
+        $user = User::query()->whereEmail($invitation->email)->first();
 
         if (! $user) {
             $validated = $request->validate([

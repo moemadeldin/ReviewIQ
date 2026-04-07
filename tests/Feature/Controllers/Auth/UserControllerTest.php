@@ -28,7 +28,7 @@ it('may register a new user', function (): void {
 
     $response->assertRedirectToRoute('dashboard');
 
-    $user = User::query()->where('email', 'test@example.com')->first();
+    $user = User::query()->whereEmail('test@example.com')->first();
 
     expect($user)->not->toBeNull()
         ->and($user->name)->toBe('Test User')

@@ -20,7 +20,7 @@ final readonly class CreateInvitationAction
 
     public function handle(Workspace $workspace, User $invitedBy, string $email, ?string $role = null): WorkspaceInvitation
     {
-        $existingUser = User::query()->where('email', $email)->first();
+        $existingUser = User::query()->whereEmail($email)->first();
 
         throw_if($existingUser && $workspace->users()->where('user_id', $existingUser->id)->exists(), RuntimeException::class, 'User is already a member of this workspace');
 

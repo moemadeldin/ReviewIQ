@@ -141,7 +141,7 @@ describe('AcceptInvitationController', function (): void {
         $response->assertStatus(200)
             ->assertJsonPath('status', 'Success');
 
-        $newUser = User::query()->where('email', 'newuser@example.com')->first();
+        $newUser = User::query()->whereEmail('newuser@example.com')->first();
         expect($newUser)->not->toBeNull();
 
         $this->assertDatabaseHas('workspace_users', [

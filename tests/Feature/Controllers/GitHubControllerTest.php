@@ -39,7 +39,7 @@ it('creates user from github oauth', function (): void {
         'github_id' => '12345',
     ]);
 
-    $user = User::query()->where('email', 'test@example.com')->first();
+    $user = User::query()->whereEmail('test@example.com')->first();
     expect($user->github_avatar)->toBe('https://example.com/avatar.jpg');
     expect(Auth::check())->toBeTrue();
 });
