@@ -74,6 +74,7 @@ final class Workspace extends Model
     {
         return $this->owner_id === $user->id;
     }
+
     public function roleOf(User $user): ?string
     {
         $membership = $this->users()->where('user_id', $user->id)->first();

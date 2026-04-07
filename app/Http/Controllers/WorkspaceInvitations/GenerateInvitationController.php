@@ -25,10 +25,6 @@ final readonly class GenerateInvitationController
         Workspace $workspace,
     ): JsonResponse {
 
-        if (! $workspace instanceof Workspace) {
-            return $this->fail('Workspace not selected', Response::HTTP_BAD_REQUEST);
-        }
-
         if (! $workspace->isOwnerOrAdmin($user)) {
             return $this->fail('Only owners and admins can invite users', Response::HTTP_FORBIDDEN);
         }

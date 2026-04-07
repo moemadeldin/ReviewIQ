@@ -20,7 +20,6 @@ Route::middleware('guest')->group(function (): void {
     // Invitations...
     Route::get('invitations/{token}/accept', ShowAcceptInvitationController::class)->name('invitations.accept.page');
 
-
     Route::post('invitations/{token}/accept', AcceptInvitationController::class)
         ->name('invitations.accept');
 

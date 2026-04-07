@@ -31,7 +31,7 @@ final readonly class RepositoryController
 
         return $this->success($data, 'ok');
     }
-    
+
     public function store(ManageRepositoryRequest $request, #[CurrentUser()] User $user, Workspace $workspace, AttachRepository $action, string $fullName): JsonResponse|Response
     {
         $repository = $action->handle($workspace, $user, $fullName);

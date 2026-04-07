@@ -25,7 +25,7 @@ final class WorkspaceInvitation extends Model
 {
     /** @use HasFactory<WorkspaceInvitationFactory> */
     use HasFactory;
-    
+
     /**
      * @return BelongsTo<Workspace, WorkspaceInvitation>
      */

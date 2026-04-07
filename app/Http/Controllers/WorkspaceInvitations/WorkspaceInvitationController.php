@@ -33,7 +33,7 @@ final readonly class WorkspaceInvitationController
         return $this->success([
             'invitations' => WorkspaceInvitationResource::collection($invitations->items()),
             'current_page' => $invitations->currentPage(),
-            'has_more' => $invitations->hasMorePages()
+            'has_more' => $invitations->hasMorePages(),
         ], 'ok');
     }
 

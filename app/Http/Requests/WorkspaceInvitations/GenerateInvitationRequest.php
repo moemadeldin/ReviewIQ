@@ -7,12 +7,12 @@ namespace App\Http\Requests\WorkspaceInvitations;
 use App\Enums\Roles;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Rules\ValidEmail;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Container\Attributes\RouteParameter;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Enum;
-use App\Rules\ValidEmail;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 
 final class GenerateInvitationRequest extends FormRequest
 {

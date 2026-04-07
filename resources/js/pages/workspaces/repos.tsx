@@ -73,7 +73,10 @@ export default function Repos() {
         }
     };
 
-    const handleToggle = async (repoFullName: string, currentStatus: boolean) => {
+    const handleToggle = async (
+        repoFullName: string,
+        currentStatus: boolean,
+    ) => {
         setToggling((prev) => ({ ...prev, [repoFullName]: true }));
 
         try {
@@ -248,12 +251,14 @@ export default function Repos() {
                                                                 }
                                                                 disabled={
                                                                     toggling[
-                                                                        repo.full_name
+                                                                        repo
+                                                                            .full_name
                                                                     ]
                                                                 }
                                                             >
                                                                 {toggling[
-                                                                    repo.full_name
+                                                                    repo
+                                                                        .full_name
                                                                 ]
                                                                     ? '...'
                                                                     : repo.is_active

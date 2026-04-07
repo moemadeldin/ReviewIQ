@@ -17,9 +17,10 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 final readonly class CreateInvitationAction
 {
     private const int TOKEN_EXPIRY_HOURS = 48;
+
     private const int TOKEN_NUMBER_OF_CHARS = 64;
 
-    public function handle(Workspace $workspace, User $invitedBy, string $email, string | Roles $role): WorkspaceInvitation
+    public function handle(Workspace $workspace, User $invitedBy, string $email, string|Roles $role): WorkspaceInvitation
     {
         $existingUser = User::query()->whereEmail($email)->first();
 
@@ -41,7 +42,7 @@ final readonly class CreateInvitationAction
             'token' => $token,
             'role' => $role ?? Roles::Member->value,
             'expires_at' => now()->addHours(self::TOKEN_EXPIRY_HOURS),
-            'created_at' => now()
+            'created_at' => now(),
         ]);
 
         try {

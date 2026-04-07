@@ -115,10 +115,13 @@ export default function Index() {
 
         try {
             if (isConnected) {
-                const res = await fetch(`/workspaces/${selectedWorkspaceId}/repos/${repo.full_name}`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': csrfToken() },
-                });
+                const res = await fetch(
+                    `/workspaces/${selectedWorkspaceId}/repos/${repo.full_name}`,
+                    {
+                        method: 'DELETE',
+                        headers: { 'X-CSRF-TOKEN': csrfToken() },
+                    },
+                );
 
                 if (res.ok) {
                     setConnectedRepos((prev) => ({
@@ -130,10 +133,13 @@ export default function Index() {
                     }));
                 }
             } else {
-                const res = await fetch(`/workspaces/${selectedWorkspaceId}/repos/${repo.full_name}`, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': csrfToken() },
-                });
+                const res = await fetch(
+                    `/workspaces/${selectedWorkspaceId}/repos/${repo.full_name}`,
+                    {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': csrfToken() },
+                    },
+                );
 
                 if (res.ok) {
                     const data: { data: { repository: ConnectedRepo } } =

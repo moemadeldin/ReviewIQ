@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Workspaces;
+
 use App\Http\Resources\WorkspaceInvitationResource;
 use App\Http\Resources\WorkspaceMemberResource;
-use App\Http\Resources\WorkspaceRepositoryResource;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Queries\GetConnectedRepositories;
@@ -55,6 +55,7 @@ final readonly class WorkspacePageController
     {
         $userRole = $workspace->roleOf($user);
         $invitations = $this->getInvitations->handle($workspace);
+
         return Inertia::render('workspaces/invitations', [
             'workspace' => $workspace,
             'userRole' => $userRole,
