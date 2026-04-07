@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\Roles;
 use App\Traits\Sluggable;
 use Carbon\CarbonInterface;
 use Database\Factories\WorkspaceFactory;
@@ -62,7 +63,7 @@ final class Workspace extends Model
         return $this->hasMany(Repository::class);
     }
 
-    public function addUser(User $user, string $role = 'member'): void
+    public function addUser(User $user, Roles $role): void
     {
         $this->users()->syncWithoutDetaching([
             $user->id => ['role' => $role],

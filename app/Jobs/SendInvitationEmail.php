@@ -23,7 +23,7 @@ final class SendInvitationEmail implements ShouldQueue
 
     public function handle(): void
     {
-        $signedUrl = URL::signedRoute('invitations.accept', [
+        $signedUrl = URL::signedRoute('invitations.accept.page', [
             'token' => $this->invitation->token,
         ]);
 

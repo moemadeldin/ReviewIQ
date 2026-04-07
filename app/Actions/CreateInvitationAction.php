@@ -43,7 +43,7 @@ final readonly class CreateInvitationAction
         ]);
 
         try {
-            $acceptUrl = route('invitations.accept', ['token' => $token], absolute: false);
+            $acceptUrl = route('invitations.accept.page', ['token' => $token], absolute: false);
         } catch (RouteNotFoundException) {
             $acceptUrl = url('/invitations/'.$token.'/accept');
         }

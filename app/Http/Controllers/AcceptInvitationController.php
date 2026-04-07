@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\WorkspaceInvitation;
 use App\Traits\APIResponder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

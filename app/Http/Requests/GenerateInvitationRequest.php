@@ -7,26 +7,15 @@ namespace App\Http\Requests;
 use App\Enums\Roles;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Container\Attributes\CurrentUser;
+use Illuminate\Container\Attributes\RouteParameter;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
 final class GenerateInvitationRequest extends FormRequest
 {
-    public function authorize(): bool
+    public function authorize(#[CurrentUser()] User $user, #[RouteParameter('workspace')] Workspace $workspace): bool
     {
-        /** @var User $user */
-        $user = $this->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        $workspace = Workspace::query()->where('slug', $this->route('workspace'))->first();
-
-        if (! $workspace instanceof Workspace) {
-            return false;
-        }
-
         return $workspace->isOwner($user);
     }
 

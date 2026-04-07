@@ -91,6 +91,29 @@ Route::middleware('auth')->group(function (): void {
 
 Route::middleware('guest')->group(function (): void {
     // Invitations...
+    Route::get('invitations/{token}/accept', function (string $token) {
+        $invitation = \App\Models\WorkspaceInvitation::where('token', $token)->first();
+
+        if (!$invitation) {
+            return response('Invalid invitation', 404);
+        }
+
+        if ($invitation->isExpired()) {
+            return response('Invitation has expired', 410);
+        }
+
+        if ($invitation->isAccepted()) {
+            return response('Invitation already used', 409);
+        }
+
+        $user = \App\Models\User::query()->where('email', $invitation->email)->first();
+
+        return view('invitations.accept', [
+            'invitation' => $invitation,
+            'isExistingUser' => $user !== null,
+        ]);
+    })->name('invitations.accept.page');
+
     Route::post('invitations/{token}/accept', AcceptInvitationController::class)
         ->name('invitations.accept');
 
