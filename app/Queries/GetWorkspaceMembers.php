@@ -8,10 +8,8 @@ use App\Models\Workspace;
 
 final readonly class GetWorkspaceMembers
 {
-    public function handle(Workspace $workspace, int $page = 1): array
+    public function handle(Workspace $workspace, int $page = 1, int $limit = 10): array
     {
-        $limit = 10;
-
         $members = $workspace->users()
             ->latest('workspace_users.created_at')
             ->simplePaginate($limit, page: $page);

@@ -2,25 +2,31 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\AcceptInvitationController;
-use App\Http\Controllers\GenerateInvitationController;
-use App\Http\Controllers\GetConnectedRepositoriesController;
-use App\Http\Controllers\GetWorkspaceMembersController;
+use App\Http\Controllers\Auth\SessionController;
+use App\Http\Controllers\Auth\UserController;
+use App\Http\Controllers\Auth\UserEmailResetNotificationController;
+use App\Http\Controllers\Auth\UserEmailVerificationController;
+use App\Http\Controllers\Auth\UserEmailVerificationNotificationController;
+use App\Http\Controllers\Auth\UserPasswordController;
+use App\Http\Controllers\Auth\UserProfileController;
+use App\Http\Controllers\Auth\UserTwoFactorAuthenticationController;
 use App\Http\Controllers\GitHubController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\RepositoryController;
-use App\Http\Controllers\SessionController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\UserEmailResetNotificationController;
-use App\Http\Controllers\UserEmailVerificationController;
-use App\Http\Controllers\UserEmailVerificationNotificationController;
-use App\Http\Controllers\UserPasswordController;
-use App\Http\Controllers\UserProfileController;
-use App\Http\Controllers\UserTwoFactorAuthenticationController;
-use App\Http\Controllers\WorkspaceController;
-use App\Http\Controllers\WorkspaceInvitationController;
-use App\Http\Controllers\WorkspacePageController;
-use App\Http\Controllers\WorkspaceSwitchController;
+use App\Http\Controllers\Repositories\GetConnectedRepositoriesController;
+use App\Http\Controllers\Repositories\RepositoryController;
+use App\Http\Controllers\WorkspaceInvitations\AcceptInvitationController;
+use App\Http\Controllers\WorkspaceInvitations\GenerateInvitationController;
+use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
+use App\Http\Controllers\Workspaces\GetWorkspaceMembersController;
+use App\Http\Controllers\Workspaces\WorkspaceController;
+use App\Http\Controllers\Workspaces\WorkspacePageController;
+use App\Http\Controllers\Workspaces\WorkspaceSwitchController;
+use App\Models\User;
+use App\Models\WorkspaceInvitation;
+use Illuminate\Contracts\Routing\ResponseFactory;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -91,10 +97,10 @@ Route::middleware('auth')->group(function (): void {
 
 Route::middleware('guest')->group(function (): void {
     // Invitations...
-    Route::get('invitations/{token}/accept', function (string $token) {
-        $invitation = \App\Models\WorkspaceInvitation::where('token', $token)->first();
+    Route::get('invitations/{token}/accept', function (string $token): ResponseFactory|Response|Factory|View {
+        $invitation = WorkspaceInvitation::query()->where('token', $token)->first();
 
-        if (!$invitation) {
+        if (! $invitation) {
             return response('Invalid invitation', 404);
         }
 
@@ -106,7 +112,7 @@ Route::middleware('guest')->group(function (): void {
             return response('Invitation already used', 409);
         }
 
-        $user = \App\Models\User::query()->where('email', $invitation->email)->first();
+        $user = User::query()->where('email', $invitation->email)->first();
 
         return view('invitations.accept', [
             'invitation' => $invitation,

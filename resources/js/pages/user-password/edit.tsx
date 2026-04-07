@@ -1,7 +1,7 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head } from '@inertiajs/react';
 import { useRef } from 'react';
-import UserPasswordController from '@/actions/App/Http/Controllers/UserPasswordController';
+import UserPasswordController from '@/actions/App/Http/Controllers/Auth/UserPasswordController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';

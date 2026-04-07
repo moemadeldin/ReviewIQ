@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { useRef } from 'react';
-import UserController from '@/actions/App/Http/Controllers/UserController';
+import UserController from '@/actions/App/Http/Controllers/Auth/UserController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';

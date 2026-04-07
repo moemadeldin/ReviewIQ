@@ -21,7 +21,6 @@ use Illuminate\Database\Eloquent\Model;
 final class Notification extends Model
 {
     use HasFactory;
-    use HasFactory;
     use HasUuids;
 
     protected $casts = [

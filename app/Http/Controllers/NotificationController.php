@@ -27,7 +27,7 @@ final readonly class NotificationController
         return $this->success($data, 'ok');
     }
 
-    public function markAsRead(#[CurrentUser()] User $user, string $id): JsonResponse
+    public function markAsRead(#[CurrentUser()] User $user, string $id): JsonResponse // TODO change $id to be route model binding
     {
         $notification = $user->notifications()->find($id);
 
