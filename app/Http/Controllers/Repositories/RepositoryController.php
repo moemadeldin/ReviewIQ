@@ -6,9 +6,7 @@ namespace App\Http\Controllers\Repositories;
 
 use App\Actions\Repositories\AttachRepository;
 use App\Actions\Repositories\DeleteRepository;
-use App\Http\Requests\Repositories\AttachRepositoryRequest;
-use App\Http\Requests\Repositories\DeleteRepositoryRequest;
-use App\Http\Requests\Repositories\ToggleRepositoryRequest;
+use App\Http\Requests\Repositories\ManageRepositoryRequest;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Queries\GetRepositoriesData;
@@ -26,114 +24,26 @@ final readonly class RepositoryController
         private GetRepositoriesData $getRepositoriesData,
     ) {}
 
-    public function index(Request $request, #[CurrentUser()] User $user): JsonResponse
+    public function index(#[CurrentUser()] User $user, Workspace $workspace, Request $request): JsonResponse
     {
-        $workspaceId = $request->query('workspace_id'); // TODO Check this to use Route modelbinding
-
-        $workspace = null;
-        if ($workspaceId) {
-            $workspace = Workspace::query()->find($workspaceId);
-        }
-
-        if (! $workspace) {
-            $workspace = $request->attributes->get('current_workspace');
-        }
-
         $page = (int) $request->query('page', 1);
         $data = $this->getRepositoriesData->handle($user, $workspace, $page);
 
         return $this->success($data, 'ok');
     }
-
-    public function connected(Request $request, #[CurrentUser()] User $user, Workspace $workspace): JsonResponse // TODO check this out might be another controller
+    
+    public function store(ManageRepositoryRequest $request, #[CurrentUser()] User $user, Workspace $workspace, AttachRepository $action, string $fullName): JsonResponse|Response
     {
-        $page = (int) $request->query('page', 1);
-        $limit = 10;
-
-        $repos = $workspace->repositories()
-            ->latest('repositories.created_at')
-            ->simplePaginate($limit, page: $page);
-
-        $items = $repos->getCollection()->map(fn ($repo): array => [
-            'id' => $repo->id,
-            'full_name' => $repo->full_name,
-            'language' => $repo->language,
-            'is_active' => $repo->is_active,
-            'webhook_id' => $repo->webhook_id,
-            'connected_at' => $repo->pivot->created_at,
-        ]);
-
-        return $this->success([
-            'repositories' => $items,
-            'current_page' => $repos->currentPage(),
-            'has_more' => $repos->hasMorePages(),
-        ], 'ok');
-    }
-
-    public function store(AttachRepositoryRequest $request, #[CurrentUser()] User $user, AttachRepository $action, string $fullName): JsonResponse|Response
-    {
-        $workspaceId = $request->query('workspace_id'); // TODO check this to be route model binding
-
-        $workspace = null;
-        if ($workspaceId) {
-            $workspace = Workspace::query()->find($workspaceId);
-        }
-
-        if (! $workspace instanceof Workspace) {
-            $workspace = $request->attributes->get('current_workspace');
-        }
-
-        if (! $workspace instanceof Workspace) {
-            return $this->fail('Unauthorized', Response::HTTP_UNAUTHORIZED);
-        }
-
         $repository = $action->handle($workspace, $user, $fullName);
 
         return $this->success(['repository' => $repository], 'Repository connected');
     }
 
-    public function destroy(DeleteRepositoryRequest $request, #[CurrentUser()] User $user, DeleteRepository $action, string $fullName): JsonResponse|Response
+    public function destroy(ManageRepositoryRequest $request, #[CurrentUser()] User $user, Workspace $workspace, DeleteRepository $action, string $fullName): JsonResponse|Response
     {
-        $workspaceId = $request->query('workspace_id'); // TODO check this
-
-        $workspace = null;
-        if ($workspaceId) {
-            $workspace = Workspace::query()->find($workspaceId);
-        }
-
-        if (! $workspace instanceof Workspace) {
-            $workspace = $request->attributes->get('current_workspace');
-        }
-
-        if (! $workspace instanceof Workspace) {
-            return $this->fail('Unauthorized', Response::HTTP_UNAUTHORIZED);
-        }
 
         $action->handle($workspace, $user, $fullName);
 
         return $this->success(['message' => 'Repository disconnected'], 'ok');
-    }
-
-    public function toggle(ToggleRepositoryRequest $request): JsonResponse
-    {
-        $workspace = $request->attributes->get('current_workspace'); // TODO
-
-        if (! $workspace instanceof Workspace) {
-            return $this->fail('Unauthorized', Response::HTTP_UNAUTHORIZED);
-        }
-
-        $validated = $request->validated();
-
-        $repo = $workspace->repositories()->where('repositories.id', $validated['repo_id'])->first();
-
-        if (! $repo) {
-            return $this->fail('Repository not found', Response::HTTP_NOT_FOUND);
-        }
-
-        $workspace->repositories()->updateExistingPivot($repo->id, [
-            'is_active' => $validated['is_active'],
-        ]);
-
-        return $this->success(['message' => 'Repository toggled'], 'ok');
     }
 }

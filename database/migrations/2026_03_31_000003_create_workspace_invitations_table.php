@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('role')->default(Roles::Member->value);
             $table->timestamp('expires_at');
             $table->timestamp('accepted_at')->nullable();
+            $table->timestamps();
         });
     }
 };

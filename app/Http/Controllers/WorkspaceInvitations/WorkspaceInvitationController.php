@@ -7,6 +7,7 @@ namespace App\Http\Controllers\WorkspaceInvitations;
 use App\Actions\WorkspaceInvitations\CreateInvitationAction;
 use App\Http\Requests\WorkspaceInvitations\CancelInvitationRequest;
 use App\Http\Requests\WorkspaceInvitations\GenerateInvitationRequest;
+use App\Http\Resources\WorkspaceInvitationResource;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
@@ -24,13 +25,16 @@ final readonly class WorkspaceInvitationController
     public function __construct(private GetWorkspaceInvitations $getInvitations) {}
 
     public function index(
-        #[CurrentUser()] User $user, // TODO check this
         Workspace $workspace,
     ): JsonResponse {
         $page = (int) request()->query('page', 1);
-        $data = $this->getInvitations->handle($workspace, $page);
+        $invitations = $this->getInvitations->handle($workspace, $page);
 
-        return $this->success($data, 'ok');
+        return $this->success([
+            'invitations' => WorkspaceInvitationResource::collection($invitations->items()),
+            'current_page' => $invitations->currentPage(),
+            'has_more' => $invitations->hasMorePages()
+        ], 'ok');
     }
 
     public function store(
@@ -57,25 +61,23 @@ final readonly class WorkspaceInvitationController
 
     public function destroy(
         CancelInvitationRequest $request,
-        #[CurrentUser()] User $user,
         Workspace $workspace,
         WorkspaceInvitation $invitation,
     ): JsonResponse {
-        $invitationModel = WorkspaceInvitation::query()->find($invitation); // TODO might be better
 
-        if (! $invitationModel) {
+        if (! $invitation) {
             return $this->fail('Invitation not found', Response::HTTP_NOT_FOUND);
         }
 
-        if ($invitationModel->workspace_id !== $workspace->id) {
+        if ($invitation->workspace_id !== $workspace->id) {
             return $this->fail('Invitation does not belong to this workspace', Response::HTTP_FORBIDDEN);
         }
 
-        if ($invitationModel->accepted_at !== null) {
+        if ($invitation->accepted_at !== null) {
             return $this->fail('Cannot cancel accepted invitation', Response::HTTP_CONFLICT);
         }
 
-        $invitationModel->delete();
+        $invitation->delete();
 
         return $this->success(['message' => 'Invitation cancelled'], 'ok');
     }

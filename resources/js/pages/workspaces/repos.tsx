@@ -73,12 +73,13 @@ export default function Repos() {
         }
     };
 
-    const handleToggle = async (repoId: string, currentStatus: boolean) => {
-        setToggling((prev) => ({ ...prev, [repoId]: true }));
+    const handleToggle = async (repoFullName: string, currentStatus: boolean) => {
+        setToggling((prev) => ({ ...prev, [repoFullName]: true }));
 
         try {
-            const response = await fetch(`/repos/toggle`, {
-                method: 'POST',
+            const method = currentStatus ? 'DELETE' : 'POST';
+            const response = await fetch(`/repos/${repoFullName}`, {
+                method,
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
@@ -89,10 +90,6 @@ export default function Repos() {
                             ) as HTMLMetaElement
                         )?.content || '',
                 },
-                body: JSON.stringify({
-                    repo_id: repoId,
-                    is_active: !currentStatus,
-                }),
             });
 
             const result = await response.json();
@@ -100,7 +97,7 @@ export default function Repos() {
             if (result.status === 'Success') {
                 setRepos((prev) =>
                     prev.map((repo) =>
-                        repo.id === repoId
+                        repo.full_name === repoFullName
                             ? { ...repo, is_active: !currentStatus }
                             : repo,
                     ),
@@ -109,7 +106,7 @@ export default function Repos() {
         } catch (error) {
             console.error('Failed to toggle repo:', error);
         } finally {
-            setToggling((prev) => ({ ...prev, [repoId]: false }));
+            setToggling((prev) => ({ ...prev, [repoFullName]: false }));
         }
     };
 
@@ -245,18 +242,18 @@ export default function Repos() {
                                                                 }
                                                                 onClick={() =>
                                                                     handleToggle(
-                                                                        repo.id,
+                                                                        repo.full_name,
                                                                         repo.is_active,
                                                                     )
                                                                 }
                                                                 disabled={
                                                                     toggling[
-                                                                        repo.id
+                                                                        repo.full_name
                                                                     ]
                                                                 }
                                                             >
                                                                 {toggling[
-                                                                    repo.id
+                                                                    repo.full_name
                                                                 ]
                                                                     ? '...'
                                                                     : repo.is_active

@@ -10,29 +10,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 final class ToggleRepositoryRequest extends FormRequest
 {
-    public function authorize(): bool
+    public function authorize(#[CurrentUser()] User $user, #[RouteParameter('workspace')] Workspace $workspace): bool
     {
-        /** @var User $user */
-        $user = $this->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        $workspace = $this->attributes->get('current_workspace');
-
-        if (! $workspace instanceof Workspace) {
-            return false;
-        }
-
-        return $workspace->isOwner($user);
-    }
-
-    public function rules(): array
-    {
-        return [
-            'repo_id' => ['required', 'string'],
-            'is_active' => ['required', 'boolean'],
-        ];
+        return $workspace->owner()->is($user);
     }
 }

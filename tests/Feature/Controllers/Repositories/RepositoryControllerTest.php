@@ -39,7 +39,7 @@ it('stores a repository successfully', function (): void {
 
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
-        ->post(route('repos.store', ['fullName' => 'owner/repo']));
+        ->post(route('repos.store', ['workspace' => $this->workspace->id, 'fullName' => 'owner/repo']));
 
     $response->assertJsonPath('status', 'Success')
         ->assertJsonPath('message', 'Repository connected')
@@ -63,7 +63,7 @@ it('redirects to workspaces when user has no workspace on store', function (): v
     ]);
 
     $response = $this->actingAs($otherUser)
-        ->post(route('repos.store', ['fullName' => 'owner/repo']));
+        ->post(route('repos.store', ['workspace' => $this->workspace->id, 'fullName' => 'owner/repo']));
 
     $response->assertRedirectToRoute('workspaces.create');
 });
@@ -74,7 +74,7 @@ it('redirects to workspaces when user has no workspace on destroy', function ():
     ]);
 
     $response = $this->actingAs($otherUser)
-        ->delete(route('repos.destroy', ['fullName' => 'owner/repo']));
+        ->delete(route('repos.destroy', ['workspace' => $this->workspace->id, 'fullName' => 'owner/repo']));
 
     $response->assertRedirectToRoute('workspaces.create');
 });

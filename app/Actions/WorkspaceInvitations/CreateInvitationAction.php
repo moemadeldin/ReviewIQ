@@ -17,29 +17,31 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 final readonly class CreateInvitationAction
 {
     private const int TOKEN_EXPIRY_HOURS = 48;
+    private const int TOKEN_NUMBER_OF_CHARS = 64;
 
-    public function handle(Workspace $workspace, User $invitedBy, string $email, ?string $role = null): WorkspaceInvitation
+    public function handle(Workspace $workspace, User $invitedBy, string $email, string | Roles $role): WorkspaceInvitation
     {
         $existingUser = User::query()->whereEmail($email)->first();
 
         throw_if($existingUser && $workspace->users()->where('user_id', $existingUser->id)->exists(), RuntimeException::class, 'User is already a member of this workspace');
 
-        $existingInvitation = WorkspaceInvitation::query()->where('workspace_id', $workspace->id)
-            ->where('email', $email)
+        $existingInvitation = WorkspaceInvitation::query()
+            ->where('workspace_id', $workspace->id)
+            ->whereEmail($email)
             ->whereNull('accepted_at')
             ->first();
 
         throw_if($existingInvitation && ! $existingInvitation->isExpired(), RuntimeException::class, 'Invitation already sent to this email');
 
-        $token = Str::random(64);
-        $expiresAt = now()->addHours(self::TOKEN_EXPIRY_HOURS);
+        $token = Str::random(self::TOKEN_NUMBER_OF_CHARS);
 
         $invitation = WorkspaceInvitation::query()->create([
             'workspace_id' => $workspace->id,
             'email' => $email,
             'token' => $token,
             'role' => $role ?? Roles::Member->value,
-            'expires_at' => $expiresAt,
+            'expires_at' => now()->addHours(self::TOKEN_EXPIRY_HOURS),
+            'created_at' => now()
         ]);
 
         try {

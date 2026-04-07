@@ -10,6 +10,7 @@ use App\Traits\APIResponder;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 final readonly class NotificationController
 {
@@ -32,7 +33,7 @@ final readonly class NotificationController
         $notification = $user->notifications()->find($id);
 
         if (! $notification) {
-            return $this->fail('Notification not found', 404);
+            return $this->fail('Notification not found', Response::HTTP_NOT_FOUND);
         }
 
         $notification->markAsRead();

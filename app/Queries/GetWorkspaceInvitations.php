@@ -9,28 +9,12 @@ use App\Models\WorkspaceInvitation;
 
 final readonly class GetWorkspaceInvitations
 {
-    public function handle(Workspace $workspace, int $page = 1): array
+    public function handle(Workspace $workspace, int $page = 1, int $limit = 10)
     {
-        $limit = 10;
-
-        $invitations = WorkspaceInvitation::query()
+        return WorkspaceInvitation::query()
             ->where('workspace_id', $workspace->id)
             ->whereNull('accepted_at')
-            // ->latest('created_at')
+            ->latest('created_at')
             ->simplePaginate($limit, page: $page);
-
-        $items = $invitations->getCollection()->map(fn ($invitation): array => [
-            'id' => $invitation->id,
-            'email' => $invitation->email,
-            'role' => $invitation->role,
-            'expires_at' => $invitation->expires_at,
-            // 'created_at' => $invitation->created_at,
-        ]);
-
-        return [
-            'invitations' => $items,
-            'current_page' => $invitations->currentPage(),
-            'has_more' => $invitations->hasMorePages(),
-        ];
     }
 }

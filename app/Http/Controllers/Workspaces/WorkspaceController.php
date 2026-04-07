@@ -33,7 +33,7 @@ final readonly class WorkspaceController
         $name = $request->safe()->name;
 
         $workspace = $action->handle(
-            owner: $user,
+            user: $user,
             name: $name,
         );
 

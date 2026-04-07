@@ -4,59 +4,26 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\WorkspaceInvitations;
 
-use App\Models\User;
-use App\Models\WorkspaceInvitation;
+use App\Http\Requests\WorkspaceInvitations\AcceptInvitationRequest;
+use App\Actions\WorkspaceInvitations\AcceptInvitationAction;
 use App\Traits\APIResponder;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Symfony\Component\HttpFoundation\Response;
 
 final readonly class AcceptInvitationController
 {
     use APIResponder;
 
-    public function __invoke(Request $request, string $token): JsonResponse
+    public function __invoke(AcceptInvitationRequest $request, AcceptInvitationAction $action, string $token): JsonResponse
     {
-        $invitation = WorkspaceInvitation::query()->where('token', $token)->first();
+        $user = $action->handle($request->safe()->name, $request->safe()->password, $token);
 
-        if (! $invitation) {
-            return $this->fail('Invalid invitation', Response::HTTP_NOT_FOUND);
-        }
-
-        if ($invitation->isExpired()) {
-            return $this->fail('Invitation has expired', Response::HTTP_GONE);
-        }
-
-        if ($invitation->isAccepted()) {
-            return $this->fail('Invitation already used', Response::HTTP_CONFLICT);
-        }
-
-        $user = User::query()->whereEmail($invitation->email)->first();
-
-        if (! $user) {
-            $validated = $request->validate([
-                'name' => ['required', 'string', 'max:255'],
-                'password' => ['required', 'string', 'min:8', 'confirmed'], // TODO formrequest
-            ]);
-
-            $user = User::query()->create([
-                'name' => $validated['name'],
-                'email' => $invitation->email,
-                'password' => Hash::make($validated['password']), // TODO Action
-            ]);
-        }
-
-        $invitation->workspace->addUser($user, $invitation->role);
-
-        $invitation->update(['accepted_at' => now()]);
-
-        Auth::login($user); // TODO Stay Here
+        
+        Auth::login($user);
 
         return $this->success([
             'user' => $user,
-            'workspace' => $invitation->workspace,
+            'workspace' => $user->workspace,
         ], 'Invitation accepted');
     }
 }

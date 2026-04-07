@@ -66,9 +66,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::controller(RepositoryController::class)->group(function (): void {
         Route::get('repos/data', 'index')->name('repos.data');
-        Route::post('repos/{fullName}', 'store')->name('repos.store')->where('fullName', '.+');
-        Route::delete('repos/{fullName}', 'destroy')->name('repos.destroy')->where('fullName', '.+');
-        Route::post('repos/toggle', 'toggle')->name('repos.toggle');
+        Route::post('workspaces/{workspace}/repos/{fullName}', 'store')->name('repos.store')->where('fullName', '.+');
+        Route::delete('workspaces/{workspace}/repos/{fullName}', 'destroy')->name('repos.destroy')->where('fullName', '.+');
     });
 
     // Invitations...

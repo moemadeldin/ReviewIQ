@@ -72,39 +72,8 @@ final class Workspace extends Model
 
     public function isOwner(User $user): bool
     {
-        if ($this->owner_id === $user->id) {
-            return true;
-        }
-
-        $membership = $this->users()->where('user_id', $user->id)->first();
-
-        if (! $membership) {
-            return false;
-        }
-
-        return $membership->pivot->role === 'owner';
+        return $this->owner_id === $user->id;
     }
-
-    public function isAdmin(User $user): bool
-    {
-        $membership = $this->users()->where('user_id', $user->id)->first();
-
-        if (! $membership) {
-            return false;
-        }
-
-        return $membership->pivot->role === 'admin';
-    }
-
-    public function isOwnerOrAdmin(User $user): bool
-    {
-        if ($this->isOwner($user)) {
-            return true;
-        }
-
-        return $this->isAdmin($user);
-    }
-
     public function roleOf(User $user): ?string
     {
         $membership = $this->users()->where('user_id', $user->id)->first();

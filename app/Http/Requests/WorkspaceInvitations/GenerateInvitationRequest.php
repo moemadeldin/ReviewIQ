@@ -11,6 +11,8 @@ use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Container\Attributes\RouteParameter;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
+use App\Rules\ValidEmail;
+use Illuminate\Validation\Rule;
 
 final class GenerateInvitationRequest extends FormRequest
 {
@@ -22,8 +24,16 @@ final class GenerateInvitationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email', 'max:255'],
-            'role' => ['nullable', 'string', new Enum(Roles::class)],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'max:255',
+                'email',
+                new ValidEmail,
+                Rule::unique(User::class),
+            ],
+            'role' => ['required', new Enum(Roles::class)],
         ];
     }
 }

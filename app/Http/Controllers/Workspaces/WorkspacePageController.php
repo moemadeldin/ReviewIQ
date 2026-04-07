@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Workspaces;
-
+use App\Http\Resources\WorkspaceInvitationResource;
+use App\Http\Resources\WorkspaceMemberResource;
+use App\Http\Resources\WorkspaceRepositoryResource;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Queries\GetConnectedRepositories;
@@ -29,9 +31,9 @@ final readonly class WorkspacePageController
         return Inertia::render('workspaces/members', [
             'workspace' => $workspace,
             'userRole' => $userRole,
-            'initialMembers' => $members['members'],
-            'membersCurrentPage' => $members['current_page'],
-            'membersHasMore' => $members['has_more'],
+            'initialMembers' => WorkspaceMemberResource::collection($members->items())->resolve(),
+            'membersCurrentPage' => $members->currentPage(),
+            'membersHasMore' => $members->hasMorePages(),
         ]);
     }
 
@@ -53,13 +55,12 @@ final readonly class WorkspacePageController
     {
         $userRole = $workspace->roleOf($user);
         $invitations = $this->getInvitations->handle($workspace);
-
         return Inertia::render('workspaces/invitations', [
             'workspace' => $workspace,
             'userRole' => $userRole,
-            'initialInvitations' => $invitations['invitations'],
-            'invitationsCurrentPage' => $invitations['current_page'],
-            'invitationsHasMore' => $invitations['has_more'],
+            'initialInvitations' => WorkspaceInvitationResource::collection($invitations->items())->resolve(),
+            'invitationsCurrentPage' => $invitations->currentPage(),
+            'invitationsHasMore' => $invitations->hasMorePages(),
         ]);
     }
 }

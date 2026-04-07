@@ -25,9 +25,7 @@ final class WorkspaceInvitation extends Model
 {
     /** @use HasFactory<WorkspaceInvitationFactory> */
     use HasFactory;
-
-    public $timestamps = false;
-
+    
     /**
      * @return BelongsTo<Workspace, WorkspaceInvitation>
      */

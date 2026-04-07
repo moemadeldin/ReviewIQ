@@ -113,13 +113,9 @@ export default function Index() {
 
         setToggling((prev) => ({ ...prev, [repo.full_name]: true }));
 
-        const wsParam = selectedWorkspaceId
-            ? `?workspace_id=${selectedWorkspaceId}`
-            : '';
-
         try {
             if (isConnected) {
-                const res = await fetch(`/repos/${repo.full_name}${wsParam}`, {
+                const res = await fetch(`/workspaces/${selectedWorkspaceId}/repos/${repo.full_name}`, {
                     method: 'DELETE',
                     headers: { 'X-CSRF-TOKEN': csrfToken() },
                 });
@@ -134,7 +130,7 @@ export default function Index() {
                     }));
                 }
             } else {
-                const res = await fetch(`/repos/${repo.full_name}${wsParam}`, {
+                const res = await fetch(`/workspaces/${selectedWorkspaceId}/repos/${repo.full_name}`, {
                     method: 'POST',
                     headers: { 'X-CSRF-TOKEN': csrfToken() },
                 });

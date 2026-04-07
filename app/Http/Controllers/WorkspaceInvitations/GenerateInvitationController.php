@@ -22,8 +22,8 @@ final readonly class GenerateInvitationController
         GenerateInvitationRequest $request,
         #[CurrentUser()] User $user,
         CreateInvitationAction $action,
+        Workspace $workspace,
     ): JsonResponse {
-        $workspace = $request->attributes->get('current_workspace');
 
         if (! $workspace instanceof Workspace) {
             return $this->fail('Workspace not selected', Response::HTTP_BAD_REQUEST);
