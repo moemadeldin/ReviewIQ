@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Repositories;
 
 use App\Actions\Repositories\AttachRepository;
 use App\Actions\Repositories\DeleteRepository;
-use App\Http\Requests\Repositories\ManageRepositoryRequest;
+use App\Http\Requests\Workspaces\WorkspaceOwnerRequest;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Queries\GetRepositoriesData;
@@ -32,14 +32,14 @@ final readonly class RepositoryController
         return $this->success($data, 'ok');
     }
 
-    public function store(ManageRepositoryRequest $request, #[CurrentUser()] User $user, Workspace $workspace, AttachRepository $action, string $fullName): JsonResponse|Response
+    public function store(WorkspaceOwnerRequest $request, #[CurrentUser()] User $user, Workspace $workspace, AttachRepository $action, string $fullName): JsonResponse|Response
     {
         $repository = $action->handle($workspace, $user, $fullName);
 
         return $this->success(['repository' => $repository], 'Repository connected');
     }
 
-    public function destroy(ManageRepositoryRequest $request, #[CurrentUser()] User $user, Workspace $workspace, DeleteRepository $action, string $fullName): JsonResponse|Response
+    public function destroy(WorkspaceOwnerRequest $request, #[CurrentUser()] User $user, Workspace $workspace, DeleteRepository $action, string $fullName): JsonResponse|Response
     {
 
         $action->handle($workspace, $user, $fullName);

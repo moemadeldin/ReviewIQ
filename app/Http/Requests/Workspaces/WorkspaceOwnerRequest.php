@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Requests\WorkspaceInvitations;
+namespace App\Http\Requests\Workspaces;
 
 use App\Models\User;
 use App\Models\Workspace;
@@ -10,10 +10,10 @@ use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Container\Attributes\RouteParameter;
 use Illuminate\Foundation\Http\FormRequest;
 
-final class CancelInvitationRequest extends FormRequest
+final class WorkspaceOwnerRequest extends FormRequest
 {
     public function authorize(#[CurrentUser()] User $user, #[RouteParameter('workspace')] Workspace $workspace): bool
     {
-        return $workspace->owner()->is($user);
+        return $workspace->owner->is($user);
     }
 }

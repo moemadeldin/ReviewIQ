@@ -30,8 +30,8 @@ final readonly class GenerateInvitationController
         }
 
         try {
-            $email = $request->input('email');
-            $role = $request->input('role');
+            $email = $request->safe()->email;
+            $role = $request->safe()->role;
             $invitation = $action->handle($workspace, $user, $email, $role);
         } catch (RuntimeException $runtimeException) {
             return $this->fail($runtimeException->getMessage(), Response::HTTP_CONFLICT);

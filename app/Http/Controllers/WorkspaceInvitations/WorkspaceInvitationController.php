@@ -6,8 +6,8 @@ namespace App\Http\Controllers\WorkspaceInvitations;
 
 use App\Actions\WorkspaceInvitations\CreateInvitationAction;
 use App\Enums\Roles;
-use App\Http\Requests\WorkspaceInvitations\CancelInvitationRequest;
 use App\Http\Requests\WorkspaceInvitations\GenerateInvitationRequest;
+use App\Http\Requests\Workspaces\WorkspaceOwnerRequest;
 use App\Http\Resources\WorkspaceInvitationResource;
 use App\Models\User;
 use App\Models\Workspace;
@@ -65,7 +65,7 @@ final readonly class WorkspaceInvitationController
     }
 
     public function destroy(
-        CancelInvitationRequest $request,
+        WorkspaceOwnerRequest $request,
         Workspace $workspace,
         WorkspaceInvitation $invitation,
     ): JsonResponse {

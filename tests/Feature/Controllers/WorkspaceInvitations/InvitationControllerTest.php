@@ -30,7 +30,7 @@ describe('GenerateInvitationController', function (): void {
             ->assertJsonPath('status', 'Success')
             ->assertJsonPath('message', 'Invitation sent');
 
-        Mail::assertSent(WorkspaceInvitationMail::class);
+        Mail::assertQueued(WorkspaceInvitationMail::class);
 
         $this->assertDatabaseHas('workspace_invitations', [
             'workspace_id' => $this->workspace->id,
