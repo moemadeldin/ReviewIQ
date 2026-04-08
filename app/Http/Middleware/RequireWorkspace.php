@@ -25,6 +25,7 @@ final readonly class RequireWorkspace
         'workspaces.index',
         'workspaces.select',
         'workspaces.destroy',
+        'workspaces.invitations.store',
         'logout',
         'user.destroy',
         'user-profile.edit',

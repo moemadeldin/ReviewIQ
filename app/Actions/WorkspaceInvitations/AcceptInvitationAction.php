@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\WorkspaceInvitation;
 use Illuminate\Http\Response;
 use SensitiveParameter;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final readonly class AcceptInvitationAction
 {
@@ -15,17 +16,11 @@ final readonly class AcceptInvitationAction
     {
         $invitation = WorkspaceInvitation::query()->whereToken($token)->first();
 
-        if (! $invitation) {
-            return $this->fail('Invalid invitation', Response::HTTP_NOT_FOUND);
-        }
+        throw_unless($invitation, HttpException::class, Response::HTTP_NOT_FOUND, 'Invalid invitation');
 
-        if ($invitation->isExpired()) {
-            return $this->fail('Invitation has expired', Response::HTTP_GONE);
-        }
+        throw_if($invitation->isExpired(), HttpException::class, Response::HTTP_GONE, 'Invitation has expired');
 
-        if ($invitation->isAccepted()) {
-            return $this->fail('Invitation already used', Response::HTTP_CONFLICT);
-        }
+        throw_if($invitation->isAccepted(), HttpException::class, Response::HTTP_CONFLICT, 'Invitation already used');
 
         $user = User::query()->whereEmail($invitation->email)->first();
 
@@ -42,6 +37,6 @@ final readonly class AcceptInvitationAction
 
         $invitation->update(['accepted_at' => now()]);
 
-        return $user;
+        return $user->fresh()->load('workspaces');
     }
 }

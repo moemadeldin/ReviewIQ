@@ -63,6 +63,7 @@ export default function Index() {
     const selectedWorkspace = workspaces.find(
         (w) => w.id === selectedWorkspaceId,
     );
+    const selectedWorkspaceSlug = selectedWorkspace?.slug || '';
     const selectedRole = selectedWorkspace?.pivot?.role as string | undefined;
     const canToggleSelected =
         selectedWorkspaceId !== null && selectedRole === 'owner';
@@ -116,7 +117,7 @@ export default function Index() {
         try {
             if (isConnected) {
                 const res = await fetch(
-                    `/workspaces/${selectedWorkspaceId}/repos/${repo.full_name}`,
+                    `/workspaces/${selectedWorkspaceSlug}/repos/${repo.full_name}`,
                     {
                         method: 'DELETE',
                         headers: { 'X-CSRF-TOKEN': csrfToken() },
@@ -134,7 +135,7 @@ export default function Index() {
                 }
             } else {
                 const res = await fetch(
-                    `/workspaces/${selectedWorkspaceId}/repos/${repo.full_name}`,
+                    `/workspaces/${selectedWorkspaceSlug}/repos/${repo.full_name}`,
                     {
                         method: 'POST',
                         headers: { 'X-CSRF-TOKEN': csrfToken() },

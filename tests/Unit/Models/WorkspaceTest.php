@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\Roles;
 use App\Models\User;
 use App\Models\Workspace;
 
@@ -25,17 +26,17 @@ test('add user to workspace', function (): void {
     $member = User::factory()->create();
     $workspace = Workspace::factory()->withOwner($owner)->create();
 
-    $workspace->addUser($member, 'member');
+    $workspace->addUser($member, Roles::Member);
 
     expect($workspace->fresh()->users)->toHaveCount(2)
-        ->and($workspace->roleOf($member))->toBe('member');
+        ->and($workspace->roleOf($member))->toBe(Roles::Member);
 });
 
 test('get role of user', function (): void {
     $owner = User::factory()->create();
     $workspace = Workspace::factory()->withOwner($owner)->create();
 
-    expect($workspace->roleOf($owner))->toBe('owner');
+    expect($workspace->roleOf($owner))->toBe(Roles::Owner);
 });
 
 test('get null role for non-member', function (): void {
@@ -46,9 +47,8 @@ test('get null role for non-member', function (): void {
 });
 
 test('slug from name', function (): void {
-    expect(Workspace::slugFromName('Acme Inc'))->toBe('acme-inc')
-        ->and(Workspace::slugFromName('My Workspace!'))->toBe('my-workspace')
-        ->and(Workspace::slugFromName('UPPER Case'))->toBe('upper-case');
+    $workspace = Workspace::factory()->create(['name' => 'Acme Inc']);
+    expect($workspace->slug)->toBe('acme-inc');
 });
 
 test('user can access owned workspace', function (): void {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\Roles;
 use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -16,7 +17,7 @@ final class WorkspaceInvitationFactory extends Factory
             'workspace_id' => Workspace::factory(),
             'email' => $this->faker->unique()->safeEmail(),
             'token' => Str::random(64),
-            'role' => $this->faker->randomElement(),
+            'role' => Roles::Member->value,
             'expires_at' => now()->addHours(48),
             'accepted_at' => null,
         ];
@@ -40,6 +41,13 @@ final class WorkspaceInvitationFactory extends Factory
     {
         return $this->state(fn (array $attributes): array => [
             'workspace_id' => $workspace->id,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'role' => Roles::Admin->value,
         ]);
     }
 }

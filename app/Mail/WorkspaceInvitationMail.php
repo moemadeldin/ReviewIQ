@@ -7,12 +7,13 @@ namespace App\Mail;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-final class WorkspaceInvitationMail extends Mailable
+final class WorkspaceInvitationMail extends Mailable implements ShouldQueue
 {
     use Queueable;
     use SerializesModels;

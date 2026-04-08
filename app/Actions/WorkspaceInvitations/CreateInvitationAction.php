@@ -40,7 +40,7 @@ final readonly class CreateInvitationAction
             'workspace_id' => $workspace->id,
             'email' => $email,
             'token' => $token,
-            'role' => $role ?? Roles::Member->value,
+            'role' => $role instanceof Roles ? $role->value : ($role ?? Roles::Member->value),
             'expires_at' => now()->addHours(self::TOKEN_EXPIRY_HOURS),
             'created_at' => now(),
         ]);

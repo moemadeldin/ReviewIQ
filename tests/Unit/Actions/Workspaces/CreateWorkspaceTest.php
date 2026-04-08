@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Workspaces\CreateWorkspace;
+use App\Enums\Roles;
 use App\Models\User;
 use App\Models\Workspace;
 
@@ -20,7 +21,7 @@ it('creates a workspace with owner', function (): void {
 
     expect($workspace->users)->toHaveCount(1)
         ->and($workspace->users->first()->id)->toBe($user->id)
-        ->and($workspace->roleOf($user))->toBe('owner');
+        ->and($workspace->roleOf($user))->toBe(Roles::Owner);
 });
 
 it('uses database transaction', function (): void {

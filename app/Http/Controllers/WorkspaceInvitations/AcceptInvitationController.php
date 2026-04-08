@@ -9,6 +9,7 @@ use App\Http\Requests\WorkspaceInvitations\AcceptInvitationRequest;
 use App\Traits\APIResponder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final readonly class AcceptInvitationController
 {
@@ -16,13 +17,20 @@ final readonly class AcceptInvitationController
 
     public function __invoke(AcceptInvitationRequest $request, AcceptInvitationAction $action, string $token): JsonResponse
     {
-        $user = $action->handle($request->safe()->name, $request->safe()->password, $token);
+        $name = $request->input('name') ?? '';
+        $password = $request->input('password') ?? '';
+
+        try {
+            $user = $action->handle($name, $password, $token);
+        } catch (HttpException $httpException) {
+            return $this->fail($httpException->getMessage(), $httpException->getStatusCode());
+        }
 
         Auth::login($user);
 
         return $this->success([
             'user' => $user,
-            'workspace' => $user->workspace,
+            'workspace' => $user->workspaces->first(),
         ], 'Invitation accepted');
     }
 }

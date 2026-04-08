@@ -14,6 +14,6 @@ final class ManageRepositoryRequest extends FormRequest
 {
     public function authorize(#[CurrentUser()] User $user, #[RouteParameter('workspace')] Workspace $workspace): bool
     {
-        return $workspace->owner()->is($user);
+        return $workspace->owner->is($user);
     }
 }

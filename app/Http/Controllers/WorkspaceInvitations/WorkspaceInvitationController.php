@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\WorkspaceInvitations;
 
 use App\Actions\WorkspaceInvitations\CreateInvitationAction;
+use App\Enums\Roles;
 use App\Http\Requests\WorkspaceInvitations\CancelInvitationRequest;
 use App\Http\Requests\WorkspaceInvitations\GenerateInvitationRequest;
 use App\Http\Resources\WorkspaceInvitationResource;
@@ -43,12 +44,16 @@ final readonly class WorkspaceInvitationController
         Workspace $workspace,
         CreateInvitationAction $action,
     ): JsonResponse {
+        if (! $workspace->isOwnerOrAdmin($user)) {
+            return $this->fail('Only owners and admins can invite users', Response::HTTP_FORBIDDEN);
+        }
+
         try {
             $invitation = $action->handle(
                 $workspace,
                 $user,
                 $request->safe()->email,
-                $request->safe()->role,
+                $request->safe()->role ?? Roles::Member->value,
             );
         } catch (RuntimeException $runtimeException) {
             return $this->fail($runtimeException->getMessage(), Response::HTTP_CONFLICT);

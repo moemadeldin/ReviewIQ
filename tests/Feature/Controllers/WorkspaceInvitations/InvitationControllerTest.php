@@ -2,15 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Enums\Roles;
 use App\Mail\WorkspaceInvitationMail;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Models\WorkspaceInvitation;
 use Illuminate\Support\Facades\Mail;
 
 beforeEach(function (): void {
     $this->user = User::factory()->create();
     $this->workspace = Workspace::factory()->create();
-    $this->workspace->users()->attach($this->user, ['role' => 'owner']);
+    $this->workspace->users()->attach($this->user, ['role' => Roles::Owner]);
 });
 
 describe('GenerateInvitationController', function (): void {
@@ -19,9 +21,9 @@ describe('GenerateInvitationController', function (): void {
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('invitations.store'), [
+            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'invitee@example.com',
-                'role' => 'member',
+                'role' => Roles::Member->value,
             ]);
 
         $response->assertStatus(200)
@@ -33,16 +35,16 @@ describe('GenerateInvitationController', function (): void {
         $this->assertDatabaseHas('workspace_invitations', [
             'workspace_id' => $this->workspace->id,
             'email' => 'invitee@example.com',
-            'role' => 'member',
+            'role' => Roles::Member->value,
         ]);
     });
 
     it('returns error when user is not admin or owner', function (): void {
-        $this->workspace->users()->updateExistingPivot($this->user->id, ['role' => 'member']);
+        $this->user->workspaces()->updateExistingPivot($this->workspace->id, ['role' => Roles::Member->value]);
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('invitations.store'), [
+            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'invitee@example.com',
             ]);
 
@@ -53,11 +55,11 @@ describe('GenerateInvitationController', function (): void {
 
     it('returns error when user is already a workspace member', function (): void {
         $otherUser = User::factory()->create(['email' => 'existing@example.com']);
-        $this->workspace->users()->attach($otherUser, ['role' => 'member']);
+        $this->workspace->users()->attach($otherUser, ['role' => Roles::Member->value]);
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('invitations.store'), [
+            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'existing@example.com',
             ]);
 
@@ -74,7 +76,7 @@ describe('GenerateInvitationController', function (): void {
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('invitations.store'), [
+            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'invitee@example.com',
             ]);
 
@@ -91,7 +93,7 @@ describe('GenerateInvitationController', function (): void {
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('invitations.store'), [
+            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'invitee@example.com',
             ]);
 
@@ -109,7 +111,7 @@ describe('AcceptInvitationController', function (): void {
 
         $existingUser = User::factory()->create(['email' => 'existing@example.com']);
 
-        $response = $this->post(route('invitations.accept', ['token' => $invitation->token]));
+        $response = $this->postJson(route('invitations.accept', ['token' => $invitation->token]));
 
         $response->assertStatus(200)
             ->assertJsonPath('status', 'Success')
@@ -118,7 +120,7 @@ describe('AcceptInvitationController', function (): void {
         $this->assertDatabaseHas('workspace_users', [
             'workspace_id' => $this->workspace->id,
             'user_id' => $existingUser->id,
-            'role' => 'member',
+            'role' => Roles::Member->value,
         ]);
 
         $invitation->refresh();
@@ -129,10 +131,10 @@ describe('AcceptInvitationController', function (): void {
         $invitation = WorkspaceInvitation::factory()->create([
             'workspace_id' => $this->workspace->id,
             'email' => 'newuser@example.com',
-            'role' => 'admin',
+            'role' => Roles::Admin->value,
         ]);
 
-        $response = $this->post(route('invitations.accept', ['token' => $invitation->token]), [
+        $response = $this->postJson(route('invitations.accept', ['token' => $invitation->token]), [
             'name' => 'New User',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -147,12 +149,12 @@ describe('AcceptInvitationController', function (): void {
         $this->assertDatabaseHas('workspace_users', [
             'workspace_id' => $this->workspace->id,
             'user_id' => $newUser->id,
-            'role' => 'admin',
+            'role' => Roles::Admin->value,
         ]);
     });
 
     it('returns error for invalid token', function (): void {
-        $response = $this->post(route('invitations.accept', ['token' => 'invalid-token']));
+        $response = $this->postJson(route('invitations.accept', ['token' => 'invalid-token']));
 
         $response->assertStatus(404)
             ->assertJsonPath('status', 'Failed')
@@ -165,7 +167,7 @@ describe('AcceptInvitationController', function (): void {
             'email' => 'test@example.com',
         ]);
 
-        $response = $this->post(route('invitations.accept', ['token' => $invitation->token]));
+        $response = $this->postJson(route('invitations.accept', ['token' => $invitation->token]));
 
         $response->assertStatus(410)
             ->assertJsonPath('status', 'Failed')
@@ -178,7 +180,7 @@ describe('AcceptInvitationController', function (): void {
             'email' => 'test@example.com',
         ]);
 
-        $response = $this->post(route('invitations.accept', ['token' => $invitation->token]));
+        $response = $this->postJson(route('invitations.accept', ['token' => $invitation->token]));
 
         $response->assertStatus(409)
             ->assertJsonPath('status', 'Failed')

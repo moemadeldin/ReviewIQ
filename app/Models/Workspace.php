@@ -32,7 +32,7 @@ final class Workspace extends Model
     use HasUuids;
     use Sluggable;
 
-    public function getRouteKeyName()
+    public function getRouteKeyName(): string
     {
         return 'slug';
     }
@@ -75,7 +75,14 @@ final class Workspace extends Model
         return $this->owner_id === $user->id;
     }
 
-    public function roleOf(User $user): ?string
+    public function isOwnerOrAdmin(User $user): bool
+    {
+        $role = $this->roleOf($user);
+
+        return $role instanceof Roles && ($role === Roles::Owner || $role === Roles::Admin);
+    }
+
+    public function roleOf(User $user): ?Roles
     {
         $membership = $this->users()->where('user_id', $user->id)->first();
 
@@ -83,9 +90,7 @@ final class Workspace extends Model
             return null;
         }
 
-        $pivot = $membership->pivot;
-
-        return (string) $pivot->role;
+        return Roles::from($membership->pivot->role);
     }
 
     /**

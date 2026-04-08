@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\NotificationResource;
 use App\Models\User;
 use App\Queries\GetUserNotifications;
 use App\Traits\APIResponder;
@@ -23,9 +24,14 @@ final readonly class NotificationController
         $page = (int) $request->query('page', 1);
         $limit = (int) $request->query('limit', 10);
 
-        $data = $this->getNotifications->handle($user, $page, $limit);
+        $paginator = $this->getNotifications->handle($user, $page, $limit);
 
-        return $this->success($data, 'ok');
+        return $this->success([
+            'notifications' => NotificationResource::collection($paginator),
+            'current_page' => $paginator->currentPage(),
+            'has_more' => $paginator->hasMorePages(),
+            'unread_count' => $user->unreadNotifications()->count(),
+        ], 'ok');
     }
 
     public function markAsRead(#[CurrentUser()] User $user, string $id): JsonResponse // TODO change $id to be route model binding

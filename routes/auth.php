@@ -96,7 +96,12 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('settings/two-factor', [UserTwoFactorAuthenticationController::class, 'show'])
         ->name('two-factor.show');
 
-    // User Email Verification...
+    // Session...
+    Route::post('logout', [SessionController::class, 'destroy'])->name('logout');
+});
+
+// User Email Verification (requires auth but NOT verified - for unverified users)
+Route::middleware('auth')->group(function (): void {
     Route::controller(UserEmailVerificationNotificationController::class)->group(function (): void {
         Route::get('verify-email', 'create')->name('verification.notice');
         Route::post('email/verification-notification', 'store')
@@ -107,7 +112,4 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('verify-email/{id}/{hash}', [UserEmailVerificationController::class, 'update'])
         ->middleware(['signed', 'throttle:6,1'])
         ->name('verification.verify');
-
-    // Session...
-    Route::post('logout', [SessionController::class, 'destroy'])->name('logout');
 });

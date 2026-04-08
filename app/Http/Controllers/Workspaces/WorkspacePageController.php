@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Workspaces;
 
+use App\Http\Resources\RepositoryResource;
 use App\Http\Resources\WorkspaceInvitationResource;
 use App\Http\Resources\WorkspaceMemberResource;
 use App\Models\User;
@@ -40,14 +41,14 @@ final readonly class WorkspacePageController
     public function repos(#[CurrentUser()] User $user, Workspace $workspace): Response
     {
         $userRole = $workspace->roleOf($user);
-        $repos = $this->getRepos->handle($workspace);
+        $paginator = $this->getRepos->handle($workspace);
 
         return Inertia::render('workspaces/repos', [
             'workspace' => $workspace,
             'userRole' => $userRole,
-            'initialRepos' => $repos['repositories'],
-            'reposCurrentPage' => $repos['current_page'],
-            'reposHasMore' => $repos['has_more'],
+            'initialRepos' => RepositoryResource::collection($paginator)->resolve(),
+            'reposCurrentPage' => $paginator->currentPage(),
+            'reposHasMore' => $paginator->hasMorePages(),
         ]);
     }
 
