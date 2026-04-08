@@ -12,6 +12,8 @@ use App\Http\Controllers\Auth\UserTwoFactorAuthenticationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Repositories\GetConnectedRepositoriesController;
 use App\Http\Controllers\Repositories\RepositoryController;
+use App\Http\Controllers\Reviews\ReviewController;
+use App\Http\Controllers\Reviews\ReviewsPageController;
 use App\Http\Controllers\WorkspaceInvitations\GenerateInvitationController;
 use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
 use App\Http\Controllers\Workspaces\GetWorkspaceMembersController;
@@ -69,6 +71,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('workspaces/{workspace}/repos/{fullName}', 'store')->name('repos.store')->where('fullName', '.+');
         Route::delete('workspaces/{workspace}/repos/{fullName}', 'destroy')->name('repos.destroy')->where('fullName', '.+');
     });
+
+    // Reviews...
+    Route::get('workspaces/{workspace}/reviews/data', [ReviewController::class, 'index'])->name('reviews.index');
+    Route::get('workspaces/{workspace}/reviews', [ReviewsPageController::class, '__invoke'])->name('reviews.page');
 
     // Invitations...
     Route::post('invitations', GenerateInvitationController::class)->name('invitations.store');
