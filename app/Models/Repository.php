@@ -39,7 +39,7 @@ final class Repository extends Model
         return $this->belongsTo(Workspace::class);
     }
 
-    public function pullrequests(): HasMany
+    public function pullRequests(): HasMany
     {
         return $this->hasMany(PullRequest::class);
     }

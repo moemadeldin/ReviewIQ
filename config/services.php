@@ -41,6 +41,15 @@ return [
         'client_secret' => env('GITHUB_CLIENT_SECRET'),
         'redirect' => env('GITHUB_REDIRECT_URI'),
         'webhook_secret' => env('GITHUB_WEBHOOK_SECRET'),
+        'base_url' => env('GITHUB_BASE_URL'),
         'scopes' => ['read:user', 'repo'],  // Add this
+    ],
+    'groq' => [
+        'api_key' => env('GROQ_API_KEY'),
+        'base_url' => env('GROQ_API_CHAT'),
+        'model' => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
+        'temperature' => (int) env('GROQ_TEMPERATURE', 0.2),
+        'max_tokens' => (int) env('GROQ_MAX_TOKENS', 2000),
+        'timeout' => env('GROQ_TIMEOUT', 60),
     ],
 ];

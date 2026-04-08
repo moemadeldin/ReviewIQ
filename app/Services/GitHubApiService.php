@@ -9,8 +9,6 @@ use Illuminate\Support\Facades\Http;
 
 final readonly class GitHubApiService implements GitHubApi
 {
-    private const string BASE_URL = 'https://api.github.com';
-
     public function getUserRepos(string $token, int $page = 1, int $perPage = 10): array
     {
         $response = Http::withToken($token)
@@ -18,7 +16,7 @@ final readonly class GitHubApiService implements GitHubApi
                 'Accept' => 'application/vnd.github+json',
                 'X-GitHub-Api-Version' => '2022-11-28',
             ])
-            ->get(self::BASE_URL.'/user/repos', [
+            ->get(config('services.github.base_url').'/user/repos', [
                 'page' => $page,
                 'per_page' => $perPage,
                 'sort' => 'updated',
@@ -36,7 +34,7 @@ final readonly class GitHubApiService implements GitHubApi
                 'Accept' => 'application/vnd.github+json',
                 'X-GitHub-Api-Version' => '2022-11-28',
             ])
-            ->post(self::BASE_URL.'/repos/'.$fullName.'/hooks', [
+            ->post(config('services.github.base_url').'/repos/'.$fullName.'/hooks', [
                 'config' => [
                     'url' => config('app.url').'/webhooks/github',
                     'content_type' => 'json',
@@ -57,7 +55,7 @@ final readonly class GitHubApiService implements GitHubApi
                 'Accept' => 'application/vnd.github+json',
                 'X-GitHub-Api-Version' => '2022-11-28',
             ])
-            ->delete(self::BASE_URL.'/repos/'.$fullName.'/hooks/'.$webhookId);
+            ->delete(config('services.github.base_url').'/repos/'.$fullName.'/hooks/'.$webhookId);
 
         $response->throw();
     }
