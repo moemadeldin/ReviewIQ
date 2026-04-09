@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { FileCode2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
@@ -291,24 +291,13 @@ export default function Reviews() {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        {pr.diff_url ? (
-                                                            <a
-                                                                href={
-                                                                    pr.diff_url
-                                                                }
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="hover:underline"
-                                                            >
-                                                                {pr.title ||
-                                                                    `#${pr.number}`}
-                                                            </a>
-                                                        ) : (
-                                                            <span>
-                                                                {pr.title ||
-                                                                    `#${pr.number}`}
-                                                            </span>
-                                                        )}
+                                                        <Link
+                                                            href={`/workspaces/${workspace.slug}/reviews/${pr.id}`}
+                                                            className="hover:underline"
+                                                        >
+                                                            {pr.title ||
+                                                                `#${pr.number}`}
+                                                        </Link>
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-muted-foreground">
                                                         {pr.author || '-'}

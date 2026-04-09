@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { Users, GitBranch, Mail } from 'lucide-react';
+import { Users, GitBranch, Mail, FileCheck } from 'lucide-react';
 import Heading from '@/components/heading';
 import AppLayout from '@/layouts/app-layout';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
@@ -65,6 +65,19 @@ export default function Show() {
                             <div className="font-semibold">Repositories</div>
                             <div className="text-sm text-muted-foreground">
                                 View connected repositories
+                            </div>
+                        </div>
+                    </Link>
+
+                    <Link
+                        href={`/workspaces/${workspace.slug}/reviews`}
+                        className="flex items-center rounded-lg border p-6 hover:bg-muted/50"
+                    >
+                        <FileCheck className="mr-4 h-8 w-8" />
+                        <div>
+                            <div className="font-semibold">Reviews</div>
+                            <div className="text-sm text-muted-foreground">
+                                View pull request reviews
                             </div>
                         </div>
                     </Link>

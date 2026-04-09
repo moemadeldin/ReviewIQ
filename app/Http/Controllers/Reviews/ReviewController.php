@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Reviews;
 
+use App\Http\Resources\PullRequestDetailResource;
 use App\Http\Resources\PullRequestResource;
+use App\Models\PullRequest;
 use App\Models\Workspace;
 use App\Queries\GetPullRequestsWithReviews;
 use App\Traits\APIResponder;
@@ -31,6 +33,15 @@ final readonly class ReviewController
             'pull_requests' => PullRequestResource::collection($paginator)->resolve(),
             'current_page' => $paginator->currentPage(),
             'has_more' => $paginator->hasMorePages(),
+        ], 'ok');
+    }
+
+    public function show(PullRequest $pullRequest): JsonResponse
+    {
+        $pullRequest->load(['repository', 'review']);
+
+        return $this->success([
+            'pull_request' => new PullRequestDetailResource($pullRequest)->resolve(),
         ], 'ok');
     }
 }
