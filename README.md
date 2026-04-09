@@ -1,100 +1,153 @@
-- Inertia & React (this project) version: **[github.com/nunomaduro/laravel-starter-kit-inertia-react](https://github.com/nunomaduro/laravel-starter-kit-inertia-react)**
-- Blade version: **[github.com/nunomaduro/laravel-starter-kit](https://github.com/nunomaduro/laravel-starter-kit)**
-- Inertia & Vue version: **[github.com/nunomaduro/laravel-starter-kit-inertia-vue](https://github.com/nunomaduro/laravel-starter-kit-inertia-vue)**
+# ReviewIQ
 
 <p align="center">
-    <a href="https://youtu.be/VhzP0XWGTC4" target="_blank">
-        <img src="https://github.com/nunomaduro/laravel-starter-kit/blob/main/art/banner.png" alt="Overview Laravel Starter Kit" style="width:70%;">
-    </a>
+    <img src="https://img.shields.io/badge/PHP-8.5+-777BB4?style=flat&logo=php&logoColor=white" alt="PHP Version">
+    <img src="https://img.shields.io/badge/Laravel-13-FF2D20?style=flat&logo=laravel&logoColor=white" alt="Laravel Version">
+    <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=white" alt="React Version">
+    <img src="https://img.shields.io/badge/Inertia-3-FFFFFF?style=flat&logoColor=white" alt="Inertia Version">
 </p>
 
-<p>
-    <a href="https://github.com/nunomaduro/laravel-starter-kit-inertia-react/actions"><img src="https://github.com/nunomaduro/laravel-starter-kit-inertia-react/actions/workflows/tests.yml/badge.svg" alt="Build Status"></a>
-    <a href="https://packagist.org/packages/nunomaduro/laravel-starter-kit-inertia-react"><img src="https://img.shields.io/packagist/dt/nunomaduro/laravel-starter-kit-inertia-react" alt="Total Downloads"></a>
-    <a href="https://packagist.org/packages/nunomaduro/laravel-starter-kit-inertia-react"><img src="https://img.shields.io/packagist/v/nunomaduro/laravel-starter-kit-inertia-react" alt="Latest Stable Version"></a>
-    <a href="https://packagist.org/packages/nunomaduro/laravel-starter-kit-inertia-react"><img src="https://img.shields.io/packagist/l/nunomaduro/laravel-starter-kit-inertia-react" alt="License"></a>
-</p>
+ReviewIQ is an AI-powered pull request review tool that leverages LLMs to analyze code changes and provide intelligent feedback in real-time.
 
-**Laravel Starter Kit (Inertia & React)** is an ultra-strict, type-safe [Laravel](https://laravel.com) skeleton engineered for developers who refuse to compromise on code quality. This opinionated starter kit enforces rigorous development standards through meticulous tooling configuration and architectural decisions that prioritize type safety, immutability, and fail-fast principles.
+## Features
 
-## Why This Starter Kit?
+- **AI Code Review** - Automated code analysis using Groq's LLM
+- **Real-time Streaming** - Live review progress via WebSocket (Reverb)
+- **GitHub Integration** - Webhook-based PR detection and diff fetching
+- **Workspace Management** - Multi-tenant support with team collaboration
+- **Structured Feedback** - Score-based reviews with issues, highlights, and recommendations
+- **Automatic Retries** - Scheduled jobs for failed/pending reviews
 
-Modern PHP has evolved into a mature, type-safe language, yet many Laravel projects still operate with loose conventions and optional typing. This starter kit changes that paradigm by enforcing:
+## Tech Stack
 
-- **Fully Actions-Oriented Architecture**: Every operation is encapsulated in a single-action class
-- **Cruddy by Design**: Standardized CRUD operations for all controllers, actions, and Inertia & React pages
-- **100% Type Coverage**: Every method, property, and parameter is explicitly typed
-- **Zero Tolerance for Code Smells**: Rector, PHPStan, OxLint, and Oxfmt at maximum strictness catch issues before they become bugs
-- **Immutable-First Architecture**: Data structures favor immutability to prevent unexpected mutations
-- **Fail-Fast Philosophy**: Errors are caught at compile-time, not runtime
-- **Automated Code Quality**: Pre-configured tools ensure consistent, pristine code across your entire team
-- **Just Better Laravel Defaults**: Thanks to **[Essentials](https://github.com/nunomaduro/essentials)** / strict models, auto eager loading, immutable dates, and more...
-- **AI Guidelines**: Integrated AI Guidelines to assist in maintaining code quality and consistency
-- **Full Testing Suite**: More than 150 tests with 100% code coverage using Pest
-- 
-This isn't just another Laravel boilerplate—it's a statement that PHP applications can and should be built with the same rigor as strongly-typed languages like Rust or TypeScript.
+- **Backend**: Laravel 13, PHP 8.5+
+- **Frontend**: React 18, Inertia 3, TypeScript
+- **UI**: Shadcn/UI, Tailwind CSS
+- **AI**: Groq (Llama 3.3 70B)
+- **Real-time**: Laravel Reverb (WebSocket)
+- **Queue**: Laravel Queue with database driver
+- **Database**: MySQL/PostgreSQL
 
 ## Getting Started
 
-> **Requires [PHP 8.5+](https://php.net/releases/) and a code coverage driver like [xdebug](https://xdebug.org/docs/install)**.
+### Prerequisites
 
-Create your type-safe Laravel application using [Composer](https://getcomposer.org):
+- PHP 8.5+
+- Node.js 20+
+- Composer
+- MySQL or PostgreSQL
+- Groq API key
+
+### Installation
 
 ```bash
-composer create-project nunomaduro/laravel-starter-kit-inertia-react --prefer-dist example-app
+# Clone the repository
+git clone https://github.com/yourusername/ReviewIQ.git
+cd ReviewIQ
+
+# Install PHP dependencies
+composer install
+
+# Install Node dependencies
+npm install
+
+# Copy environment file
+cp .env.example .env
+
+# Configure your environment variables
+# - Database credentials
+# - Groq API key (GROQ_API_KEY)
+# - GitHub OAuth tokens
+# - Reverb credentials
+
+# Generate application key
+php artisan key:generate
+
+# Run migrations
+php artisan migrate
+
+# Build frontend
+npm run build
 ```
 
-### Initial Setup
-
-Navigate to your project and complete the setup:
+### Running the Application
 
 ```bash
-cd example-app
-
-# Setup the project
-composer setup
-
-# Start the development server
+# Start all services (server, queue, reverb, vite)
 composer dev
+
+# Or manually:
+php artisan serve
+php artisan queue:listen
+php artisan reverb:start
+npm run dev
 ```
 
-### Optional: Browser Testing Setup
+### Webhook Setup
 
-If you plan to use Pest's browser testing capabilities:
+Configure your GitHub repository webhook:
+- URL: `https://your-domain.com/api/v1/webhooks/github`
+- Secret: Set `GITHUB_WEBHOOK_SECRET` in `.env`
+- Events: `pull_request`
+
+## Usage
+
+1. **Connect GitHub Account** - Sign in via GitHub OAuth
+2. **Add Repository** - Enable a repository for reviews
+3. **Configure Rules** - Set custom review rules per repository
+4. **Create PR** - Open a pull request to trigger automatic review
+5. **View Results** - See real-time streaming analysis and final review
+
+## Configuration
+
+### Environment Variables
+
+```env
+# Database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=reviewiq
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Groq AI
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
+
+# GitHub
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GITHUB_WEBHOOK_SECRET=
+
+# Reverb (WebSocket)
+REVERB_APP_ID=
+REVERB_APP_KEY=
+REVERB_APP_SECRET=
+REVERB_HOST=
+REVERB_PORT=
+```
+
+### Custom Review Rules
+
+Repositories can have custom review rules configured via the UI or API.
+
+## Commands
 
 ```bash
-bun add playwright
-bunx playwright install
+# Retry failed/pending reviews
+php artisan reviews:retry
+
+# Process a specific PR review
+php artisan tinker --execute="App\Jobs\ProcessPullRequestReview::dispatch(\$pr);"
 ```
 
-### Verify Installation
+## API Endpoints
 
-Run the test suite to ensure everything is configured correctly:
-
-```bash
-composer test
-```
-
-You should see 100% test coverage and all quality checks passing.
-
-## Available Tooling
-
-### Development
-- `composer dev` - Starts Laravel server, queue worker, log monitoring, and Vite+ dev server concurrently
-
-### Code Quality
-- `composer lint` - Runs Rector (refactoring), Pint (PHP formatting), and Oxfmt (JS/TS formatting)
-- `composer test:lint` - Dry-run mode for CI/CD pipelines
-
-### Testing
-- `composer test:type-coverage` - Ensures 100% type coverage with Pest
-- `composer test:types` - Runs PHPStan at level 9 (maximum strictness)
-- `composer test:unit` - Runs Pest tests with 100% code coverage requirement
-- `composer test` - Runs the complete test suite (type coverage, unit tests, linting, static analysis)
-
-### Maintenance
-- `composer update:requirements` - Updates all PHP and Bun dependencies to latest versions
+- `POST /api/v1/webhooks/github` - GitHub webhook receiver
+- `POST /api/v1/auth/github` - GitHub OAuth login
+- `GET /broadcasting/auth` - WebSocket authentication
 
 ## License
 
-**Laravel Starter Kit Inertia React** was created by **[Nuno Maduro](https://x.com/enunomaduro)** under the **[MIT license](https://opensource.org/licenses/MIT)**.
+MIT License - see [LICENSE](LICENSE) for details.
