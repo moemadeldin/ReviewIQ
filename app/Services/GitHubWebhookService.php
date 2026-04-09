@@ -54,13 +54,15 @@ final readonly class GitHubWebhookService implements WebhookProvider
                 'author' => $payload['pull_request']['user']['login'],
                 'diff_url' => $payload['pull_request']['diff_url'],
                 'head_sha' => $payload['pull_request']['head']['sha'],
-                'status' => PullRequestStatus::Pending,
             ]
         );
 
-        Log::info('PR Saved Successfully', ['pr_id' => $pr->id, 'number' => $pr->number]);
+        Log::info('PR Saved Successfully', ['pr_id' => $pr->id, 'number' => $pr->number, 'status' => $pr->status->value]);
 
-        dispatch(new ProcessPullRequestReview($pr));
+        if (! in_array($pr->status, [PullRequestStatus::Reviewing, PullRequestStatus::Pending])) {
+            $pr->update(['status' => PullRequestStatus::Pending]);
+            dispatch(new ProcessPullRequestReview($pr));
+        }
     }
 
     private function verifySignature(Request $request): void

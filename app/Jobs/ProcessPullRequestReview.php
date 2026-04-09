@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Contracts\AIReviewer;
+use App\Events\ReviewChunkReceived;
+use App\Events\ReviewCompleted;
 use App\Models\PullRequest;
 use App\Models\Review;
 use App\Services\GitHubDiffService;
@@ -41,6 +43,12 @@ final class ProcessPullRequestReview implements ShouldQueue
         PromptBuilder $promptBuilder,
         AIReviewer $aiReviewer,
     ): void {
+        if (in_array($this->pullRequest->status, ['reviewing', 'reviewed'])) {
+            Log::info('PR #'.$this->pullRequest->number.' already processed, skipping');
+
+            return;
+        }
+
         $repo = $this->pullRequest->repository;
         $owner = $repo->workspace->owner;
 
@@ -63,7 +71,7 @@ final class ProcessPullRequestReview implements ShouldQueue
             'preview' => mb_substr($diff, 0, 120),
         ]);
 
-        $review = $aiReviewer->review(
+        $review = $aiReviewer->stream(
             systemPrompt: $promptBuilder->buildSystemPrompt(),
             userPrompt: $promptBuilder->buildUserPrompt(
                 diff: $diff,
@@ -72,6 +80,10 @@ final class ProcessPullRequestReview implements ShouldQueue
                 repoLanguage: $repo->language,
                 customRules: $repo->custom_rules,
             ),
+            onChunk: fn (string $chunk) => event(new ReviewChunkReceived(
+                prId: $this->pullRequest->id,
+                chunk: $chunk,
+            )),
         );
 
         Review::query()->create([
@@ -86,6 +98,11 @@ final class ProcessPullRequestReview implements ShouldQueue
         ]);
 
         $this->pullRequest->update(['status' => 'reviewed']);
+
+        event(new ReviewCompleted(
+            prId: $this->pullRequest->id,
+            review: $review,
+        ));
 
         Log::info('Review stored for PR #'.$this->pullRequest->number, [
             'score' => $review['score'],

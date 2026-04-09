@@ -6,40 +6,123 @@ namespace App\Services;
 
 use App\Contracts\AIReviewer;
 use App\Exceptions\ReviewParseException;
-use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 final readonly class GroqReviewService implements AIReviewer
 {
+    private Client $client;
+
+    public function __construct()
+    {
+        $this->client = new Client([
+            'timeout' => 120,
+        ]);
+    }
+
     public function review(string $systemPrompt, string $userPrompt): array
     {
-        $response = Http::withToken(config('services.groq.api_key'))
-            ->timeout(60)
-            ->post(config('services.groq.base_url').'/chat/completions', [
-                'model' => config('services.groq.model'),
-                'temperature' => config('services.groq.temperature'),
-                'max_tokens' => config('services.groq.max_tokens'),
-                'messages' => [
-                    ['role' => 'system', 'content' => $systemPrompt],
-                    ['role' => 'user',   'content' => $userPrompt],
+        try {
+            $response = $this->client->post(config('services.groq.base_url').'chat/completions', [
+                'json' => [
+                    'model' => config('services.groq.model'),
+                    'temperature' => config('services.groq.temperature'),
+                    'max_tokens' => config('services.groq.max_tokens'),
+                    'messages' => [
+                        ['role' => 'system', 'content' => $systemPrompt],
+                        ['role' => 'user', 'content' => $userPrompt],
+                    ],
+                ],
+                'headers' => [
+                    'Authorization' => 'Bearer '.config('services.groq.api_key'),
                 ],
             ]);
-
-        if ($response->failed()) {
+        } catch (RequestException $e) {
             Log::error('Groq API request failed', [
-                'status' => $response->status(),
-                'body' => $response->body(),
+                'status' => $e->getResponse()?->getStatusCode(),
+                'body' => $e->getResponse()?->getBody()?->getContents(),
             ]);
 
             throw new RuntimeException(
-                sprintf('Groq API error %d: %s', $response->status(), $response->body())
+                sprintf('Groq API error: %s', $e->getMessage())
             );
         }
 
-        $raw = $response->json('choices.0.message.content') ?? '';
+        $data = json_decode((string) $response->getBody(), associative: true);
+        $raw = $data['choices'][0]['message']['content'] ?? '';
 
         return $this->parse($raw);
+    }
+
+    public function stream(string $systemPrompt, string $userPrompt, callable $onChunk): array
+    {
+        $fullContent = '';
+
+        try {
+            $response = $this->client->post(config('services.groq.base_url').'chat/completions', [
+                'json' => [
+                    'model' => config('services.groq.model'),
+                    'temperature' => config('services.groq.temperature'),
+                    'max_tokens' => config('services.groq.max_tokens'),
+                    'stream' => true,
+                    'messages' => [
+                        ['role' => 'system', 'content' => $systemPrompt],
+                        ['role' => 'user', 'content' => $userPrompt],
+                    ],
+                ],
+                'headers' => [
+                    'Authorization' => 'Bearer '.config('services.groq.api_key'),
+                ],
+                'stream' => true,
+            ]);
+
+            $body = $response->getBody();
+
+            while (! $body->eof()) {
+                $line = $body->read(1024);
+
+                if (empty($line)) {
+                    continue;
+                }
+
+                $lines = explode("\n", $line);
+
+                foreach ($lines as $rawLine) {
+                    if (empty($rawLine) || ! str_starts_with($rawLine, 'data: ')) {
+                        continue;
+                    }
+
+                    $data = trim(mb_substr($rawLine, 6));
+
+                    if ($data === '[DONE]') {
+                        continue;
+                    }
+
+                    $json = json_decode($data, associative: true);
+
+                    if (! isset($json['choices'][0]['delta']['content'])) {
+                        continue;
+                    }
+
+                    $chunk = $json['choices'][0]['delta']['content'];
+                    $fullContent .= $chunk;
+                    $onChunk($chunk);
+                }
+            }
+        } catch (RequestException $e) {
+            Log::error('Groq API streaming request failed', [
+                'status' => $e->getResponse()?->getStatusCode(),
+                'body' => $e->getResponse()?->getBody()?->getContents(),
+            ]);
+
+            throw new RuntimeException(
+                sprintf('Groq API error: %s', $e->getMessage())
+            );
+        }
+
+        return $this->parse($fullContent);
     }
 
     private function parse(string $raw): array

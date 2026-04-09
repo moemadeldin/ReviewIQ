@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, usePage, router } from '@inertiajs/react';
 import { ExternalLink, FileCode2, GitBranch, User } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
+import { ReviewStream } from '@/components/review-stream';
+import { useState, useEffect } from 'react';
 
 interface Repository {
     id: string;
@@ -19,7 +21,7 @@ interface Review {
     score_rationale: string | null;
     issues: Array<{
         file: string;
-        line: number;
+        line: number | null;
         severity: string;
         message: string;
     }> | null;
@@ -64,6 +66,8 @@ export default function PullRequestShow() {
         { auth: Auth } & PullRequestShowProps
     >().props;
 
+    const [liveReview, setLiveReview] = useState<Partial<Review> | null>(null);
+
     const currentBreadcrumbs: BreadcrumbItem[] = [
         ...breadcrumbs,
         {
@@ -75,6 +79,9 @@ export default function PullRequestShow() {
             href: `/workspaces/${workspace.slug}/reviews`,
         },
     ];
+
+    const isReviewing = pullRequest.status === 'reviewing';
+    const showReview = pullRequest.review || liveReview;
 
     const getScoreColor = (score: number | null): string => {
         if (score === null) return 'text-gray-500';
@@ -210,44 +217,51 @@ export default function PullRequestShow() {
                             </CardContent>
                         </Card>
 
-                        {pullRequest.review?.summary && (
+                        {isReviewing && !showReview && (
+                            <ReviewStream
+                                prId={pullRequest.id}
+                                onComplete={setLiveReview}
+                            />
+                        )}
+
+                        {showReview?.summary && (
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Summary</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-sm leading-relaxed">
-                                        {pullRequest.review.summary}
+                                        {showReview.summary}
                                     </p>
                                 </CardContent>
                             </Card>
                         )}
 
-                        {pullRequest.review?.score_rationale && (
+                        {showReview?.score_rationale && (
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Score Rationale</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-sm leading-relaxed">
-                                        {pullRequest.review.score_rationale}
+                                        {showReview.score_rationale}
                                     </p>
                                 </CardContent>
                             </Card>
                         )}
 
-                        {pullRequest.review?.issues &&
-                            pullRequest.review.issues.length > 0 && (
+                        {showReview?.issues &&
+                            showReview.issues.length > 0 && (
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>
                                             Issues (
-                                            {pullRequest.review.issues.length})
+                                            {showReview.issues.length})
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-4">
-                                            {pullRequest.review.issues.map(
+                                            {showReview.issues.map(
                                                 (issue, index) => (
                                                     <div
                                                         key={index}
