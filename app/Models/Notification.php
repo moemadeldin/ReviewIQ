@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property-read string $type
  * @property-read string $notifiable_type
  * @property-read string $notifiable_id
- * @property-read array $data
+ * @property-read array<string, mixed> $data
  * @property-read CarbonInterface|null $read_at
  * @property-read CarbonInterface $created_at
  */

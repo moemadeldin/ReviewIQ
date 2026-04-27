@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Jobs\ProcessPullRequestReview;
@@ -10,7 +12,7 @@ use Illuminate\Console\Command;
 
 #[Signature('reviews:retry')]
 #[Description('Retry pending or failed reviews')]
-class ReviewRetryCommand extends Command
+final class ReviewRetryCommand extends Command
 {
     public function handle(): int
     {
@@ -24,10 +26,10 @@ class ReviewRetryCommand extends Command
             return Command::SUCCESS;
         }
 
-        $this->info("Found {$prs->count()} reviews to retry.");
+        $this->info(sprintf('Found %d reviews to retry.', $prs->count()));
 
         foreach ($prs as $pr) {
-            $this->info("Dispatching review for PR #{$pr->number} ({$pr->id})");
+            $this->info(sprintf('Dispatching review for PR #%s (%s)', $pr->number, $pr->id));
             dispatch(new ProcessPullRequestReview($pr));
         }
 

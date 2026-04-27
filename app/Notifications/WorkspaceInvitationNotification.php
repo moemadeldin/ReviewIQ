@@ -21,6 +21,9 @@ final class WorkspaceInvitationNotification extends Notification implements Shou
         public string $acceptUrl,
     ) {}
 
+    /**
+     * @return array<int, string>
+     */
     public function via(object $notifiable): array
     {
         return ['mail', 'database'];
@@ -37,6 +40,9 @@ final class WorkspaceInvitationNotification extends Notification implements Shou
             ->line('If you did not expect this invitation, no further action is required.');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(object $notifiable): array
     {
         return [

@@ -6,11 +6,23 @@ namespace Database\Factories;
 
 use App\Enums\Roles;
 use App\Models\Workspace;
+use App\Models\WorkspaceInvitation;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
+/**
+ * @template TModel of \App\Models\WorkspaceInvitation
+ *
+ * @extends Factory<TModel>
+ */
 final class WorkspaceInvitationFactory extends Factory
 {
+    /** @var class-string<TModel> */
+    protected $model = WorkspaceInvitation::class;
+
+    /**
+     * @return array<string, mixed>
+     */
     public function definition(): array
     {
         return [

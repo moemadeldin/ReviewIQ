@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -29,6 +28,9 @@ final class ReviewChunkReceived implements ShouldBroadcast
         ];
     }
 
+    /**
+     * @return array{prId: string, chunk: string}
+     */
     public function broadcastWith(): array
     {
         return [

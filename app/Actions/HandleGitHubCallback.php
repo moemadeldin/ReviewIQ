@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\User;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\User as SocialiteUser;
 
 final readonly class HandleGitHubCallback
 {
@@ -13,23 +14,25 @@ final readonly class HandleGitHubCallback
     {
         $githubUser = Socialite::driver('github')->user();
 
+        assert($githubUser instanceof SocialiteUser);
+
         $user = User::query()
             ->where('email', $githubUser->email)
             ->first();
 
         if ($user === null) {
             $user = User::query()->create([
-                'name' => $githubUser->name ?? $githubUser->nickname,
-                'email' => $githubUser->email,
-                'github_id' => $githubUser->id,
-                'github_avatar' => $githubUser->avatar,
+                'name' => $githubUser->getName() ?? $githubUser->getNickname(),
+                'email' => $githubUser->getEmail(),
+                'github_id' => (string) $githubUser->getId(),
+                'github_avatar' => $githubUser->getAvatar(),
                 'github_token' => $githubUser->token,
                 'email_verified_at' => now(),
             ]);
         } else {
             $user->update([
-                'github_id' => $githubUser->id,
-                'github_avatar' => $githubUser->avatar,
+                'github_id' => (string) $githubUser->getId(),
+                'github_avatar' => $githubUser->getAvatar(),
                 'github_token' => $githubUser->token,
             ]);
         }

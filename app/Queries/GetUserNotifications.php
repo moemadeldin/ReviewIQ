@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Queries;
 
 use App\Models\User;
-use Illuminate\Contracts\Pagination\Paginator;
+use Illuminate\Pagination\Paginator;
 
 final readonly class GetUserNotifications
 {

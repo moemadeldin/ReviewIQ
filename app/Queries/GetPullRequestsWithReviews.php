@@ -10,6 +10,9 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 final readonly class GetPullRequestsWithReviews
 {
+    /**
+     * @return LengthAwarePaginator<int, PullRequest>
+     */
     public function handle(
         Workspace $workspace,
         int $page = 1,

@@ -4,24 +4,26 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\WorkspaceInvitation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 final class WorkspaceInvitationResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
-     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
     {
+        /** @var WorkspaceInvitation $invitation */
+        $invitation = $this->resource;
+
         return [
-            'id' => $this->id,
-            'email' => $this->email,
-            'role' => $this->role,
-            'expires_at' => $this->expires_at,
-            'created_at' => $this->created_at,
+            'id' => $invitation->id,
+            'email' => $invitation->email,
+            'role' => $invitation->role,
+            'expires_at' => $invitation->expires_at,
+            'created_at' => $invitation->created_at,
         ];
     }
 }

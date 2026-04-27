@@ -26,12 +26,14 @@ final readonly class AttachRepository
             return $existing;
         }
 
-        $githubRepos = $this->github->getUserRepos($user->github_token);
+        /** @var string $token */
+        $token = $user->github_token;
+        $githubRepos = $this->github->getUserRepos($token);
         $repoData = collect($githubRepos)->firstWhere('full_name', $fullName);
 
-        abort_unless($repoData, Response::HTTP_NOT_FOUND, 'Repository not found');
+        abort_unless(is_array($repoData), Response::HTTP_NOT_FOUND, 'Repository not found');
 
-        $webhookId = app()->isLocal() ? null : $this->github->registerWebhook($user->github_token, $fullName);
+        $webhookId = app()->isLocal() ? null : $this->github->registerWebhook($token, $fullName);
 
         return Repository::query()->create([
             'workspace_id' => $workspace->id,

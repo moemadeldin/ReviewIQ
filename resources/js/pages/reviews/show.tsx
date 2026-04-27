@@ -1,14 +1,14 @@
-import { Head, usePage, router } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { ExternalLink, FileCode2, GitBranch, User } from 'lucide-react';
+import { useState } from 'react';
 import Heading from '@/components/heading';
+import { ReviewStream } from '@/components/review-stream';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
-import { ReviewStream } from '@/components/review-stream';
-import { useState, useEffect } from 'react';
 
 interface Repository {
     id: string;
@@ -250,46 +250,44 @@ export default function PullRequestShow() {
                             </Card>
                         )}
 
-                        {showReview?.issues &&
-                            showReview.issues.length > 0 && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>
-                                            Issues (
-                                            {showReview.issues.length})
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-4">
-                                            {showReview.issues.map(
-                                                (issue, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="rounded-lg border p-4"
-                                                    >
-                                                        <div className="mb-2 flex items-center gap-2">
-                                                            <Badge
-                                                                variant={getSeverityVariant(
-                                                                    issue.severity,
-                                                                )}
-                                                            >
-                                                                {issue.severity}
-                                                            </Badge>
-                                                            <code className="font-mono text-sm">
-                                                                {issue.file}:
-                                                                {issue.line}
-                                                            </code>
-                                                        </div>
-                                                        <p className="text-sm">
-                                                            {issue.message}
-                                                        </p>
+                        {showReview?.issues && showReview.issues.length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>
+                                        Issues ({showReview.issues.length})
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-4">
+                                        {showReview.issues.map(
+                                            (issue, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="rounded-lg border p-4"
+                                                >
+                                                    <div className="mb-2 flex items-center gap-2">
+                                                        <Badge
+                                                            variant={getSeverityVariant(
+                                                                issue.severity,
+                                                            )}
+                                                        >
+                                                            {issue.severity}
+                                                        </Badge>
+                                                        <code className="font-mono text-sm">
+                                                            {issue.file}:
+                                                            {issue.line}
+                                                        </code>
                                                     </div>
-                                                ),
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
+                                                    <p className="text-sm">
+                                                        {issue.message}
+                                                    </p>
+                                                </div>
+                                            ),
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {pullRequest.review?.highlights &&
                             pullRequest.review.highlights.length > 0 && (

@@ -49,11 +49,14 @@ final readonly class WorkspaceInvitationController
         }
 
         try {
+            $safe = $request->safe();
+            $email = is_string($safe['email']) ? $safe['email'] : '';
+            $role = $safe['role'] ?? null;
             $invitation = $action->handle(
                 $workspace,
                 $user,
-                $request->safe()->email,
-                $request->safe()->role ?? Roles::Member->value,
+                $email,
+                is_string($role) ? Roles::from($role) : Roles::Member,
             );
         } catch (RuntimeException $runtimeException) {
             return $this->fail($runtimeException->getMessage(), Response::HTTP_CONFLICT);
@@ -69,11 +72,6 @@ final readonly class WorkspaceInvitationController
         Workspace $workspace,
         WorkspaceInvitation $invitation,
     ): JsonResponse {
-
-        if (! $invitation) {
-            return $this->fail('Invitation not found', Response::HTTP_NOT_FOUND);
-        }
-
         if ($invitation->workspace_id !== $workspace->id) {
             return $this->fail('Invitation does not belong to this workspace', Response::HTTP_FORBIDDEN);
         }

@@ -15,8 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read string $pull_request_id
  * @property-read string|null $summary
  * @property-read string|null $score_rationale
- * @property-read array|null $issues
- * @property-read array|null $highlights
+ * @property-read array<int, array{severity: string, file: string, line: int|null, title: string, description: string, suggestion: string}>|null $issues
+ * @property-read array<int, string>|null $highlights
  * @property-read int|null $score
  * @property-read string|null $recommendation
  * @property-read string|null $raw_response
@@ -27,7 +27,11 @@ final class Review extends Model
 {
     use HasFactory;
     use HasUuids;
+    use HasUuids;
 
+    /**
+     * @return BelongsTo<PullRequest, $this>
+     */
     public function pullRequest(): BelongsTo
     {
         return $this->belongsTo(PullRequest::class);

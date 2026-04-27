@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Roles;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Database\Factories\WorkspaceInvitationFactory;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,13 +23,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read CarbonInterface|null $accepted_at
  * @property-read CarbonInterface $created_at
  */
+/**
+ * @use HasFactory<WorkspaceInvitationFactory>
+ */
 final class WorkspaceInvitation extends Model
 {
     /** @use HasFactory<WorkspaceInvitationFactory> */
     use HasFactory;
 
     /**
-     * @return BelongsTo<Workspace, WorkspaceInvitation>
+     * @return BelongsTo<Workspace, $this>
      */
     public function workspace(): BelongsTo
     {
@@ -53,7 +58,13 @@ final class WorkspaceInvitation extends Model
 
     public function isExpired(): bool
     {
-        return $this->expires_at->isPast();
+        /** @var CarbonInterface|Carbon|DateTimeInterface|null $expiresAt */
+        $expiresAt = $this->expires_at;
+        if (! $expiresAt instanceof CarbonInterface) {
+            return true;
+        }
+
+        return $expiresAt->isPast();
     }
 
     public function isAccepted(): bool

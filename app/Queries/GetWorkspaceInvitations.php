@@ -10,6 +10,9 @@ use Illuminate\Contracts\Pagination\Paginator;
 
 final readonly class GetWorkspaceInvitations
 {
+    /**
+     * @return Paginator<int, WorkspaceInvitation>
+     */
     public function handle(Workspace $workspace, int $page = 1, int $limit = 10): Paginator
     {
         return WorkspaceInvitation::query()

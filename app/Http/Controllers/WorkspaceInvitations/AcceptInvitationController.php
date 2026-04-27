@@ -17,8 +17,9 @@ final readonly class AcceptInvitationController
 
     public function __invoke(AcceptInvitationRequest $request, AcceptInvitationAction $action, string $token): JsonResponse
     {
-        $name = $request->input('name') ?? '';
-        $password = $request->input('password') ?? '';
+        $safe = $request->safe();
+        $name = is_string($safe['name']) ? $safe['name'] : '';
+        $password = is_string($safe['password']) ? $safe['password'] : '';
 
         try {
             $user = $action->handle($name, $password, $token);

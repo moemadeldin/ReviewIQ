@@ -19,6 +19,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
     {
         $this->verifySignature($request);
 
+        /** @var array{id?: int, action?: string, repository?: array{id?: int}, pull_request?: array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}}} $payload */
         $payload = $request->all();
         $event = $request->header('X-GitHub-Event');
         $action = $payload['action'] ?? null;
@@ -31,7 +32,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
             'github_repo_id' => $githubRepoId,
         ]);
 
-        if ($event !== 'pull_request' || ! in_array($action, ['opened', 'synchronize'])) {
+        if ($event !== 'pull_request' || ! in_array($action, ['opened', 'synchronize'], true)) {
             return;
         }
 
@@ -45,21 +46,28 @@ final readonly class GitHubWebhookService implements WebhookProvider
             return;
         }
 
+        if (! isset($payload['pull_request'])) {
+            return;
+        }
+
+        /** @var array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}} $prPayload */
+        $prPayload = $payload['pull_request'];
+
         $pr = PullRequest::query()->updateOrCreate(
-            ['github_pr_id' => (string) $payload['pull_request']['id']],
+            ['github_pr_id' => (string) $prPayload['id']],
             [
                 'repository_id' => $repository->id,
-                'title' => $payload['pull_request']['title'],
-                'number' => $payload['pull_request']['number'],
-                'author' => $payload['pull_request']['user']['login'],
-                'diff_url' => $payload['pull_request']['diff_url'],
-                'head_sha' => $payload['pull_request']['head']['sha'],
+                'title' => $prPayload['title'],
+                'number' => $prPayload['number'],
+                'author' => $prPayload['user']['login'],
+                'diff_url' => $prPayload['diff_url'],
+                'head_sha' => $prPayload['head']['sha'],
             ]
         );
 
-        Log::info('PR Saved Successfully', ['pr_id' => $pr->id, 'number' => $pr->number, 'status' => $pr->status->value]);
-
-        if (! in_array($pr->status, [PullRequestStatus::Reviewing, PullRequestStatus::Pending])) {
+        /** @var PullRequestStatus $status */
+        $status = $pr->status;
+        if (! in_array($status, [PullRequestStatus::Reviewing, PullRequestStatus::Pending], true)) {
             $pr->update(['status' => PullRequestStatus::Pending]);
             dispatch(new ProcessPullRequestReview($pr));
         }
@@ -68,6 +76,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
     private function verifySignature(Request $request): void
     {
         $signature = $request->header('X-Hub-Signature-256');
+        /** @var string|null $secret */
         $secret = config('services.github.webhook_secret');
 
         if (! $signature || ! $secret) {
@@ -75,7 +84,9 @@ final readonly class GitHubWebhookService implements WebhookProvider
             throw new AccessDeniedHttpException('Missing signature or secret.');
         }
 
-        $computed = 'sha256='.hash_hmac('sha256', $request->getContent(), (string) $secret);
+        /** @var string $body */
+        $body = $request->getContent();
+        $computed = 'sha256='.hash_hmac('sha256', $body, $secret);
 
         if (! hash_equals($computed, $signature)) {
             Log::error('Webhook verification failed: Invalid signature mismatch.');

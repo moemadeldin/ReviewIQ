@@ -9,15 +9,20 @@ use Illuminate\Validation\Rules\Password;
 
 final class AcceptInvitationRequest extends FormRequest
 {
+    /**
+     * @return array<string, array<array<string>|string>>
+     */
     public function rules(): array
     {
+        /** @var list<string> $nameRule */
+        $nameRule = ['nullable', 'string', 'max:255'];
+
+        /** @var list<string> $passwordRule */
+        $passwordRule = ['nullable', 'confirmed', Password::defaults()];
+
         return [
-            'name' => ['nullable', 'string', 'max:255'],
-            'password' => [
-                'nullable',
-                'confirmed',
-                Password::defaults(),
-            ],
+            'name' => $nameRule,
+            'password' => $passwordRule,
         ];
     }
 }

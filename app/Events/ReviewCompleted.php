@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -19,6 +18,9 @@ final class ReviewCompleted implements ShouldBroadcast
 
     public function __construct(
         public readonly string $prId,
+        /**
+         * @var array{content: string}
+         */
         public readonly array $review,
     ) {}
 
@@ -29,6 +31,9 @@ final class ReviewCompleted implements ShouldBroadcast
         ];
     }
 
+    /**
+     * @return array{prId: string, review: array{content: string}}
+     */
     public function broadcastWith(): array
     {
         return [

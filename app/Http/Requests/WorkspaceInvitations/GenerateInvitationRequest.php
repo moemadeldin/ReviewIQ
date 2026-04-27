@@ -11,18 +11,20 @@ use Illuminate\Validation\Rules\Enum;
 
 final class GenerateInvitationRequest extends FormRequest
 {
+    /**
+     * @return array<string, array<array<string>|string>>
+     */
     public function rules(): array
     {
+        /** @var list<string> $emailRule */
+        $emailRule = ['required', 'string', 'lowercase', 'max:255', 'email', new ValidEmail];
+
+        /** @var list<string> $roleRule */
+        $roleRule = ['nullable', new Enum(Roles::class)];
+
         return [
-            'email' => [
-                'required',
-                'string',
-                'lowercase',
-                'max:255',
-                'email',
-                new ValidEmail,
-            ],
-            'role' => ['nullable', new Enum(Roles::class)],
+            'email' => $emailRule,
+            'role' => $roleRule,
         ];
     }
 }

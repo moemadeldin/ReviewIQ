@@ -8,15 +8,19 @@ use App\Contracts\GitHubApi;
 use App\Models\Repository;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Database\Eloquent\Collection;
 
 final readonly class GetRepositoriesData
 {
     public function __construct(private GitHubApi $github) {}
 
+    /**
+     * @return array{repositories: array<int, array{id: int, full_name: string, language: string|null}>, connected_repos: Collection<string, Repository>, has_more: bool, current_page: int}
+     */
     public function handle(User $user, ?Workspace $workspace = null, int $page = 1): array
     {
-        if (! $user?->github_token) {
-            return ['repositories' => [], 'connected_repos' => [], 'has_more' => false];
+        if (! $user->github_token) {
+            return ['repositories' => [], 'connected_repos' => new Collection(), 'has_more' => false, 'current_page' => $page];
         }
 
         $githubRepos = $this->github->getUserRepos($user->github_token, $page);

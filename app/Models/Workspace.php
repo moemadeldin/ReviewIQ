@@ -6,7 +6,6 @@ namespace App\Models;
 
 use App\Enums\Roles;
 use App\Traits\Sluggable;
-use Carbon\CarbonInterface;
 use Database\Factories\WorkspaceFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * @property-read string $id
@@ -23,6 +21,9 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  * @property-read string $owner_id
  * @property-read CarbonInterface $created_at
  * @property-read CarbonInterface $updated_at
+ */
+/**
+ * @use HasFactory<WorkspaceFactory>
  */
 final class Workspace extends Model
 {
@@ -38,7 +39,7 @@ final class Workspace extends Model
     }
 
     /**
-     * @return BelongsTo<User, Workspace>
+     * @return BelongsTo<User, $this>
      */
     public function owner(): BelongsTo
     {
@@ -46,17 +47,18 @@ final class Workspace extends Model
     }
 
     /**
-     * @return BelongsToMany<User, Workspace, Pivot>
+     * @return BelongsToMany<User, $this, WorkspaceUser, 'pivot'>
      */
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'workspace_users')
             ->withPivot('role')
+            ->using(WorkspaceUser::class)
             ->withTimestamps();
     }
 
     /**
-     * @return HasMany<Repository>
+     * @return HasMany<Repository, $this>
      */
     public function repositories(): HasMany
     {
@@ -90,7 +92,16 @@ final class Workspace extends Model
             return null;
         }
 
-        return Roles::from($membership->pivot->role);
+        /** @var WorkspaceUser $pivot */
+        $pivot = $membership->pivot;
+        /** @var string|null $roleValue */
+        $roleValue = $pivot->role;
+
+        if ($roleValue === '' || $roleValue === null) {
+            return null;
+        }
+
+        return Roles::from($roleValue);
     }
 
     /**

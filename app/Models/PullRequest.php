@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property-read string $repository_id
  * @property-read int $github_pr_id
  * @property-read string|null $title
+ * @property-read string|null $description
  * @property-read int|null $number
  * @property-read string|null $author
  * @property-read string|null $diff_url
@@ -29,12 +30,19 @@ final class PullRequest extends Model
 {
     use HasFactory;
     use HasUuids;
+    use HasUuids;
 
+    /**
+     * @return BelongsTo<Repository, $this>
+     */
     public function repository(): BelongsTo
     {
         return $this->belongsTo(Repository::class);
     }
 
+    /**
+     * @return HasOne<Review, $this>
+     */
     public function review(): HasOne
     {
         return $this->hasOne(Review::class);

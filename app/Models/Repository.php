@@ -26,19 +26,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 final class Repository extends Model
 {
-    /** @use HasFactory<RepositoryFactory> */
+    /**
+     * @use HasFactory<RepositoryFactory>
+     */
     use HasFactory;
 
     use HasUuids;
 
     /**
-     * @return BelongsTo<Workspace, Repository>
+     * @return BelongsTo<Workspace, $this>
      */
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(Workspace::class);
     }
 
+    /**
+     * @return HasMany<PullRequest, $this>
+     */
     public function pullRequests(): HasMany
     {
         return $this->hasMany(PullRequest::class);

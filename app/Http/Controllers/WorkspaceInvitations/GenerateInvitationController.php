@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\WorkspaceInvitations;
 
 use App\Actions\WorkspaceInvitations\CreateInvitationAction;
+use App\Enums\Roles;
 use App\Http\Requests\WorkspaceInvitations\GenerateInvitationRequest;
 use App\Models\User;
 use App\Models\Workspace;
@@ -30,8 +31,9 @@ final readonly class GenerateInvitationController
         }
 
         try {
-            $email = $request->safe()->email;
-            $role = $request->safe()->role;
+            $safe = $request->safe();
+            $email = is_string($safe['email']) ? $safe['email'] : '';
+            $role = is_string($safe['role']) ? Roles::from($safe['role']) : Roles::Member;
             $invitation = $action->handle($workspace, $user, $email, $role);
         } catch (RuntimeException $runtimeException) {
             return $this->fail($runtimeException->getMessage(), Response::HTTP_CONFLICT);

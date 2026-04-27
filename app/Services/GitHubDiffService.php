@@ -8,12 +8,16 @@ use App\Contracts\DiffProvider;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 final readonly class GitHubDiffService implements DiffProvider
 {
     public function getDiff(string $token, string $repoFullName, int $prNumber): string
     {
-        $url = config('services.github.base_url').sprintf('/repos/%s/pulls/%d', $repoFullName, $prNumber);
+        $baseUrl = config('services.github.base_url');
+        throw_unless(is_string($baseUrl), RuntimeException::class, 'Invalid GitHub base URL configuration');
+
+        $url = $baseUrl.sprintf('/repos/%s/pulls/%d', $repoFullName, $prNumber);
 
         $response = Http::withToken($token)
             ->withHeaders([

@@ -14,6 +14,6 @@ final class WorkspaceOwnerRequest extends FormRequest
 {
     public function authorize(#[CurrentUser()] User $user, #[RouteParameter('workspace')] Workspace $workspace): bool
     {
-        return $workspace->owner->is($user);
+        return $workspace->owner instanceof User && $workspace->owner->is($user);
     }
 }

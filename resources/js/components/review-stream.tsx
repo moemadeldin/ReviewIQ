@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
+import { useEffect, useState } from 'react';
 
 interface ReviewStreamProps {
     prId: string;
@@ -41,7 +41,7 @@ export function ReviewStream({ prId, onComplete }: ReviewStreamProps) {
                 onComplete?.(payload.review);
                 router.reload();
             }
-        }
+        },
     );
 
     useEffect(() => {
@@ -62,13 +62,22 @@ export function ReviewStream({ prId, onComplete }: ReviewStreamProps) {
             <div className="min-h-[100px] space-y-2">
                 {chunks.length === 0 && (
                     <div className="flex gap-1">
-                        <div className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40" style={{ animationDelay: '0ms' }} />
-                        <div className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40" style={{ animationDelay: '150ms' }} />
-                        <div className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40" style={{ animationDelay: '300ms' }} />
+                        <div
+                            className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40"
+                            style={{ animationDelay: '0ms' }}
+                        />
+                        <div
+                            className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40"
+                            style={{ animationDelay: '150ms' }}
+                        />
+                        <div
+                            className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40"
+                            style={{ animationDelay: '300ms' }}
+                        />
                     </div>
                 )}
                 {chunks && (
-                    <pre className="whitespace-pre-wrap text-sm">{chunks}</pre>
+                    <pre className="text-sm whitespace-pre-wrap">{chunks}</pre>
                 )}
             </div>
         </div>

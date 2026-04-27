@@ -29,8 +29,8 @@ final readonly class WorkspaceController
 
     public function store(StoreWorkspaceRequest $request, #[CurrentUser] User $user, CreateWorkspace $action): RedirectResponse
     {
-        /** @var string $name */
-        $name = $request->safe()->name;
+        $safe = $request->safe();
+        $name = is_string($safe['name']) ? $safe['name'] : '';
 
         $workspace = $action->handle(
             user: $user,

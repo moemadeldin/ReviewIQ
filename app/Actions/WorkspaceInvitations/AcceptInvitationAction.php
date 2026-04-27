@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\WorkspaceInvitations;
 
+use App\Enums\Roles;
 use App\Models\User;
+use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use Illuminate\Http\Response;
 use SensitiveParameter;
@@ -33,10 +35,16 @@ final readonly class AcceptInvitationAction
             ]);
         }
 
-        $invitation->workspace->addUser($user, $invitation->role);
+        $workspace = $invitation->workspace;
+        throw_unless($workspace instanceof Workspace, HttpException::class, Response::HTTP_INTERNAL_SERVER_ERROR, 'Workspace not found');
+
+        $workspace->addUser($user, Roles::from($invitation->role));
 
         $invitation->update(['accepted_at' => now()]);
 
-        return $user->fresh()->load('workspaces');
+        $updatedUser = $user->fresh('workspaces');
+        throw_unless($updatedUser instanceof User, HttpException::class, Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to load user');
+
+        return $updatedUser;
     }
 }

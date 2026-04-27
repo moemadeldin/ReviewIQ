@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -31,6 +31,15 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property-read CarbonInterface $created_at
  * @property-read CarbonInterface $updated_at
  */
+/**
+ * @use HasFactory<UserFactory>
+ */
+#[Hidden([
+    'password',
+    'remember_token',
+    'two_factor_secret',
+    'two_factor_recovery_codes',
+])]
 final class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
@@ -41,24 +50,21 @@ final class User extends Authenticatable implements MustVerifyEmail
     use TwoFactorAuthenticatable;
 
     /**
-     * @var list<string>
+     * @return HasMany<Workspace, $this>
      */
-    protected $hidden = [
-        'password',
-        'remember_token',
-        'two_factor_secret',
-        'two_factor_recovery_codes',
-    ];
-
     public function ownedWorkspaces(): HasMany
     {
         return $this->hasMany(Workspace::class, 'owner_id');
     }
 
+    /**
+     * @return BelongsToMany<Workspace, $this, WorkspaceUser, 'pivot'>
+     */
     public function workspaces(): BelongsToMany
     {
         return $this->belongsToMany(Workspace::class, 'workspace_users')
             ->withPivot('role')
+            ->using(WorkspaceUser::class)
             ->withTimestamps();
     }
 
