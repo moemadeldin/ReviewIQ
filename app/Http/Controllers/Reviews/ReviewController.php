@@ -36,7 +36,7 @@ final readonly class ReviewController
         ], 'ok');
     }
 
-    public function show(PullRequest $pullRequest): JsonResponse
+    public function show(Workspace $workspace, PullRequest $pullRequest): JsonResponse
     {
         $pullRequest->load(['repository', 'review']);
 

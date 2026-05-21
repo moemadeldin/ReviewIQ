@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\Roles;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Support\Facades\DB;
 
 test('has owner relationship', function (): void {
     $user = User::factory()->create();
@@ -63,4 +64,28 @@ test('user cannot access other workspace', function (): void {
     $otherWorkspace = Workspace::factory()->create();
 
     expect($user->canAccessWorkspace($otherWorkspace))->toBeFalse();
+});
+
+test('checks if user is owner', function (): void {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($owner)->create();
+
+    expect($workspace->isOwner($owner))->toBeTrue();
+    expect($workspace->isOwner($other))->toBeFalse();
+});
+
+test('returns null role when pivot role is empty', function (): void {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->create();
+
+    DB::table('workspace_users')->insert([
+        'workspace_id' => $workspace->id,
+        'user_id' => $user->id,
+        'role' => '',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    expect($workspace->roleOf($user))->toBeNull();
 });

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Contracts\AIReviewer;
+use App\Contracts\DiffProvider;
 use App\Enums\PullRequestStatus;
 use App\Events\ReviewChunkReceived;
 use App\Events\ReviewCompleted;
@@ -13,7 +14,6 @@ use App\Models\Repository;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Services\GitHubDiffService;
 use App\Services\PromptBuilder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -46,7 +46,7 @@ final class ProcessPullRequestReview implements ShouldQueue
     }
 
     public function handle(
-        GitHubDiffService $diffService,
+        DiffProvider $diffService,
         PromptBuilder $promptBuilder,
         AIReviewer $aiReviewer,
     ): void {

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Models\Workspace;
 
 test('to array', function (): void {
     $user = User::factory()->create()->refresh();
@@ -20,4 +21,11 @@ test('to array', function (): void {
             'created_at',
             'updated_at',
         ]);
+});
+
+test('has owned workspaces', function (): void {
+    $user = User::factory()->create();
+    Workspace::factory(2)->create(['owner_id' => $user->id]);
+
+    expect($user->ownedWorkspaces)->toHaveCount(2);
 });

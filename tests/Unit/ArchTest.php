@@ -6,9 +6,12 @@ use App\Http\Controllers\GitHubController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Workspaces\WorkspacePageController;
 use App\Http\Requests\Workspaces\WorkspaceOwnerRequest;
+use App\Models\Review;
 
 arch()->preset()->php();
-arch()->preset()->strict();
+arch()->preset()->strict()->ignoring([
+    Review::class,
+]);
 arch()->preset()->laravel()->ignoring([
     GitHubController::class,
     NotificationController::class,

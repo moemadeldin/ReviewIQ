@@ -8,87 +8,79 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Queries\GetRepositoriesData;
 
-beforeEach(function (): void {
-    $this->user = User::factory()->create([
-        'github_token' => 'fake-token',
-    ]);
-    $this->workspace = Workspace::factory()->create();
-});
+it('returns empty repos when user has no github token', function (): void {
+    $user = User::factory()->create(['github_token' => null]);
 
-it('returns empty array when user has no github_token', function (): void {
-    $userWithoutToken = User::factory()->create([
-        'github_token' => null,
-    ]);
+    $query = resolve(GetRepositoriesData::class);
+    $result = $query->handle($user);
 
-    $query = new GetRepositoriesData(Mockery::mock(GitHubApi::class));
-
-    $result = $query->handle($userWithoutToken, $this->workspace);
-
-    expect($result)->toBe([
-        'repositories' => [],
-        'connected_repos' => [],
-        'has_more' => false,
-    ]);
-});
-
-it('returns github repos and connected repos', function (): void {
-    $githubMock = Mockery::mock(GitHubApi::class);
-    $githubMock->shouldReceive('getUserRepos')
-        ->with('fake-token', 1)
-        ->andReturn([
-            ['id' => 1, 'full_name' => 'owner/repo1', 'language' => 'PHP'],
-            ['id' => 2, 'full_name' => 'owner/repo2', 'language' => 'JavaScript'],
-            ['id' => 3, 'full_name' => 'owner/repo3', 'language' => 'Python'],
-            ['id' => 4, 'full_name' => 'owner/repo4', 'language' => 'Ruby'],
-            ['id' => 5, 'full_name' => 'owner/repo5', 'language' => 'Go'],
-            ['id' => 6, 'full_name' => 'owner/repo6', 'language' => 'Rust'],
-            ['id' => 7, 'full_name' => 'owner/repo7', 'language' => 'TypeScript'],
-            ['id' => 8, 'full_name' => 'owner/repo8', 'language' => 'C++'],
-            ['id' => 9, 'full_name' => 'owner/repo9', 'language' => 'C#'],
-            ['id' => 10, 'full_name' => 'owner/repo10', 'language' => 'Java'],
-        ]);
-
-    $connectedRepo = Repository::factory()->create([
-        'workspace_id' => $this->workspace->id,
-        'full_name' => 'owner/repo1',
-        'is_active' => true,
-    ]);
-
-    $query = new GetRepositoriesData($githubMock);
-
-    $result = $query->handle($this->user, $this->workspace);
-
-    expect($result['repositories'])->toHaveCount(10)
-        ->and($result['connected_repos'])->toHaveCount(1)
-        ->and($result['connected_repos']['owner/repo1']->id)->toBe($connectedRepo->id)
-        ->and($result['has_more'])->toBeTrue()
+    expect($result['repositories'])->toBe([])
+        ->and($result['connected_repos'])->toBe([])
+        ->and($result['has_more'])->toBeFalse()
         ->and($result['current_page'])->toBe(1);
 });
 
-it('returns has_more false when less than 10 repos', function (): void {
-    $githubMock = Mockery::mock(GitHubApi::class);
-    $githubMock->shouldReceive('getUserRepos')
-        ->with('fake-token', 1)
+it('fetches repos from github and scopes to workspace', function (): void {
+    $workspace = Workspace::factory()->create();
+    $user = User::factory()->create(['github_token' => 'test-token']);
+    $repo = Repository::factory()->create(['workspace_id' => $workspace->id, 'full_name' => 'owner/repo1']);
+
+    $github = $this->mock(GitHubApi::class);
+    $github->shouldReceive('getUserRepos')
+        ->once()
+        ->with('test-token', 1)
         ->andReturn([
             ['id' => 1, 'full_name' => 'owner/repo1', 'language' => 'PHP'],
+            ['id' => 2, 'full_name' => 'owner/repo2', 'language' => 'JS'],
         ]);
 
-    $query = new GetRepositoriesData($githubMock);
+    $query = new GetRepositoriesData($github);
+    $result = $query->handle($user, $workspace);
 
-    $result = $query->handle($this->user, $this->workspace);
-
-    expect($result['has_more'])->toBeFalse();
+    expect($result['repositories'])->toHaveCount(2)
+        ->and($result['connected_repos'])->toHaveKeys(['owner/repo1'])
+        ->and($result['has_more'])->toBeFalse();
 });
 
-it('fetches with correct page parameter', function (): void {
-    $githubMock = Mockery::mock(GitHubApi::class);
-    $githubMock->shouldReceive('getUserRepos')
-        ->with('fake-token', 3)
-        ->andReturn([]);
+it('fetches repos from all user workspaces when no workspace given', function (): void {
+    $workspace1 = Workspace::factory()->create();
+    $workspace2 = Workspace::factory()->create();
+    $user = User::factory()->create(['github_token' => 'test-token']);
+    $user->workspaces()->attach($workspace1->id, ['role' => 'member']);
+    $user->workspaces()->attach($workspace2->id, ['role' => 'member']);
 
-    $query = new GetRepositoriesData($githubMock);
+    Repository::factory()->create(['workspace_id' => $workspace1->id, 'full_name' => 'owner/repo1']);
+    Repository::factory()->create(['workspace_id' => $workspace2->id, 'full_name' => 'owner/repo2']);
 
-    $result = $query->handle($this->user, $this->workspace, 3);
+    $github = $this->mock(GitHubApi::class);
+    $github->shouldReceive('getUserRepos')
+        ->once()
+        ->with('test-token', 1)
+        ->andReturn([
+            ['id' => 1, 'full_name' => 'owner/repo1', 'language' => 'PHP'],
+            ['id' => 2, 'full_name' => 'owner/repo2', 'language' => 'PHP'],
+        ]);
 
-    expect($result['current_page'])->toBe(3);
+    $query = new GetRepositoriesData($github);
+    $result = $query->handle($user);
+
+    expect($result['connected_repos'])->toHaveCount(2)
+        ->and($result['connected_repos'])->toHaveKeys(['owner/repo1', 'owner/repo2']);
+});
+
+it('sets has_more when exactly 10 repos returned', function (): void {
+    $user = User::factory()->create(['github_token' => 'test-token']);
+    $repos = collect(range(1, 10))->map(fn (int $i): array => [
+        'id' => $i, 'full_name' => 'owner/repo'.$i, 'language' => 'PHP',
+    ])->all();
+
+    $github = $this->mock(GitHubApi::class);
+    $github->shouldReceive('getUserRepos')
+        ->once()
+        ->andReturn($repos);
+
+    $query = new GetRepositoriesData($github);
+    $result = $query->handle($user);
+
+    expect($result['has_more'])->toBeTrue();
 });

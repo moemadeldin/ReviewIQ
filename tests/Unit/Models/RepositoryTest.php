@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\Workspace;
 
@@ -49,4 +50,11 @@ test('can store custom rules', function (): void {
     $repository = Repository::factory()->create(['custom_rules' => $rules]);
 
     expect($repository->custom_rules)->toBe($rules);
+});
+
+test('has pull requests', function (): void {
+    $repository = Repository::factory()->create();
+    PullRequest::factory(3)->create(['repository_id' => $repository->id]);
+
+    expect($repository->pullRequests)->toHaveCount(3);
 });

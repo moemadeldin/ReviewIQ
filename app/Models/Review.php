@@ -27,7 +27,6 @@ final class Review extends Model
 {
     use HasFactory;
     use HasUuids;
-    use HasUuids;
 
     /**
      * @return BelongsTo<PullRequest, $this>

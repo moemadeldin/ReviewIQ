@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Http\Request;
 
 it('shares app name from config', function (): void {
@@ -92,4 +93,20 @@ it('includes parent shared data', function (): void {
 
     // Parent Inertia middleware shares 'errors' by default
     expect($shared)->toHaveKey('errors');
+});
+
+it('shares user role in current workspace', function (): void {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($user)->create();
+
+    $middleware = new HandleInertiaRequests();
+
+    $request = Request::create('/', 'GET');
+    $request->setUserResolver(fn () => $user);
+    $request->attributes->set('current_workspace', $workspace);
+
+    $shared = $middleware->share($request);
+
+    expect($shared['auth']['role'])->not->toBeNull()
+        ->and($shared['auth']['role']->value)->toBe('owner');
 });

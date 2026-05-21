@@ -6,6 +6,34 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\GitHubProvider;
+use Laravel\Socialite\Two\User as SocialiteUser;
+
+function createMockSocialiteUser(string $id, string $name, string $nickname, string $email, string $avatar, string $token): SocialiteUser
+{
+    $mock = Mockery::mock(SocialiteUser::class);
+    $mock->shouldReceive('getId')->andReturn($id);
+    $mock->id = $id;
+    $mock->shouldReceive('getName')->andReturn($name);
+    $mock->name = $name;
+    $mock->shouldReceive('getNickname')->andReturn($nickname);
+    $mock->nickname = $nickname;
+    $mock->shouldReceive('getEmail')->andReturn($email);
+    $mock->email = $email;
+    $mock->shouldReceive('getAvatar')->andReturn($avatar);
+    $mock->avatar = $avatar;
+    $mock->token = $token;
+
+    return $mock;
+}
+
+function createMockGitHubDriver(SocialiteUser $user): GitHubProvider
+{
+    $mock = Mockery::mock(GitHubProvider::class);
+    $mock->shouldReceive('user')->andReturn($user);
+
+    return $mock;
+}
 
 it('redirects to github oauth', function (): void {
     $response = $this->get(route('auth.github'));
@@ -16,19 +44,20 @@ it('redirects to github oauth', function (): void {
 it('creates user from github oauth', function (): void {
     Http::preventStrayRequests();
 
+    $mockUser = createMockSocialiteUser(
+        id: '12345',
+        name: 'Test User',
+        nickname: 'testuser',
+        email: 'test@example.com',
+        avatar: 'https://example.com/avatar.jpg',
+        token: 'mock-token'
+    );
+
+    $mockDriver = createMockGitHubDriver($mockUser);
+
     Socialite::shouldReceive('driver')
         ->with('github')
-        ->andReturnSelf();
-
-    Socialite::shouldReceive('user')
-        ->andReturn((object) [
-            'id' => '12345',
-            'name' => 'Test User',
-            'nickname' => 'testuser',
-            'email' => 'test@example.com',
-            'avatar' => 'https://example.com/avatar.jpg',
-            'token' => 'mock-token',
-        ]);
+        ->andReturn($mockDriver);
 
     $response = $this->get(route('auth.github.callback'));
 
@@ -51,19 +80,20 @@ it('updates existing user with github info', function (): void {
 
     Http::preventStrayRequests();
 
+    $mockUser = createMockSocialiteUser(
+        id: '67890',
+        name: 'Existing User',
+        nickname: 'existinguser',
+        email: 'existing@example.com',
+        avatar: 'https://example.com/new-avatar.jpg',
+        token: 'mock-token'
+    );
+
+    $mockDriver = createMockGitHubDriver($mockUser);
+
     Socialite::shouldReceive('driver')
         ->with('github')
-        ->andReturnSelf();
-
-    Socialite::shouldReceive('user')
-        ->andReturn((object) [
-            'id' => '67890',
-            'name' => 'Existing User',
-            'nickname' => 'existinguser',
-            'email' => 'existing@example.com',
-            'avatar' => 'https://example.com/new-avatar.jpg',
-            'token' => 'mock-token',
-        ]);
+        ->andReturn($mockDriver);
 
     $response = $this->get(route('auth.github.callback'));
 
@@ -84,19 +114,20 @@ it('logs in existing user without github info', function (): void {
 
     Http::preventStrayRequests();
 
+    $mockUser = createMockSocialiteUser(
+        id: '11111',
+        name: 'No GitHub User',
+        nickname: 'nogithub',
+        email: 'no-github@example.com',
+        avatar: 'https://example.com/avatar.jpg',
+        token: 'mock-token'
+    );
+
+    $mockDriver = createMockGitHubDriver($mockUser);
+
     Socialite::shouldReceive('driver')
         ->with('github')
-        ->andReturnSelf();
-
-    Socialite::shouldReceive('user')
-        ->andReturn((object) [
-            'id' => '11111',
-            'name' => 'No GitHub User',
-            'nickname' => 'nogithub',
-            'email' => 'no-github@example.com',
-            'avatar' => 'https://example.com/avatar.jpg',
-            'token' => 'mock-token',
-        ]);
+        ->andReturn($mockDriver);
 
     $response = $this->get(route('auth.github.callback'));
 

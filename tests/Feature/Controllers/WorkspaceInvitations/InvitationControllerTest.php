@@ -11,11 +11,83 @@ use Illuminate\Support\Facades\Mail;
 
 beforeEach(function (): void {
     $this->user = User::factory()->create();
-    $this->workspace = Workspace::factory()->create();
-    $this->workspace->users()->attach($this->user, ['role' => Roles::Owner]);
+    $this->workspace = Workspace::factory()->withOwner($this->user)->create();
 });
 
-describe('GenerateInvitationController', function (): void {
+describe('GenerateInvitationController (invitations.store)', function (): void {
+    it('creates invitation via standalone route', function (): void {
+        Mail::fake();
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_workspace_id' => $this->workspace->id])
+            ->post(route('invitations.store', ['workspace' => $this->workspace->slug]), [
+                'email' => 'invitee@example.com',
+                'role' => Roles::Member->value,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('status', 'Success')
+            ->assertJsonPath('message', 'Invitation sent');
+
+        Mail::assertQueued(WorkspaceInvitationMail::class);
+
+        $this->assertDatabaseHas('workspace_invitations', [
+            'workspace_id' => $this->workspace->id,
+            'email' => 'invitee@example.com',
+            'role' => Roles::Member->value,
+        ]);
+    });
+
+    it('returns error via standalone route when not owner or admin', function (): void {
+        $member = User::factory()->create();
+        $workspace = Workspace::factory()->withOwner($member)->create();
+        $workspace->users()->syncWithoutDetaching([$this->user->id => ['role' => Roles::Member->value]]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_workspace_id' => $workspace->id])
+            ->postJson(route('invitations.store', ['workspace' => $workspace->slug]), [
+                'email' => 'invitee@example.com',
+            ]);
+
+        $response->assertStatus(403)
+            ->assertJsonPath('status', 'Failed')
+            ->assertJsonPath('message', 'Only owners and admins can invite users');
+    });
+
+    it('returns error when user already a member via standalone route', function (): void {
+        $otherUser = User::factory()->create(['email' => 'existing@example.com']);
+        $this->workspace->users()->attach($otherUser, ['role' => Roles::Member->value]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_workspace_id' => $this->workspace->id])
+            ->postJson(route('invitations.store', ['workspace' => $this->workspace->slug]), [
+                'email' => 'existing@example.com',
+            ]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('status', 'Failed')
+            ->assertJsonPath('message', 'User is already a member of this workspace');
+    });
+
+    it('returns error when invitation already sent via standalone route', function (): void {
+        WorkspaceInvitation::factory()->create([
+            'workspace_id' => $this->workspace->id,
+            'email' => 'invitee@example.com',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_workspace_id' => $this->workspace->id])
+            ->post(route('invitations.store', ['workspace' => $this->workspace->slug]), [
+                'email' => 'invitee@example.com',
+            ]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('status', 'Failed')
+            ->assertJsonPath('message', 'Invitation already sent to this email');
+    });
+});
+
+describe('GenerateInvitationController (workspaces.invitations.store)', function (): void {
     it('creates invitation and sends email', function (): void {
         Mail::fake();
 
@@ -99,6 +171,88 @@ describe('GenerateInvitationController', function (): void {
 
         $response->assertStatus(200)
             ->assertJsonPath('status', 'Success');
+    });
+});
+
+describe('WorkspaceInvitationController', function (): void {
+    it('lists invitations for workspace', function (): void {
+        $invitation1 = WorkspaceInvitation::factory()->forWorkspace($this->workspace)->create();
+        $invitation2 = WorkspaceInvitation::factory()->forWorkspace($this->workspace)->create();
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_workspace_id' => $this->workspace->id])
+            ->getJson(route('workspaces.invitations', ['workspace' => $this->workspace->slug]));
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'invitations',
+                    'current_page',
+                    'has_more',
+                ],
+            ])
+            ->assertJsonCount(2, 'data.invitations');
+    });
+
+    it('returns empty list when no invitations', function (): void {
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_workspace_id' => $this->workspace->id])
+            ->getJson(route('workspaces.invitations', ['workspace' => $this->workspace->slug]));
+
+        $response->assertOk()
+            ->assertJsonPath('data.invitations', [])
+            ->assertJsonPath('data.has_more', false);
+    });
+
+    it('deletes invitation successfully', function (): void {
+        $invitation = WorkspaceInvitation::factory()->forWorkspace($this->workspace)->create();
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_workspace_id' => $this->workspace->id])
+            ->deleteJson(route('workspaces.invitations.destroy', [
+                'workspace' => $this->workspace->slug,
+                'invitation' => $invitation->id,
+            ]), [
+                'password' => 'password',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.message', 'Invitation cancelled');
+
+        expect(WorkspaceInvitation::query()->find($invitation->id))->toBeNull();
+    });
+
+    it('returns 403 when invitation belongs to different workspace', function (): void {
+        $otherUser = User::factory()->create();
+        $otherWorkspace = Workspace::factory()->withOwner($otherUser)->create();
+        $invitation = WorkspaceInvitation::factory()->forWorkspace($otherWorkspace)->create();
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_workspace_id' => $this->workspace->id])
+            ->deleteJson(route('workspaces.invitations.destroy', [
+                'workspace' => $this->workspace->slug,
+                'invitation' => $invitation->id,
+            ]), [
+                'password' => 'password',
+            ]);
+
+        $response->assertStatus(403);
+    });
+
+    it('returns 409 when trying to delete accepted invitation', function (): void {
+        $invitation = WorkspaceInvitation::factory()->forWorkspace($this->workspace)->accepted()->create();
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_workspace_id' => $this->workspace->id])
+            ->deleteJson(route('workspaces.invitations.destroy', [
+                'workspace' => $this->workspace->slug,
+                'invitation' => $invitation->id,
+            ]), [
+                'password' => 'password',
+            ]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('message', 'Cannot cancel accepted invitation');
     });
 });
 

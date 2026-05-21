@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Contracts\WebhookProvider;
 use App\Enums\PullRequestStatus;
+use App\Exceptions\WebhookException;
 use App\Jobs\ProcessPullRequestReview;
 use App\Models\PullRequest;
 use App\Models\Repository;
@@ -20,7 +21,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
         $this->verifySignature($request);
 
         /** @var array{id?: int, action?: string, repository?: array{id?: int}, pull_request?: array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}}} $payload */
-        $payload = $request->all();
+        $payload = json_decode($request->getContent(), true) ?? [];
         $event = $request->header('X-GitHub-Event');
         $action = $payload['action'] ?? null;
 
@@ -36,6 +37,10 @@ final readonly class GitHubWebhookService implements WebhookProvider
             return;
         }
 
+        if (! isset($payload['pull_request'])) {
+            return;
+        }
+
         $repository = Repository::query()
             ->where('github_repo_id', $githubRepoId)
             ->first();
@@ -43,10 +48,6 @@ final readonly class GitHubWebhookService implements WebhookProvider
         if (! $repository) {
             Log::error(sprintf("Repo not found in DB for GitHub ID: %s. Ensure the repo is toggled 'on' in your app.", $githubRepoId));
 
-            return;
-        }
-
-        if (! isset($payload['pull_request'])) {
             return;
         }
 
@@ -81,7 +82,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
 
         if (! $signature || ! $secret) {
             Log::error('Webhook verification failed: Missing signature or secret configuration.');
-            throw new AccessDeniedHttpException('Missing signature or secret.');
+            throw new WebhookException('Missing signature or secret.');
         }
 
         /** @var string $body */

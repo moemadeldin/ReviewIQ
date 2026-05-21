@@ -30,7 +30,6 @@ final class PullRequest extends Model
 {
     use HasFactory;
     use HasUuids;
-    use HasUuids;
 
     /**
      * @return BelongsTo<Repository, $this>
@@ -58,6 +57,7 @@ final class PullRequest extends Model
             'repository_id' => 'string',
             'github_pr_id' => 'integer',
             'title' => 'string',
+            'description' => 'string',
             'number' => 'integer',
             'author' => 'string',
             'diff_url' => 'string',

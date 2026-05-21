@@ -6,6 +6,7 @@ namespace App\Queries;
 
 use App\Models\PullRequest;
 use App\Models\Workspace;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 final readonly class GetPullRequestsWithReviews
@@ -20,7 +21,7 @@ final readonly class GetPullRequestsWithReviews
         ?string $status = null,
     ): LengthAwarePaginator {
         $query = PullRequest::query()
-            ->whereHas('repository', fn ($q) => $q->where('workspace_id', $workspace->id))
+            ->whereHas('repository', fn (Builder $q) => $q->where('workspace_id', $workspace->id))
             ->with(['review', 'repository']);
 
         if ($repositoryId) {

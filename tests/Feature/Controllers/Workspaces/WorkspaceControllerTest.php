@@ -199,6 +199,19 @@ it('owner is added to workspace users', function (): void {
     expect($workspace->roleOf($user))->toBe(Roles::Owner);
 });
 
+it('renders workspace show page', function (): void {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($user)->create();
+
+    $response = $this->actingAs($user)
+        ->get(route('workspaces.show', $workspace));
+
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('workspaces/show')
+            ->has('workspace'));
+});
+
 it('auto-generates slug from workspace name', function (): void {
     $user = User::factory()->create();
 

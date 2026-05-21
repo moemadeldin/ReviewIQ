@@ -28,8 +28,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     // Notifications...
     Route::controller(NotificationController::class)->group(function (): void {
         Route::get('notifications', 'index')->name('notifications.index');
-        Route::patch('notifications/{id}/read', 'markAsRead')->name('notifications.mark-read');
-        Route::patch('notifications/read-all', 'markAllAsRead')->name('notifications.mark-all-read');
+        Route::post('notifications/{id}/read', 'markAsRead')->name('notifications.mark-read');
+        Route::post('notifications/read-all', 'markAllAsRead')->name('notifications.mark-all-read');
     });
 
     // Workspaces...
@@ -72,12 +72,13 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     });
 
     // Reviews...
+    Route::get('workspaces/{workspace}/reviews/{pullRequest}/data', [ReviewController::class, 'show'])->name('reviews.show.data');
     Route::get('workspaces/{workspace}/reviews/data', [ReviewController::class, 'index'])->name('reviews.index');
     Route::get('workspaces/{workspace}/reviews', [WorkspacePageController::class, 'reviews'])->name('reviews.page');
     Route::get('workspaces/{workspace}/reviews/{pullRequest}', [WorkspacePageController::class, 'review'])->name('reviews.show');
 
     // Invitations...
-    Route::post('invitations', GenerateInvitationController::class)->name('invitations.store');
+    Route::post('workspaces/{workspace}/invitations/generate', GenerateInvitationController::class)->name('invitations.store');
 
     // User Settings...
     Route::delete('user', [UserController::class, 'destroy'])->name('user.destroy');

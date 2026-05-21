@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\WorkspaceInvitations;
 
-use App\Enums\Roles;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
@@ -38,7 +37,7 @@ final readonly class AcceptInvitationAction
         $workspace = $invitation->workspace;
         throw_unless($workspace instanceof Workspace, HttpException::class, Response::HTTP_INTERNAL_SERVER_ERROR, 'Workspace not found');
 
-        $workspace->addUser($user, Roles::from($invitation->role));
+        $workspace->addUser($user, $invitation->role);
 
         $invitation->update(['accepted_at' => now()]);
 
