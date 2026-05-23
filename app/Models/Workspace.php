@@ -19,8 +19,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read string $name
  * @property-read string $slug
  * @property-read string $owner_id
- * @property-read CarbonInterface $created_at
- * @property-read CarbonInterface $updated_at
+ * @property-read Carbon $created_at
+ * @property-read Carbon $updated_at
  */
 /**
  * @use HasFactory<WorkspaceFactory>
@@ -55,6 +55,14 @@ final class Workspace extends Model
             ->withPivot('role')
             ->using(WorkspaceUser::class)
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<WorkspaceInvitation, $this>
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(WorkspaceInvitation::class);
     }
 
     /**

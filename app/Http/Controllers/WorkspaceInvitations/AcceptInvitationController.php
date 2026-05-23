@@ -9,7 +9,6 @@ use App\Http\Requests\WorkspaceInvitations\AcceptInvitationRequest;
 use App\Traits\APIResponder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final readonly class AcceptInvitationController
 {
@@ -17,15 +16,9 @@ final readonly class AcceptInvitationController
 
     public function __invoke(AcceptInvitationRequest $request, AcceptInvitationAction $action, string $token): JsonResponse
     {
-        $safe = $request->safe();
-        $name = is_string($safe['name']) ? $safe['name'] : '';
-        $password = is_string($safe['password']) ? $safe['password'] : '';
+        $data = $request->validated();
 
-        try {
-            $user = $action->handle($name, $password, $token);
-        } catch (HttpException $httpException) {
-            return $this->fail($httpException->getMessage(), $httpException->getStatusCode());
-        }
+        $user = $action->handle($data['name'], $data['password'], $token);
 
         Auth::login($user);
 

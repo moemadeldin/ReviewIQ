@@ -28,7 +28,6 @@ interface Member {
     email: string;
     avatar: string | null;
     role: 'owner' | 'admin' | 'member';
-    joined_at: string;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -235,9 +234,7 @@ export default function Index() {
                                             <th className="px-4 py-3 text-sm font-medium">
                                                 Role
                                             </th>
-                                            <th className="px-4 py-3 text-sm font-medium">
-                                                Joined
-                                            </th>
+
                                             {isOwner && (
                                                 <th className="px-4 py-3 text-right text-sm font-medium">
                                                     Actions
@@ -280,11 +277,6 @@ export default function Index() {
                                                     <RoleBadge
                                                         role={member.role}
                                                     />
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-muted-foreground">
-                                                    {new Date(
-                                                        member.joined_at,
-                                                    ).toLocaleDateString()}
                                                 </td>
                                                 {isOwner && (
                                                     <td className="px-4 py-3 text-right">

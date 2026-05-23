@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('App.Models.User.{id}', fn (User $user, int $id): bool => (int) $user->id === $id);
 
-Broadcast::channel('reviews.{prId}', function (User $user, int $prId): bool {
+Broadcast::channel('reviews.{prId}', function (User $user, string $prId): bool {
     /** @var PullRequest|null $pr */
     $pr = PullRequest::query()
         ->with('repository.workspace')

@@ -14,15 +14,10 @@ final class AcceptInvitationRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var list<string> $nameRule */
-        $nameRule = ['nullable', 'string', 'max:255'];
-
-        /** @var list<string> $passwordRule */
-        $passwordRule = ['nullable', 'confirmed', Password::defaults()];
 
         return [
-            'name' => $nameRule,
-            'password' => $passwordRule,
+            'name' => ['required', 'string', 'max:255'],
+            'password' => ['required', 'confirmed', Password::defaults()],
         ];
     }
 }

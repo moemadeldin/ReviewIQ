@@ -13,7 +13,6 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Repositories\GetConnectedRepositoriesController;
 use App\Http\Controllers\Repositories\RepositoryController;
 use App\Http\Controllers\Reviews\ReviewController;
-use App\Http\Controllers\WorkspaceInvitations\GenerateInvitationController;
 use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
 use App\Http\Controllers\Workspaces\GetWorkspaceMembersController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
@@ -78,7 +77,6 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('workspaces/{workspace}/reviews/{pullRequest}', [WorkspacePageController::class, 'review'])->name('reviews.show');
 
     // Invitations...
-    Route::post('workspaces/{workspace}/invitations/generate', GenerateInvitationController::class)->name('invitations.store');
 
     // User Settings...
     Route::delete('user', [UserController::class, 'destroy'])->name('user.destroy');

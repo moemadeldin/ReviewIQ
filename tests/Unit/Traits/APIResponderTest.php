@@ -20,7 +20,7 @@ final class ApiResponderTestInstance
         return $this->fail($message, $code);
     }
 
-    public function callNoContent(): Response
+    public function callNoContent(): Illuminate\Http\Response
     {
         return $this->noContent();
     }
