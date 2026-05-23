@@ -51,7 +51,7 @@ final readonly class GitHubApiService implements GitHubApi
             ])
             ->post($baseUrl.'/repos/'.$fullName.'/hooks', [
                 'config' => [
-                    'url' => $appUrl.'/webhooks/github',
+                    'url' => config('services.github.webhook_url'),
                     'content_type' => 'json',
                 ],
                 'events' => ['pull_request'],

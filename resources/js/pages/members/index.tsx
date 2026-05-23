@@ -234,7 +234,7 @@ export default function Index() {
                                             <th className="px-4 py-3 text-sm font-medium">
                                                 Role
                                             </th>
-                                            
+
                                             {isOwner && (
                                                 <th className="px-4 py-3 text-right text-sm font-medium">
                                                     Actions

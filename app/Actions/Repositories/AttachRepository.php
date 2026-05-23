@@ -33,7 +33,7 @@ final readonly class AttachRepository
 
         abort_unless(is_array($repoData), Response::HTTP_NOT_FOUND, 'Repository not found');
 
-        $webhookId = app()->isLocal() ? null : $this->github->registerWebhook($token, $fullName);
+        $webhookId = $this->github->registerWebhook($token, $fullName);
 
         return Repository::query()->create([
             'workspace_id' => $workspace->id,

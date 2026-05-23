@@ -41,8 +41,9 @@ return [
         'client_secret' => env('GITHUB_CLIENT_SECRET'),
         'redirect' => env('GITHUB_REDIRECT_URI'),
         'webhook_secret' => env('GITHUB_WEBHOOK_SECRET'),
+        'webhook_url' => env('GITHUB_WEBHOOK_URL'),
         'base_url' => env('GITHUB_BASE_URL'),
-        'scopes' => ['read:user', 'repo'],  // Add this
+        'scopes' => ['read:user', 'repo'],
     ],
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),
