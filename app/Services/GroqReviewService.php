@@ -43,6 +43,7 @@ final readonly class GroqReviewService implements AIReviewer
                     'model' => $model,
                     'temperature' => $temperature,
                     'max_tokens' => $maxTokens,
+                    'response_format' => ['type' => 'json_object'],
                     'messages' => [
                         ['role' => 'system', 'content' => $systemPrompt],
                         ['role' => 'user', 'content' => $userPrompt],
@@ -108,6 +109,7 @@ final readonly class GroqReviewService implements AIReviewer
                     'Authorization' => 'Bearer '.$apiKey,
                 ],
                 'stream' => true,
+                'read_timeout' => 120,
             ]);
 
             $body = $response->getBody();
@@ -115,6 +117,7 @@ final readonly class GroqReviewService implements AIReviewer
             while (! $body->eof()) {
                 $line = $body->read(1024);
                 if ($line === '') {
+                    usleep(10000);
                     continue;
                 }
 
@@ -140,7 +143,7 @@ final readonly class GroqReviewService implements AIReviewer
                     $data = mb_trim(mb_substr($rawLine, 6));
 
                     if ($data === '[DONE]') {
-                        continue;
+                        break 2;
                     }
 
                     /** @var array{choices: array<int, array{delta: array{content: string}}>}|null $json */
@@ -165,6 +168,11 @@ final readonly class GroqReviewService implements AIReviewer
             throw new RuntimeException(sprintf('Groq API error: %s', $requestException->getMessage()), $requestException->getCode(), $requestException);
         }
 
+        if ($fullContent === '') {
+            Log::error('Groq stream produced empty response');
+            throw new ReviewParseException('Groq returned empty streaming response');
+        }
+
         return $this->parse($fullContent);
     }
 
@@ -176,18 +184,53 @@ final readonly class GroqReviewService implements AIReviewer
         $clean = preg_replace('/^```(?:json)?\s*/m', '', $raw);
         $clean = preg_replace('/\s*```$/m', '', (string) $clean);
         $clean = mb_trim((string) $clean);
+        $clean = $this->repairJson($clean);
 
         /** @var array<string, mixed>|false $parsed */
         $parsed = json_decode($clean, associative: true);
 
         if (! is_array($parsed)) {
-            Log::error('Failed to parse Groq response', ['raw' => $raw]);
+            Log::error('Failed to parse Groq response', [
+                'raw' => $raw,
+                'cleaned' => $clean,
+            ]);
             throw new ReviewParseException('Invalid JSON from Groq: '.json_last_error_msg());
         }
 
         throw_unless(isset($parsed['summary'], $parsed['score'], $parsed['issues']), ReviewParseException::class, 'Groq response missing required fields');
 
         return $this->sanitize($parsed);
+    }
+
+    private function repairJson(string $json): string
+    {
+        $first = mb_strpos($json, '{');
+        $last = mb_strrpos($json, '}');
+        if ($first === false || $last === false || $last < $first) {
+            return $json;
+        }
+        $json = mb_substr($json, $first, $last - $first + 1);
+
+        $json = preg_replace('/[^\x20-\x7F\s]/', '', $json);
+
+        $json = preg_replace('/\\\\?"/', '"', $json);
+
+        $json = preg_replace('/(?<=[\s{,}])(\w+)"(?=\s*:)/', '"$1"', $json);
+
+        $json = preg_replace('/(?<=[\s{,}])(\w+)\s+"(?!\s*[:}\]\)])/', '"$1": "', $json);
+
+        $json = preg_replace('/([{,])\s*"(\w+)"?\s*([\[\{])/', '$1"$2": $3', $json);
+
+        $json = preg_replace('/:\s*(\w+)"(?=\s*[,}\]])/', ': "$1"', $json);
+
+        $json = preg_replace('/(?<=[\s{,}])(\b\w+\b)(?=\s*:)/', '"$1"', $json);
+
+        $json = preg_replace('/:\s*,/', ': null,', $json);
+        $json = preg_replace('/:\s*}/', ': null}', $json);
+
+        $json = preg_replace('/,\s*([}\]])/', '$1', $json);
+
+        return $json;
     }
 
     /**

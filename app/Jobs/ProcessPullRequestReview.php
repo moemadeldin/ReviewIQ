@@ -7,7 +7,6 @@ namespace App\Jobs;
 use App\Contracts\AIReviewer;
 use App\Contracts\DiffProvider;
 use App\Enums\PullRequestStatus;
-use App\Events\ReviewChunkReceived;
 use App\Events\ReviewCompleted;
 use App\Models\PullRequest;
 use App\Models\Repository;
@@ -85,19 +84,15 @@ final class ProcessPullRequestReview implements ShouldQueue
             'preview' => mb_substr($diff, 0, 120),
         ]);
 
-        $reviewResult = $aiReviewer->stream(
+        $reviewResult = $aiReviewer->review(
             systemPrompt: $promptBuilder->buildSystemPrompt(),
             userPrompt: $promptBuilder->buildUserPrompt(
                 diff: $diff,
                 prTitle: $this->pullRequest->title ?? '',
-                prDescription: $this->pullRequest->description,
+                // prDescription: $this->pullRequest->description,
                 repoLanguage: $repository->language,
                 customRules: $repository->custom_rules,
             ),
-            onChunk: fn (string $chunk) => event(new ReviewChunkReceived(
-                prId: $this->pullRequest->id,
-                chunk: $chunk,
-            )),
         );
 
         /** @var array{content: string} $reviewResult */

@@ -246,18 +246,13 @@ it('handles streaming edge cases', function (): void {
 
     $readCallCount = 0;
     $stream = $this->createMock(StreamInterface::class);
-    $stream->method('eof')
-        ->willReturnCallback(function () use (&$readCallCount): bool {
-            return $readCallCount >= 3;
-        });
+    $stream->method('eof')->willReturn(false);
     $stream->method('read')
         ->willReturnCallback(function () use ($rawSse, &$readCallCount): string {
             $readCallCount++;
 
             return match ($readCallCount) {
                 1 => $rawSse,
-                2 => '',
-                3 => '0',
                 default => '',
             };
         });
@@ -307,4 +302,64 @@ it('throws on config missing', function (): void {
 
     expect(fn (): array => $service->review('system', 'user'))
         ->toThrow(RuntimeException::class, 'Invalid Groq configuration');
+});
+
+it('repairs missing colon before bracket key', function (): void {
+    $raw = '{"score":70,"issues [{"severity":"high"}],"summary": "test"}';
+
+    $response = new Response(200, [], json_encode([
+        'choices' => [
+            ['message' => ['content' => $raw]],
+        ],
+    ]));
+
+    $client = $this->createMock(Client::class);
+    $client->expects($this->once())
+        ->method('post')
+        ->willReturn($response);
+
+    $service = new GroqReviewService($client);
+    $result = $service->review('system', 'user');
+
+    expect($result['content'])->toBeJson();
+    $data = json_decode($result['content'], true);
+    expect($data['issues'][0]['severity'])->toBe('high');
+});
+
+it('repairs common json malformations', function (): void {
+    $raw = '{
+ summary": " PR introduces significant change",
+ score": 70,
+ score_rationale "The score is 70",
+ "issues": [
+    {
+ "severity":medium",
+ "line":,
+      "title": "Web Registration"
+    }
+ ],
+ "recommendation": "request_changes"
+}';
+
+    $response = new Response(200, [], json_encode([
+        'choices' => [
+            ['message' => ['content' => $raw]],
+        ],
+    ]));
+
+    $client = $this->createMock(Client::class);
+    $client->expects($this->once())
+        ->method('post')
+        ->willReturn($response);
+
+    $service = new GroqReviewService($client);
+    $result = $service->review('system', 'user');
+
+    expect($result['content'])->toBeJson();
+    $data = json_decode($result['content'], true);
+    expect($data['summary'])->toBe(' PR introduces significant change')
+        ->and($data['score'])->toBe(70)
+        ->and($data['score_rationale'])->toBe('The score is 70')
+        ->and($data['issues'][0]['severity'])->toBe('medium')
+        ->and($data['recommendation'])->toBe('request_changes');
 });
