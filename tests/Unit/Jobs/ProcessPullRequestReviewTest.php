@@ -53,7 +53,7 @@ it('processes pull request review successfully', function (): void {
     ]);
 
     $mockAIReviewer = $this->mock(AIReviewer::class);
-    $mockAIReviewer->shouldReceive('stream')
+    $mockAIReviewer->shouldReceive('review')
         ->once()
         ->andReturn(['content' => $reviewContent]);
 
@@ -81,7 +81,7 @@ it('skips processing when PR is already reviewing or reviewed', function (): voi
     $promptBuilder = new PromptBuilder();
 
     $mockAIReviewer = $this->mock(AIReviewer::class);
-    $mockAIReviewer->shouldNotReceive('stream');
+    $mockAIReviewer->shouldNotReceive('review');
 
     $job = new ProcessPullRequestReview($pr);
     $job->handle($diffService, $promptBuilder, $mockAIReviewer);

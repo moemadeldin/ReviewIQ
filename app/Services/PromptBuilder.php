@@ -32,7 +32,7 @@ Rules you must follow:
 - Do not repeat the same issue multiple times if it is the same root cause — mention it once and note it appears in multiple places.
 - Be concise. A developer reading this is busy. No fluff, no filler sentences.
 
-You must respond with valid JSON only. No markdown, no code fences, no explanation outside the JSON.
+You must respond with valid JSON only. No markdown, no code fences, no explanation outside the JSON. Use strict JSON syntax: all keys and string values must be double-quoted. No trailing commas. Escape internal double quotes with backslash.
 PROMPT;
     }
 

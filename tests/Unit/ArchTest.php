@@ -7,10 +7,12 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Workspaces\WorkspacePageController;
 use App\Http\Requests\Workspaces\WorkspaceOwnerRequest;
 use App\Models\Review;
+use App\Services\GroqReviewService;
 
 arch()->preset()->php();
 arch()->preset()->strict()->ignoring([
     Review::class,
+    GroqReviewService::class,
 ]);
 arch()->preset()->laravel()->ignoring([
     GitHubController::class,
