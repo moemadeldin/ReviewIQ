@@ -8,71 +8,29 @@ use App\Contracts\AIReviewer;
 use App\Exceptions\ReviewParseException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 final readonly class GroqReviewService implements AIReviewer
 {
-    private Client $client;
-
-    public function __construct(?Client $client = null)
-    {
-        $this->client = $client ?? new Client([
-            'timeout' => 120,
-        ]);
-    }
+    public function __construct(
+        private Client $client,
+        private string $baseUrl,
+        private string $apiKey,
+        private string $model,
+        private float $temperature,
+        private int $maxTokens,
+    ) {}
 
     /**
      * @return array{content: string}
      */
     public function review(string $systemPrompt, string $userPrompt): array
     {
-        $baseUrl = config('services.groq.base_url');
-        $apiKey = config('services.groq.api_key');
-        $model = config('services.groq.model');
-        $temperature = config('services.groq.temperature');
-        $maxTokens = config('services.groq.max_tokens');
+        $response = $this->send($systemPrompt, $userPrompt, stream: false);
+        $raw = $response['choices'][0]['message']['content'] ?? '';
 
-        throw_if(! is_string($baseUrl) || ! is_string($apiKey) || ! is_string($model), RuntimeException::class, 'Invalid Groq configuration');
-
-        try {
-            /** @var Response $response */
-            $response = $this->client->post($baseUrl.'chat/completions', [
-                'json' => [
-                    'model' => $model,
-                    'temperature' => $temperature,
-                    'max_tokens' => $maxTokens,
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        ['role' => 'system', 'content' => $systemPrompt],
-                        ['role' => 'user', 'content' => $userPrompt],
-                    ],
-                ],
-                'headers' => [
-                    'Authorization' => 'Bearer '.$apiKey,
-                ],
-            ]);
-        } catch (RequestException $requestException) {
-            Log::error('Groq API request failed', [
-                'status' => $requestException->getResponse()?->getStatusCode(),
-                'body' => $requestException->getResponse()?->getBody()?->getContents(),
-            ]);
-
-            throw new RuntimeException(sprintf('Groq API error: %s', $requestException->getMessage()), $requestException->getCode(), $requestException);
-        }
-
-        /** @var array<string, mixed>|null $data */
-        $data = json_decode((string) $response->getBody(), associative: true);
-        $raw = '';
-
-        if (is_array($data) && isset($data['choices']) && is_array($data['choices']) && ($data['choices']) !== []) {
-            $firstChoice = $data['choices'][0] ?? null;
-            if (is_array($firstChoice) && isset($firstChoice['message']) && is_array($firstChoice['message']) && isset($firstChoice['message']['content'])) {
-                /** @var string $raw */
-                $raw = $firstChoice['message']['content'];
-            }
-        }
+        throw_if($raw === '', ReviewParseException::class, 'Groq returned empty response');
 
         return $this->parse($raw);
     }
@@ -84,30 +42,10 @@ final readonly class GroqReviewService implements AIReviewer
     {
         $fullContent = '';
 
-        $baseUrl = config('services.groq.base_url');
-        $apiKey = config('services.groq.api_key');
-        $model = config('services.groq.model');
-        $temperature = config('services.groq.temperature');
-        $maxTokens = config('services.groq.max_tokens');
-
-        throw_if(! is_string($baseUrl) || ! is_string($apiKey) || ! is_string($model), RuntimeException::class, 'Invalid Groq configuration');
-
         try {
-            /** @var Response $response */
-            $response = $this->client->post($baseUrl.'chat/completions', [
-                'json' => [
-                    'model' => $model,
-                    'temperature' => $temperature,
-                    'max_tokens' => $maxTokens,
-                    'stream' => true,
-                    'messages' => [
-                        ['role' => 'system', 'content' => $systemPrompt],
-                        ['role' => 'user', 'content' => $userPrompt],
-                    ],
-                ],
-                'headers' => [
-                    'Authorization' => 'Bearer '.$apiKey,
-                ],
+            $response = $this->client->post($this->baseUrl.'chat/completions', [
+                'json' => $this->buildRequestBody($systemPrompt, $userPrompt, stream: true),
+                'headers' => $this->buildHeaders(),
                 'stream' => true,
                 'read_timeout' => 120,
             ]);
@@ -116,26 +54,14 @@ final readonly class GroqReviewService implements AIReviewer
 
             while (! $body->eof()) {
                 $line = $body->read(1024);
-                if ($line === '') {
-                    usleep(10000);
+
+                if ($line === '' || $line === '0') {
+                    Sleep::usleep(10000);
+
                     continue;
                 }
 
-                if ($line === '0') {
-                    continue;
-                }
-
-                $lines = explode("\n", $line);
-
-                foreach ($lines as $rawLine) {
-                    if ($rawLine === '') {
-                        continue;
-                    }
-
-                    if ($rawLine === '0') {
-                        continue;
-                    }
-
+                foreach (explode("\n", $line) as $rawLine) {
                     if (! str_starts_with($rawLine, 'data: ')) {
                         continue;
                     }
@@ -148,32 +74,91 @@ final readonly class GroqReviewService implements AIReviewer
 
                     /** @var array{choices: array<int, array{delta: array{content: string}}>}|null $json */
                     $json = json_decode($data, associative: true);
+                    $chunk = $json['choices'][0]['delta']['content'] ?? '';
 
-                    if (! isset($json['choices'][0]['delta']['content'])) {
+                    if ($chunk === '') {
                         continue;
                     }
 
-                    /** @var string $chunk */
-                    $chunk = $json['choices'][0]['delta']['content'];
                     $fullContent .= $chunk;
                     $onChunk($chunk);
                 }
             }
         } catch (RequestException $requestException) {
-            Log::error('Groq API streaming request failed', [
-                'status' => $requestException->getResponse()?->getStatusCode(),
-                'body' => $requestException->getResponse()?->getBody()?->getContents(),
-            ]);
-
-            throw new RuntimeException(sprintf('Groq API error: %s', $requestException->getMessage()), $requestException->getCode(), $requestException);
+            $this->handleRequestException($requestException, 'streaming');
         }
 
-        if ($fullContent === '') {
-            Log::error('Groq stream produced empty response');
-            throw new ReviewParseException('Groq returned empty streaming response');
-        }
+        throw_if($fullContent === '', ReviewParseException::class, 'Groq returned empty streaming response');
 
         return $this->parse($fullContent);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function send(string $systemPrompt, string $userPrompt, bool $stream): array
+    {
+        try {
+            $response = $this->client->post($this->baseUrl.'chat/completions', [
+                'json' => $this->buildRequestBody($systemPrompt, $userPrompt, stream: $stream),
+                'headers' => $this->buildHeaders(),
+            ]);
+        } catch (RequestException $requestException) {
+            $this->handleRequestException($requestException, 'review');
+        }
+
+        /** @var array<string, mixed> */
+        return json_decode((string) $response->getBody(), associative: true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildRequestBody(string $systemPrompt, string $userPrompt, bool $stream): array
+    {
+        $body = [
+            'model' => $this->model,
+            'temperature' => $this->temperature,
+            'max_tokens' => $this->maxTokens,
+            'messages' => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user',   'content' => $userPrompt],
+            ],
+        ];
+
+        if (! $stream) {
+            $body['response_format'] = ['type' => 'json_object'];
+        }
+
+        if ($stream) {
+            $body['stream'] = true;
+        }
+
+        return $body;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function buildHeaders(): array
+    {
+        return [
+            'Authorization' => 'Bearer '.$this->apiKey,
+        ];
+    }
+
+    private function handleRequestException(RequestException $e, string $context): never
+    {
+        Log::error(sprintf('Groq API %s request failed', $context), [
+            'status' => $e->getResponse()?->getStatusCode(),
+            'body' => $e->getResponse()?->getBody()?->getContents(),
+        ]);
+
+        throw new RuntimeException(
+            sprintf('Groq API error: %s', $e->getMessage()),
+            $e->getCode(),
+            $e
+        );
     }
 
     /**
@@ -181,56 +166,23 @@ final readonly class GroqReviewService implements AIReviewer
      */
     private function parse(string $raw): array
     {
-        $clean = preg_replace('/^```(?:json)?\s*/m', '', $raw);
-        $clean = preg_replace('/\s*```$/m', '', (string) $clean);
-        $clean = mb_trim((string) $clean);
-        $clean = $this->repairJson($clean);
+        $clean = mb_trim((string) preg_replace(['/^```(?:json)?\s*/m', '/\s*```$/m'], '', $raw));
 
-        /** @var array<string, mixed>|false $parsed */
+        /** @var array<string, mixed>|null $parsed */
         $parsed = json_decode($clean, associative: true);
 
         if (! is_array($parsed)) {
-            Log::error('Failed to parse Groq response', [
-                'raw' => $raw,
-                'cleaned' => $clean,
-            ]);
+            Log::error('Failed to parse Groq response', ['raw' => $raw]);
             throw new ReviewParseException('Invalid JSON from Groq: '.json_last_error_msg());
         }
 
-        throw_unless(isset($parsed['summary'], $parsed['score'], $parsed['issues']), ReviewParseException::class, 'Groq response missing required fields');
+        throw_unless(
+            isset($parsed['summary'], $parsed['score'], $parsed['issues']),
+            ReviewParseException::class,
+            'Groq response missing required fields'
+        );
 
         return $this->sanitize($parsed);
-    }
-
-    private function repairJson(string $json): string
-    {
-        $first = mb_strpos($json, '{');
-        $last = mb_strrpos($json, '}');
-        if ($first === false || $last === false || $last < $first) {
-            return $json;
-        }
-        $json = mb_substr($json, $first, $last - $first + 1);
-
-        $json = preg_replace('/[^\x20-\x7F\s]/', '', $json);
-
-        $json = preg_replace('/\\\\?"/', '"', $json);
-
-        $json = preg_replace('/(?<=[\s{,}])(\w+)"(?=\s*:)/', '"$1"', $json);
-
-        $json = preg_replace('/(?<=[\s{,}])(\w+)\s+"(?!\s*[:}\]\)])/', '"$1": "', $json);
-
-        $json = preg_replace('/([{,])\s*"(\w+)"?\s*([\[\{])/', '$1"$2": $3', $json);
-
-        $json = preg_replace('/:\s*(\w+)"(?=\s*[,}\]])/', ': "$1"', $json);
-
-        $json = preg_replace('/(?<=[\s{,}])(\b\w+\b)(?=\s*:)/', '"$1"', $json);
-
-        $json = preg_replace('/:\s*,/', ': null,', $json);
-        $json = preg_replace('/:\s*}/', ': null}', $json);
-
-        $json = preg_replace('/,\s*([}\]])/', '$1', $json);
-
-        return $json;
     }
 
     /**
@@ -239,39 +191,23 @@ final readonly class GroqReviewService implements AIReviewer
      */
     private function sanitize(array $parsed): array
     {
-        /** @var mixed $scoreValue */
-        $scoreValue = $parsed['score'] ?? 0;
-        $parsed['score'] = is_numeric($scoreValue) ? (int) $scoreValue : 0;
+        $parsed['score'] = is_numeric($parsed['score'] ?? null) ? (int) $parsed['score'] : 0;
 
-        /** @var array<int, array<string, mixed>> $issues */
-        $issues = $parsed['issues'] ?? [];
         $parsed['issues'] = array_values(array_map(function (array $issue): array {
-            $line = $issue['line'] ?? null;
-            $issue['line'] = $line !== null && is_numeric($line) ? (int) $line : null;
-            $severity = $issue['severity'] ?? null;
-            $issue['severity'] = is_string($severity) && in_array($severity, [
-                'critical', 'high', 'medium', 'low', 'praise',
-            ], strict: true) ? $severity : 'medium';
+            $issue['line'] = isset($issue['line']) && is_numeric($issue['line']) ? (int) $issue['line'] : null;
+            $issue['severity'] = in_array($issue['severity'] ?? null, ['critical', 'high', 'medium', 'low', 'praise'], strict: true)
+                ? $issue['severity']
+                : 'medium';
 
             return $issue;
-        }, $issues));
+        }, $parsed['issues'] ?? []));
 
-        if (! isset($parsed['highlights']) || ! is_array($parsed['highlights'])) {
-            $parsed['highlights'] = [];
-        }
+        $parsed['highlights'] = is_array($parsed['highlights'] ?? null) ? $parsed['highlights'] : [];
+        $parsed['recommendation'] ??= 'comment';
+        $parsed['score_rationale'] ??= '';
 
-        if (! isset($parsed['recommendation'])) {
-            $parsed['recommendation'] = 'comment';
-        }
+        $encoded = json_encode($parsed);
 
-        if (! isset($parsed['score_rationale'])) {
-            $parsed['score_rationale'] = '';
-        }
-
-        /** @var non-empty-string|false $jsonEncoded */
-        $jsonEncoded = json_encode($parsed);
-        $content = $jsonEncoded !== false ? $jsonEncoded : '{}';
-
-        return ['content' => $content];
+        return ['content' => $encoded !== false ? $encoded : '{}'];
     }
 }

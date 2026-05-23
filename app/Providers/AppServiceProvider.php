@@ -12,6 +12,7 @@ use App\Services\GitHubApiService;
 use App\Services\GitHubDiffService;
 use App\Services\GitHubWebhookService;
 use App\Services\GroqReviewService;
+use GuzzleHttp\Client;
 use Illuminate\Support\ServiceProvider;
 
 final class AppServiceProvider extends ServiceProvider
@@ -22,5 +23,13 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(WebhookProvider::class, GitHubWebhookService::class);
         $this->app->bind(DiffProvider::class, GitHubDiffService::class);
         $this->app->bind(AIReviewer::class, GroqReviewService::class);
+        $this->app->singleton(GroqReviewService::class, fn (): GroqReviewService => new GroqReviewService(
+            client: new Client(['timeout' => 120]),
+            baseUrl: config('services.groq.base_url'),
+            apiKey: config('services.groq.api_key'),
+            model: config('services.groq.model'),
+            temperature: (float) config('services.groq.temperature'),
+            maxTokens: (int) config('services.groq.max_tokens'),
+        ));
     }
 }
