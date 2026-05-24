@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Contracts\DiffProvider;
 use Exception;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -14,27 +15,31 @@ final readonly class GitHubDiffService implements DiffProvider
 {
     public function getDiff(string $token, string $repoFullName, int $prNumber): string
     {
-        $baseUrl = config('services.github.base_url');
-        throw_unless(is_string($baseUrl), RuntimeException::class, 'Invalid GitHub base URL configuration');
+        $cacheKey = sprintf('github:diff:%s:%d', $repoFullName, $prNumber);
 
-        $url = $baseUrl.sprintf('/repos/%s/pulls/%d', $repoFullName, $prNumber);
+        return Cache::remember($cacheKey, 300, function () use ($token, $repoFullName, $prNumber): string {
+            $baseUrl = config('services.github.base_url');
+            throw_unless(is_string($baseUrl), RuntimeException::class, 'Invalid GitHub base URL configuration');
 
-        $response = Http::withToken($token)
-            ->withHeaders([
-                'Accept' => 'application/vnd.github.v3.diff',
-                'X-GitHub-Api-Version' => '2022-11-28',
-            ])
-            ->get($url);
+            $url = $baseUrl.sprintf('/repos/%s/pulls/%d', $repoFullName, $prNumber);
 
-        if ($response->failed()) {
-            Log::error(sprintf('Failed to fetch diff for %s #%d', $repoFullName, $prNumber), [
-                'status' => $response->status(),
-                'error' => $response->body(),
-            ]);
+            $response = Http::withToken($token)
+                ->withHeaders([
+                    'Accept' => 'application/vnd.github.v3.diff',
+                    'X-GitHub-Api-Version' => '2022-11-28',
+                ])
+                ->get($url);
 
-            throw new Exception('Could not fetch PR diff from GitHub.');
-        }
+            if ($response->failed()) {
+                Log::error(sprintf('Failed to fetch diff for %s #%d', $repoFullName, $prNumber), [
+                    'status' => $response->status(),
+                    'error' => $response->body(),
+                ]);
 
-        return $response->body();
+                throw new Exception('Could not fetch PR diff from GitHub.');
+            }
+
+            return $response->body();
+        });
     }
 }

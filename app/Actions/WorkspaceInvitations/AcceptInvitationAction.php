@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use SensitiveParameter;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -45,6 +46,7 @@ final readonly class AcceptInvitationAction
     private function addUserToWorkspace(Workspace $workspace, WorkspaceInvitation $invitation, User $user): User
     {
         $workspace->addUser($user, $invitation->role);
+        Cache::forget(sprintf('workspace:role:%s:%s', $workspace->id, $user->id));
 
         $invitation->update(['accepted_at' => now()]);
 

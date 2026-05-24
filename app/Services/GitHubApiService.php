@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Contracts\GitHubApi;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -15,26 +16,30 @@ final readonly class GitHubApiService implements GitHubApi
      */
     public function getUserRepos(string $token, int $page = 1, int $perPage = 10): array
     {
-        $baseUrl = config('services.github.base_url');
-        throw_unless(is_string($baseUrl), RuntimeException::class, 'Invalid GitHub base URL configuration');
+        $cacheKey = sprintf('github:repos:%s:page:%d', hash('sha256', $token), $page);
 
-        $response = Http::withToken($token)
-            ->withHeaders([
-                'Accept' => 'application/vnd.github+json',
-                'X-GitHub-Api-Version' => '2022-11-28',
-            ])
-            ->get($baseUrl.'/user/repos', [
-                'page' => $page,
-                'per_page' => $perPage,
-                'sort' => 'updated',
-            ]);
+        return Cache::remember($cacheKey, 300, function () use ($token, $page, $perPage): array {
+            $baseUrl = config('services.github.base_url');
+            throw_unless(is_string($baseUrl), RuntimeException::class, 'Invalid GitHub base URL configuration');
 
-        $response->throw();
+            $response = Http::withToken($token)
+                ->withHeaders([
+                    'Accept' => 'application/vnd.github+json',
+                    'X-GitHub-Api-Version' => '2022-11-28',
+                ])
+                ->get($baseUrl.'/user/repos', [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'sort' => 'updated',
+                ]);
 
-        /** @var array<int, array{id: int, full_name: string, language: string|null}> $data */
-        $data = $response->json();
+            $response->throw();
 
-        return $data;
+            /** @var array<int, array{id: int, full_name: string, language: string|null}> $data */
+            $data = $response->json();
+
+            return $data;
+        });
     }
 
     public function registerWebhook(string $token, string $fullName): int
