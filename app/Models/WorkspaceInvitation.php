@@ -33,6 +33,7 @@ final class WorkspaceInvitation extends Model
     use HasFactory;
 
     use HasUuids;
+
     /**
      * @return BelongsTo<Workspace, $this>
      */

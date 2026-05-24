@@ -310,7 +310,7 @@ it('rejects constructor with empty base url', function (): void {
 
     $service = new GroqReviewService($client, '', 'key', 'model', 0.2, 2000);
 
-    expect(fn () => $service->review('system', 'user'))
+    expect(fn (): array => $service->review('system', 'user'))
         ->toThrow(JsonException::class);
 });
 

@@ -19,6 +19,7 @@ final readonly class NotificationController
     use APIResponder;
 
     private const int LIMIT_PER_PAGE = 10;
+
     public function __construct(private GetUserNotifications $getNotifications) {}
 
     public function index(#[CurrentUser()] User $user, Request $request): JsonResponse

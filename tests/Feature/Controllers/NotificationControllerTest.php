@@ -1,14 +1,16 @@
 <?php
 
 declare(strict_types=1);
+
 use App\Models\Notification;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Support\Str;
 
 function createNotification(User $user): Notification
 {
     return Notification::query()->create([
-        'id' => (string) Illuminate\Support\Str::uuid7(),
+        'id' => (string) Str::uuid7(),
         'type' => 'App\\Notifications\\TestNotification',
         'notifiable_type' => User::class,
         'notifiable_id' => $user->id,

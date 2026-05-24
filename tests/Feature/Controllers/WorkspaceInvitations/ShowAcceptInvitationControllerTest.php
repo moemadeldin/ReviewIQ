@@ -17,7 +17,7 @@ it('shows accept invitation page for valid token', function (): void {
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page->component('invitations/accept', [
-            'invitation' => fn ($i) => $i['token'] === $invitation->token,
+            'invitation' => fn ($i): bool => $i['token'] === $invitation->token,
             'isExistingUser' => false,
         ]));
 });
@@ -34,7 +34,7 @@ it('shows accept invitation page for existing user email', function (): void {
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page->component('invitations/accept', [
-            'invitation' => fn ($i) => $i['token'] === $invitation->token,
+            'invitation' => fn ($i): bool => $i['token'] === $invitation->token,
             'isExistingUser' => true,
         ]));
 });

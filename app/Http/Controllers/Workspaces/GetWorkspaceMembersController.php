@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Workspaces;
 
+use App\Http\Resources\WorkspaceMemberResource;
 use App\Models\Workspace;
 use App\Queries\GetWorkspaceMembers;
 use App\Traits\APIResponder;
@@ -21,6 +22,10 @@ final readonly class GetWorkspaceMembersController
         $page = (int) request()->query('page', 1);
         $data = $this->getWorkspaceMembers->handle($workspace, $page);
 
-        return $this->success($data, 'ok');
+        return $this->success([
+            'members' => WorkspaceMemberResource::collection($data->items())->resolve(),
+            'current_page' => $data->currentPage(),
+            'has_more' => $data->hasMorePages(),
+        ], 'ok');
     }
 }

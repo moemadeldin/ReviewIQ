@@ -23,26 +23,39 @@ type Props = {
     isExistingUser: boolean;
 };
 
-export default function AcceptInvitation({ invitation, isExistingUser }: Props) {
+export default function AcceptInvitation({
+    invitation,
+    isExistingUser,
+}: Props) {
     return (
         <AuthLayout
             title={`You're invited to join ${invitation.workspace.name}`}
-            description={invitation.workspace.description ?? 'A workspace on ReviewIQ'}
+            description={
+                invitation.workspace.description ?? 'A workspace on ReviewIQ'
+            }
         >
             <Head title="Accept Invitation" />
 
             <div className="mb-6 rounded-lg bg-muted p-4 text-sm">
                 <p className="text-muted-foreground">
-                    Invited as: <span className="font-medium text-foreground">{invitation.role}</span>
+                    Invited as:{' '}
+                    <span className="font-medium text-foreground">
+                        {invitation.role}
+                    </span>
                 </p>
                 <p className="text-muted-foreground">
-                    Email: <span className="font-medium text-foreground">{invitation.email}</span>
+                    Email:{' '}
+                    <span className="font-medium text-foreground">
+                        {invitation.email}
+                    </span>
                 </p>
             </div>
 
             {isExistingUser ? (
                 <Form
-                    {...invitations.accept.form.post({ token: invitation.token })}
+                    {...invitations.accept.form.post({
+                        token: invitation.token,
+                    })}
                     className="flex flex-col gap-6"
                 >
                     {({ processing }) => (
@@ -58,7 +71,9 @@ export default function AcceptInvitation({ invitation, isExistingUser }: Props) 
                 </Form>
             ) : (
                 <Form
-                    {...invitations.accept.form.post({ token: invitation.token })}
+                    {...invitations.accept.form.post({
+                        token: invitation.token,
+                    })}
                     className="flex flex-col gap-6"
                 >
                     {({ processing, errors }) => (
@@ -90,7 +105,9 @@ export default function AcceptInvitation({ invitation, isExistingUser }: Props) 
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">Confirm Password</Label>
+                                <Label htmlFor="password_confirmation">
+                                    Confirm Password
+                                </Label>
                                 <PasswordInput
                                     id="password_confirmation"
                                     name="password_confirmation"
@@ -98,7 +115,9 @@ export default function AcceptInvitation({ invitation, isExistingUser }: Props) 
                                     autoComplete="new-password"
                                     placeholder="Confirm password"
                                 />
-                                <InputError message={errors.password_confirmation} />
+                                <InputError
+                                    message={errors.password_confirmation}
+                                />
                             </div>
 
                             <Button

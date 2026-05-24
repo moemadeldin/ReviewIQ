@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 use SensitiveParameter;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -17,7 +16,7 @@ final readonly class AcceptInvitationAction
     public function handle(string $name, #[SensitiveParameter()] string $password, string $token): User
     {
         $invitation = WorkspaceInvitation::query()->whereToken($token)->first();
-        
+
         throw_unless($invitation, HttpException::class, Response::HTTP_NOT_FOUND, 'Invalid invitation');
 
         throw_if($invitation->isExpired(), HttpException::class, Response::HTTP_GONE, 'Invitation has expired');
@@ -36,13 +35,11 @@ final readonly class AcceptInvitationAction
                 'password' => $password,
                 'email_verified_at' => now(),
             ]);
-            $updatedUser = $this->addUserToWorkspace($workspace, $invitation, $user);
-            
-            return $updatedUser;
-        }
-        $updatedUser = $this->addUserToWorkspace($workspace, $invitation, $user);
 
-        return $updatedUser;
+            return $this->addUserToWorkspace($workspace, $invitation, $user);
+        }
+
+        return $this->addUserToWorkspace($workspace, $invitation, $user);
     }
 
     private function addUserToWorkspace(Workspace $workspace, WorkspaceInvitation $invitation, User $user): User
