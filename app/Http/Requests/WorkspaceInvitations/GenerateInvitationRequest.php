@@ -17,7 +17,7 @@ final class GenerateInvitationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email:rfc,dns', 'lowercase', new ValidEmail],
+            'email' => ['required', 'string', 'email:rfc', 'lowercase', new ValidEmail],
             'role' => ['nullable', new Enum(Roles::class)],
         ];
     }

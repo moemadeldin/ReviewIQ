@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Resources\NotificationResource;
+use App\Models\Notification;
 use App\Models\User;
 use App\Queries\GetUserNotifications;
 use App\Traits\APIResponder;
@@ -17,12 +18,13 @@ final readonly class NotificationController
 {
     use APIResponder;
 
+    private const int LIMIT_PER_PAGE = 10;
     public function __construct(private GetUserNotifications $getNotifications) {}
 
     public function index(#[CurrentUser()] User $user, Request $request): JsonResponse
     {
         $page = (int) $request->query('page', 1);
-        $limit = (int) $request->query('limit', 10);
+        $limit = (int) $request->query('limit', self::LIMIT_PER_PAGE);
 
         $paginator = $this->getNotifications->handle($user, $page, $limit);
 
@@ -34,9 +36,9 @@ final readonly class NotificationController
         ], 'ok');
     }
 
-    public function markAsRead(#[CurrentUser()] User $user, string $id): JsonResponse
+    public function markAsRead(#[CurrentUser()] User $user, Notification $notification): JsonResponse
     {
-        $notification = $user->notifications()->find($id);
+        $notification = $user->notifications()->find($notification->id);
 
         if (! $notification) {
             return $this->fail('Notification not found', Response::HTTP_NOT_FOUND);

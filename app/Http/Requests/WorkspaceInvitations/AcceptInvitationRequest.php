@@ -16,8 +16,8 @@ final class AcceptInvitationRequest extends FormRequest
     {
 
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'password' => ['sometimes', 'required', 'confirmed', Password::defaults()],
         ];
     }
 }

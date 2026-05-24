@@ -1,21 +1,26 @@
 <?php
 
 declare(strict_types=1);
+use App\Models\Notification;
 use App\Models\User;
 use App\Models\Workspace;
-use Illuminate\Notifications\DatabaseNotification;
 
-it('returns notifications for authenticated user', function (): void {
-    $user = User::factory()->create();
-    $workspace = Workspace::factory()->withOwner($user)->create();
-
-    DatabaseNotification::query()->create([
-        'id' => 'test-notification-id',
+function createNotification(User $user): Notification
+{
+    return Notification::query()->create([
+        'id' => (string) Illuminate\Support\Str::uuid7(),
         'type' => 'App\\Notifications\\TestNotification',
         'notifiable_type' => User::class,
         'notifiable_id' => $user->id,
         'data' => ['message' => 'Test notification'],
     ]);
+}
+
+it('returns notifications for authenticated user', function (): void {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($user)->create();
+
+    createNotification($user);
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
@@ -37,17 +42,11 @@ it('marks notification as read', function (): void {
     $user = User::factory()->create();
     $workspace = Workspace::factory()->withOwner($user)->create();
 
-    $notification = DatabaseNotification::query()->create([
-        'id' => 'read-test-notification',
-        'type' => 'App\\Notifications\\TestNotification',
-        'notifiable_type' => User::class,
-        'notifiable_id' => $user->id,
-        'data' => ['message' => 'Test notification'],
-    ]);
+    $notification = createNotification($user);
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->postJson(route('notifications.mark-read', ['id' => 'read-test-notification']));
+        ->patchJson(route('notifications.mark-read', ['notification' => $notification->id]));
 
     $response->assertOk()
         ->assertJsonPath('data.message', 'Notification marked as read');
@@ -59,10 +58,9 @@ it('returns 404 for non-existent notification', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->postJson(route('notifications.mark-read', ['id' => 'non-existent-notification']));
+        ->patchJson(route('notifications.mark-read', ['notification' => '00000000-0000-7000-8000-000000000000']));
 
-    $response->assertStatus(404)
-        ->assertJsonPath('message', 'Notification not found');
+    $response->assertStatus(404);
 });
 
 it('marks all notifications as read', function (): void {
@@ -70,18 +68,12 @@ it('marks all notifications as read', function (): void {
     $workspace = Workspace::factory()->withOwner($user)->create();
 
     for ($i = 0; $i < 3; $i++) {
-        DatabaseNotification::query()->create([
-            'id' => 'all-read-test-'.$i,
-            'type' => 'App\\Notifications\\TestNotification',
-            'notifiable_type' => User::class,
-            'notifiable_id' => $user->id,
-            'data' => ['message' => 'Test notification'],
-        ]);
+        createNotification($user);
     }
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->postJson(route('notifications.mark-all-read'));
+        ->patchJson(route('notifications.mark-all-read'));
 
     $response->assertOk()
         ->assertJsonPath('data.message', 'All notifications marked as read');

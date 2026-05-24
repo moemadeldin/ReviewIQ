@@ -27,8 +27,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     // Notifications...
     Route::controller(NotificationController::class)->group(function (): void {
         Route::get('notifications', 'index')->name('notifications.index');
-        Route::post('notifications/{id}/read', 'markAsRead')->name('notifications.mark-read');
-        Route::post('notifications/read-all', 'markAllAsRead')->name('notifications.mark-all-read');
+        Route::patch('notifications/{notification}/read', 'markAsRead')->name('notifications.mark-read');
+        Route::patch('notifications/read-all', 'markAllAsRead')->name('notifications.mark-all-read');
     });
 
     // Workspaces...

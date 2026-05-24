@@ -10,8 +10,9 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use App\Notifications\WorkspaceInvitationNotification;
+use Illuminate\Http\Response;
 use Illuminate\Support\Str;
-use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 final readonly class CreateInvitationAction
@@ -20,11 +21,11 @@ final readonly class CreateInvitationAction
 
     private const int TOKEN_NUMBER_OF_CHARS = 64;
 
-    public function handle(Workspace $workspace, User $invitedBy, string $email, string|Roles $role): WorkspaceInvitation
+    public function handle(Workspace $workspace, User $invitedBy, string $email, string|Roles|null $role): WorkspaceInvitation
     {
         $existingUser = User::query()->whereEmail($email)->first();
 
-        throw_if($existingUser && $workspace->users()->where('user_id', $existingUser->id)->exists(), RuntimeException::class, 'User is already a member of this workspace');
+        throw_if($existingUser && $workspace->users()->where('user_id', $existingUser->id)->exists(), HttpException::class, Response::HTTP_CONFLICT, 'User is already a member of this workspace');
 
         $existingInvitation = WorkspaceInvitation::query()
             ->where('workspace_id', $workspace->id)
@@ -32,7 +33,7 @@ final readonly class CreateInvitationAction
             ->whereNull('accepted_at')
             ->first();
 
-        throw_if($existingInvitation && ! $existingInvitation->isExpired(), RuntimeException::class, 'Invitation already sent to this email');
+        throw_if($existingInvitation && ! $existingInvitation->isExpired(), HttpException::class, Response::HTTP_CONFLICT, 'Invitation already sent to this email');
 
         $token = Str::random(self::TOKEN_NUMBER_OF_CHARS);
 

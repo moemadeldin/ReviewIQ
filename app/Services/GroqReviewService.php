@@ -167,6 +167,7 @@ final readonly class GroqReviewService implements AIReviewer
     private function parse(string $raw): array
     {
         $clean = mb_trim((string) preg_replace(['/^```(?:json)?\s*/m', '/\s*```$/m'], '', $raw));
+        $clean = $this->repairJson($clean);
 
         /** @var array<string, mixed>|null $parsed */
         $parsed = json_decode($clean, associative: true);
@@ -183,6 +184,26 @@ final readonly class GroqReviewService implements AIReviewer
         );
 
         return $this->sanitize($parsed);
+    }
+
+    private function repairJson(string $json): string
+    {
+        // Fix: missing opening quote on keys before colon (e.g. key": -> "key":)
+        $json = (string) preg_replace('/(?<=[\s,{])(\w+)"(?=\s*:)/', '"$1"', $json);
+
+        // Fix: missing colon before bracket arrays (e.g. "key [" -> "key": [)
+        $json = (string) preg_replace('/"(\w+)\s+\[/', '"$1": [', $json);
+
+        // Fix: missing colon before quoted string values (e.g. key "value" -> "key": "value")
+        $json = (string) preg_replace('/(?<=[\s,{])(\w+)\s+"([^"]+)"/', '"$1": "$2"', $json);
+
+        // Fix: unquoted string values (e.g. :medium" -> : "medium")
+        $json = (string) preg_replace('/:\s*([a-zA-Z_]\w*)"?([,}\]]|$)/', ': "$1"$2', $json);
+
+        // Fix: empty values (e.g. "key":, -> "key": null,)
+        $json = (string) preg_replace('/:\s*,/', ': null,', $json);
+
+        return $json;
     }
 
     /**

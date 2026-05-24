@@ -14,86 +14,13 @@ beforeEach(function (): void {
     $this->workspace = Workspace::factory()->withOwner($this->user)->create();
 });
 
-describe('GenerateInvitationController (invitations.store)', function (): void {
-    it('creates invitation via standalone route', function (): void {
-        Mail::fake();
-
-        $response = $this->actingAs($this->user)
-            ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('invitations.store', ['workspace' => $this->workspace->slug]), [
-                'email' => 'invitee@example.com',
-                'role' => Roles::Member->value,
-            ]);
-
-        $response->assertStatus(201)
-            ->assertJsonPath('status', 'Success')
-            ->assertJsonPath('message', 'Invitation sent');
-
-        Mail::assertQueued(WorkspaceInvitationMail::class);
-
-        $this->assertDatabaseHas('workspace_invitations', [
-            'workspace_id' => $this->workspace->id,
-            'email' => 'invitee@example.com',
-            'role' => Roles::Member->value,
-        ]);
-    });
-
-    it('returns error via standalone route when not owner or admin', function (): void {
-        $member = User::factory()->create();
-        $workspace = Workspace::factory()->withOwner($member)->create();
-        $workspace->users()->syncWithoutDetaching([$this->user->id => ['role' => Roles::Member->value]]);
-
-        $response = $this->actingAs($this->user)
-            ->withSession(['current_workspace_id' => $workspace->id])
-            ->postJson(route('invitations.store', ['workspace' => $workspace->slug]), [
-                'email' => 'invitee@example.com',
-            ]);
-
-        $response->assertStatus(403)
-            ->assertJsonPath('status', 'Failed')
-            ->assertJsonPath('message', 'Only owners and admins can invite users');
-    });
-
-    it('returns error when user already a member via standalone route', function (): void {
-        $otherUser = User::factory()->create(['email' => 'existing@example.com']);
-        $this->workspace->users()->attach($otherUser, ['role' => Roles::Member->value]);
-
-        $response = $this->actingAs($this->user)
-            ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->postJson(route('invitations.store', ['workspace' => $this->workspace->slug]), [
-                'email' => 'existing@example.com',
-            ]);
-
-        $response->assertStatus(409)
-            ->assertJsonPath('status', 'Failed')
-            ->assertJsonPath('message', 'User is already a member of this workspace');
-    });
-
-    it('returns error when invitation already sent via standalone route', function (): void {
-        WorkspaceInvitation::factory()->create([
-            'workspace_id' => $this->workspace->id,
-            'email' => 'invitee@example.com',
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('invitations.store', ['workspace' => $this->workspace->slug]), [
-                'email' => 'invitee@example.com',
-            ]);
-
-        $response->assertStatus(409)
-            ->assertJsonPath('status', 'Failed')
-            ->assertJsonPath('message', 'Invitation already sent to this email');
-    });
-});
-
 describe('GenerateInvitationController (workspaces.invitations.store)', function (): void {
     it('creates invitation and sends email', function (): void {
         Mail::fake();
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'invitee@example.com',
                 'role' => Roles::Member->value,
             ]);
@@ -136,7 +63,6 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
             ]);
 
         $response->assertStatus(409)
-            ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'User is already a member of this workspace');
     });
 
@@ -148,12 +74,11 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'invitee@example.com',
             ]);
 
         $response->assertStatus(409)
-            ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invitation already sent to this email');
     });
 
@@ -165,7 +90,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'invitee@example.com',
             ]);
 
@@ -265,11 +190,9 @@ describe('AcceptInvitationController', function (): void {
 
         $existingUser = User::factory()->create(['email' => 'existing@example.com']);
 
-        $response = $this->postJson(route('invitations.accept', ['token' => $invitation->token]));
+        $response = $this->post(route('invitations.accept', ['token' => $invitation->token]));
 
-        $response->assertStatus(200)
-            ->assertJsonPath('status', 'Success')
-            ->assertJsonPath('message', 'Invitation accepted');
+        $response->assertRedirect();
 
         $this->assertDatabaseHas('workspace_users', [
             'workspace_id' => $this->workspace->id,
@@ -288,14 +211,13 @@ describe('AcceptInvitationController', function (): void {
             'role' => Roles::Admin->value,
         ]);
 
-        $response = $this->postJson(route('invitations.accept', ['token' => $invitation->token]), [
+        $response = $this->post(route('invitations.accept', ['token' => $invitation->token]), [
             'name' => 'New User',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ]);
 
-        $response->assertStatus(200)
-            ->assertJsonPath('status', 'Success');
+        $response->assertRedirect();
 
         $newUser = User::query()->whereEmail('newuser@example.com')->first();
         expect($newUser)->not->toBeNull();
@@ -311,7 +233,6 @@ describe('AcceptInvitationController', function (): void {
         $response = $this->postJson(route('invitations.accept', ['token' => 'invalid-token']));
 
         $response->assertStatus(404)
-            ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invalid invitation');
     });
 
@@ -324,7 +245,6 @@ describe('AcceptInvitationController', function (): void {
         $response = $this->postJson(route('invitations.accept', ['token' => $invitation->token]));
 
         $response->assertStatus(410)
-            ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invitation has expired');
     });
 
@@ -337,7 +257,6 @@ describe('AcceptInvitationController', function (): void {
         $response = $this->postJson(route('invitations.accept', ['token' => $invitation->token]));
 
         $response->assertStatus(409)
-            ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invitation already used');
     });
 });

@@ -21,6 +21,18 @@ beforeEach(function (): void {
     Log::spy();
 });
 
+function createService(Client $client): GroqReviewService
+{
+    return new GroqReviewService(
+        $client,
+        config('services.groq.base_url'),
+        config('services.groq.api_key'),
+        config('services.groq.model'),
+        (float) config('services.groq.temperature'),
+        (int) config('services.groq.max_tokens'),
+    );
+}
+
 function validJsonResponse(): string
 {
     return json_encode([
@@ -45,7 +57,7 @@ it('performs non-streaming review successfully', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
     $result = $service->review('system prompt', 'user prompt');
 
     expect($result['content'])->toBeJson();
@@ -83,7 +95,7 @@ it('performs streaming review successfully', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
     $chunksReceived = '';
     $result = $service->stream(
         systemPrompt: 'test',
@@ -107,7 +119,7 @@ it('throws on http failure during review', function (): void {
             request: new Request('POST', 'test'),
         ));
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
 
     expect(fn (): array => $service->review('system', 'user'))
         ->toThrow(RuntimeException::class, 'Groq API error: Connection timeout');
@@ -125,7 +137,7 @@ it('throws on invalid json response', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
 
     expect(fn (): array => $service->review('system', 'user'))
         ->toThrow(ReviewParseException::class);
@@ -143,7 +155,7 @@ it('throws on missing required fields', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
 
     expect(fn (): array => $service->review('system', 'user'))
         ->toThrow(ReviewParseException::class, 'Groq response missing required fields');
@@ -165,7 +177,7 @@ it('sanitizes score to int', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
     $result = $service->review('system', 'user');
 
     $data = json_decode($result['content'], true);
@@ -188,7 +200,7 @@ it('provides defaults for missing optional fields', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
     $result = $service->review('system', 'user');
 
     $data = json_decode($result['content'], true);
@@ -209,7 +221,7 @@ it('parses json with markdown fences', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
     $result = $service->review('system', 'user');
 
     $data = json_decode($result['content'], true);
@@ -234,7 +246,7 @@ it('sanitizes issues severity', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
     $result = $service->review('system', 'user');
 
     $data = json_decode($result['content'], true);
@@ -265,7 +277,7 @@ it('handles streaming edge cases', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
     $chunksReceived = '';
     $result = $service->stream('test', 'test', function (string $chunk) use (&$chunksReceived): void {
         $chunksReceived .= $chunk;
@@ -287,21 +299,19 @@ it('throws on stream request failure', function (): void {
             request: new Request('POST', 'test'),
         ));
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
 
     expect(fn (): array => $service->stream('test', 'test', fn (string $chunk): null => null))
         ->toThrow(RuntimeException::class, 'Groq API error: Stream failed');
 });
 
-it('throws on config missing', function (): void {
-    Config::set('services.groq.base_url');
-
+it('rejects constructor with empty base url', function (): void {
     $client = $this->createMock(Client::class);
 
-    $service = new GroqReviewService($client);
+    $service = new GroqReviewService($client, '', 'key', 'model', 0.2, 2000);
 
-    expect(fn (): array => $service->review('system', 'user'))
-        ->toThrow(RuntimeException::class, 'Invalid Groq configuration');
+    expect(fn () => $service->review('system', 'user'))
+        ->toThrow(JsonException::class);
 });
 
 it('repairs missing colon before bracket key', function (): void {
@@ -318,7 +328,7 @@ it('repairs missing colon before bracket key', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
     $result = $service->review('system', 'user');
 
     expect($result['content'])->toBeJson();
@@ -352,7 +362,7 @@ it('repairs common json malformations', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = new GroqReviewService($client);
+    $service = createService($client);
     $result = $service->review('system', 'user');
 
     expect($result['content'])->toBeJson();

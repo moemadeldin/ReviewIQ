@@ -46,7 +46,7 @@ final readonly class WorkspaceInvitationController
             return $this->fail('Only owners and admins can invite users', Response::HTTP_FORBIDDEN);
         }
 
-        $invitation = $action->handle($workspace, $user, $request->validated()['email'], $request->validated()['role']);
+        $invitation = $action->handle($workspace, $user, $request->validated()['email'], $request->validated()['role'] ?? null);
 
         return $this->success([
             'invitation' => $invitation,

@@ -27,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
-
+        $middleware->trustProxies(at: '*');
         $middleware->alias([
             'current_workspace' => SetCurrentWorkspace::class,
             'require_workspace' => RequireWorkspace::class,
@@ -56,6 +56,5 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return null;
         });
-        $exceptions->render(fn (WebhookException $exception, Request $request) => response()->json(['message' => $exception->getMessage(), $exception->getCode() ?: 500]));
         $exceptions->render(fn (WebhookException $exception, Request $request) => response()->json(['message' => $exception->getMessage(), $exception->getCode() ?: 500]));
     })->create();

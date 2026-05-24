@@ -12,10 +12,14 @@ it('shows accept invitation page for valid token', function (): void {
         'email' => 'newuser@example.com',
     ]);
 
-    $response = $this->get(route('invitations.accept.page', ['token' => $invitation->token]));
+    $response = $this->fromRoute('home')
+        ->get(route('invitations.accept.page', ['token' => $invitation->token]));
 
     $response->assertOk()
-        ->assertViewIs('invitations.accept');
+        ->assertInertia(fn ($page) => $page->component('invitations/accept', [
+            'invitation' => fn ($i) => $i['token'] === $invitation->token,
+            'isExistingUser' => false,
+        ]));
 });
 
 it('shows accept invitation page for existing user email', function (): void {
@@ -25,17 +29,20 @@ it('shows accept invitation page for existing user email', function (): void {
         'email' => 'existing@example.com',
     ]);
 
-    $response = $this->get(route('invitations.accept.page', ['token' => $invitation->token]));
+    $response = $this->fromRoute('home')
+        ->get(route('invitations.accept.page', ['token' => $invitation->token]));
 
     $response->assertOk()
-        ->assertViewIs('invitations.accept');
+        ->assertInertia(fn ($page) => $page->component('invitations/accept', [
+            'invitation' => fn ($i) => $i['token'] === $invitation->token,
+            'isExistingUser' => true,
+        ]));
 });
 
 it('returns 404 for invalid token', function (): void {
     $response = $this->get(route('invitations.accept.page', ['token' => 'non-existent-token']));
 
-    $response->assertStatus(404)
-        ->assertJsonPath('message', 'Invalid invitation');
+    $response->assertStatus(404);
 });
 
 it('returns 410 for expired invitation', function (): void {
@@ -44,8 +51,7 @@ it('returns 410 for expired invitation', function (): void {
 
     $response = $this->get(route('invitations.accept.page', ['token' => $invitation->token]));
 
-    $response->assertStatus(410)
-        ->assertJsonPath('message', 'Invitation has expired');
+    $response->assertStatus(410);
 });
 
 it('returns 409 for already accepted invitation', function (): void {
@@ -54,6 +60,5 @@ it('returns 409 for already accepted invitation', function (): void {
 
     $response = $this->get(route('invitations.accept.page', ['token' => $invitation->token]));
 
-    $response->assertStatus(409)
-        ->assertJsonPath('message', 'Invitation already used');
+    $response->assertStatus(409);
 });
