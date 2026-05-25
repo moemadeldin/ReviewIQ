@@ -37,6 +37,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('workspaces/create', 'create')->name('workspaces.create');
         Route::post('workspaces', 'store')->name('workspaces.store');
         Route::get('workspaces/{workspace}', 'show')->name('workspaces.show');
+        Route::put('workspaces/{workspace}', 'update')->name('workspaces.update');
+        Route::delete('workspaces/{workspace}', 'destroy')->name('workspaces.destroy');
     });
 
     Route::controller(WorkspacePageController::class)->group(function (): void {

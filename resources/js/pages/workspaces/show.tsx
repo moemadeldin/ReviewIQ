@@ -1,6 +1,18 @@
-import { Head, Link, usePage } from '@inertiajs/react';
-import { Users, GitBranch, Mail, FileCheck } from 'lucide-react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { useState } from 'react';
+import { Users, GitBranch, Mail, FileCheck, Settings, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
@@ -17,17 +29,130 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Show() {
-    const { workspace } = usePage<{ auth: Auth } & WorkspaceShowProps>().props;
+    const { auth, workspace } = usePage<{ auth: Auth } & WorkspaceShowProps>().props;
+    const isOwner = auth.user.id === workspace.owner_id;
+    const [editOpen, setEditOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={workspace.name} />
 
             <div className="space-y-6 px-4">
-                <Heading
-                    title={workspace.name}
-                    description="Manage your workspace"
-                />
+                <div className="flex items-center justify-between">
+                    <Heading
+                        title={workspace.name}
+                        description="Manage your workspace"
+                    />
+                    {isOwner && (
+                        <div className="flex gap-2">
+                            <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline">
+                                        <Settings className="mr-2 h-4 w-4" />
+                                        Edit
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Rename workspace</DialogTitle>
+                                        <DialogDescription>
+                                            Change the name of {workspace.name}
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <Form
+                                        action={`/workspaces/${workspace.slug}`}
+                                        method="put"
+                                        disableWhileProcessing
+                                        className="space-y-4"
+                                        onSuccess={() => setEditOpen(false)}
+                                    >
+                                        {({ processing, errors }) => (
+                                            <>
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="edit-name">
+                                                        Workspace name
+                                                    </Label>
+                                                    <Input
+                                                        id="edit-name"
+                                                        type="text"
+                                                        name="name"
+                                                        required
+                                                        defaultValue={workspace.name}
+                                                    />
+                                                    {errors.name && (
+                                                        <p className="text-sm text-red-500">
+                                                            {errors.name}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        onClick={() => setEditOpen(false)}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        type="submit"
+                                                        disabled={processing}
+                                                    >
+                                                        {processing ? 'Saving...' : 'Save'}
+                                                    </Button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+
+                            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Delete workspace</DialogTitle>
+                                        <DialogDescription>
+                                            This will permanently delete{' '}
+                                            {workspace.name} and all associated data.
+                                            This action cannot be undone.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <Form
+                                        action={`/workspaces/${workspace.slug}`}
+                                        method="delete"
+                                        disableWhileProcessing
+                                        className="space-y-4"
+                                    >
+                                        {({ processing }) => (
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() => setDeleteOpen(false)}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button
+                                                    type="submit"
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                >
+                                                    {processing ? 'Deleting...' : 'Delete workspace'}
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    )}
+                </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <Link
