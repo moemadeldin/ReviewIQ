@@ -8,6 +8,7 @@ use App\Contracts\GitHubApi;
 use App\Models\Repository;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Response;
 
 final readonly class AttachRepository
@@ -33,7 +34,7 @@ final readonly class AttachRepository
 
         abort_unless(is_array($repoData), Response::HTTP_NOT_FOUND, 'Repository not found');
 
-        $webhookId = $this->github->registerWebhook($token, $fullName);
+        $webhookId = $this->resolveWebhookId($token, $fullName);
 
         return Repository::query()->create([
             'workspace_id' => $workspace->id,
@@ -43,5 +44,23 @@ final readonly class AttachRepository
             'is_active' => true,
             'webhook_id' => $webhookId,
         ]);
+    }
+
+    private function resolveWebhookId(string $token, string $fullName): ?string
+    {
+        try {
+            return (string) $this->github->registerWebhook($token, $fullName);
+        } catch (RequestException $e) {
+            if ($e->response->status() !== 422) {
+                throw $e;
+            }
+
+            $existing = Repository::query()
+                ->where('full_name', $fullName)
+                ->whereNotNull('webhook_id')
+                ->first();
+
+            return $existing?->webhook_id;
+        }
     }
 }

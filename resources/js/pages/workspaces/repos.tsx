@@ -81,7 +81,7 @@ export default function Repos() {
 
         try {
             const method = currentStatus ? 'DELETE' : 'POST';
-            const response = await fetch(`/repos/${repoFullName}`, {
+            const response = await fetch(`/workspaces/${workspace.slug}/repos/${repoFullName}`, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',

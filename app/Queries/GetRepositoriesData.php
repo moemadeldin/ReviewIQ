@@ -29,6 +29,19 @@ final readonly class GetRepositoriesData
                 ->where('workspace_id', $workspace->id)
                 ->get()
                 ->keyBy('full_name');
+
+            $allActiveFullNames = Repository::query()
+                ->where('is_active', true)
+                ->pluck('full_name')
+                ->toArray();
+
+            $githubRepos = collect($githubRepos)
+                ->reject(fn (array $repo): bool =>
+                    in_array($repo['full_name'], $allActiveFullNames, true)
+                    && ! isset($connectedRepos[$repo['full_name']]),
+                )
+                ->values()
+                ->toArray();
         } else {
             $connectedRepos = Repository::query()
                 ->whereIn('workspace_id', $user->workspaces()->pluck('workspace_id'))
