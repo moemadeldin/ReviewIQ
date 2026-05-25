@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -64,7 +64,8 @@ export default function Members() {
     const [inviting, setInviting] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteRole, setInviteRole] = useState('member');
-    const [removing, setRemoving] = useState<string | null>(null);
+    const [inviteError, setInviteError] = useState<string | null>(null);
+    const [removeConfirmId, setRemoveConfirmId] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const canInvite = role === 'owner';
@@ -99,6 +100,7 @@ export default function Members() {
         if (!inviteEmail) return;
 
         setInviting(true);
+        setInviteError(null);
         try {
             const response = await fetch(
                 `/workspaces/${workspace.slug}/invitations`,
@@ -129,48 +131,13 @@ export default function Members() {
                 setIsModalOpen(false);
                 await fetchMembers(page);
             } else {
-                alert(result.message || 'Failed to send invitation');
+                setInviteError(result.message || 'Failed to send invitation');
             }
         } catch (error) {
             console.error('Failed to send invitation:', error);
-            alert('Failed to send invitation');
+            setInviteError('Failed to send invitation');
         } finally {
             setInviting(false);
-        }
-    };
-
-    const handleRemove = async (userId: string) => {
-        if (!confirm('Are you sure you want to remove this member?')) return;
-
-        setRemoving(userId);
-        try {
-            const response = await fetch(
-                `/workspaces/${workspace.slug}/members/${userId}`,
-                {
-                    method: 'DELETE',
-                    headers: {
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN':
-                            (
-                                document.querySelector(
-                                    'meta[name="csrf-token"]',
-                                ) as HTMLMetaElement
-                            )?.content || '',
-                    },
-                },
-            );
-
-            if (response.ok) {
-                await fetchMembers(page);
-            } else {
-                const result = await response.json().catch(() => ({}));
-                alert(result.message || 'Failed to remove member');
-            }
-        } catch (error) {
-            console.error('Failed to remove member:', error);
-            alert('Failed to remove member');
-        } finally {
-            setRemoving(null);
         }
     };
 
@@ -255,13 +222,19 @@ export default function Members() {
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
+                                    {inviteError && (
+                                        <p className="text-sm text-red-500">
+                                            {inviteError}
+                                        </p>
+                                    )}
                                     <div className="flex justify-end gap-2">
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            onClick={() =>
-                                                setIsModalOpen(false)
-                                            }
+                                            onClick={() => {
+                                                setIsModalOpen(false);
+                                                setInviteError(null);
+                                            }}
                                         >
                                             Cancel
                                         </Button>
@@ -360,24 +333,100 @@ export default function Members() {
                                                         <td className="px-4 py-3 text-right">
                                                             {member.role !==
                                                                 'owner' && (
-                                                                <Button
-                                                                    variant="destructive"
-                                                                    size="sm"
-                                                                    onClick={() =>
-                                                                        handleRemove(
-                                                                            member.id,
-                                                                        )
-                                                                    }
-                                                                    disabled={
-                                                                        removing ===
+                                                                <Dialog
+                                                                    open={
+                                                                        removeConfirmId ===
                                                                         member.id
                                                                     }
+                                                                    onOpenChange={(
+                                                                        open,
+                                                                    ) =>
+                                                                        !open &&
+                                                                        setRemoveConfirmId(
+                                                                            null,
+                                                                        )
+                                                                    }
                                                                 >
-                                                                    {removing ===
-                                                                    member.id
-                                                                        ? 'Removing...'
-                                                                        : 'Remove'}
-                                                                </Button>
+                                                                    <DialogTrigger
+                                                                        asChild
+                                                                    >
+                                                                        <Button
+                                                                            variant="destructive"
+                                                                            size="sm"
+                                                                            onClick={() =>
+                                                                                setRemoveConfirmId(
+                                                                                    member.id,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Remove
+                                                                        </Button>
+                                                                    </DialogTrigger>
+                                                                    <DialogContent>
+                                                                        <DialogHeader>
+                                                                            <DialogTitle>
+                                                                                Remove
+                                                                                member
+                                                                            </DialogTitle>
+                                                                            <DialogDescription>
+                                                                                Are
+                                                                                you
+                                                                                sure
+                                                                                you
+                                                                                want
+                                                                                to
+                                                                                remove{' '}
+                                                                                {
+                                                                                    member.name
+                                                                                }{' '}
+                                                                                from{' '}
+                                                                                {
+                                                                                    workspace.name
+                                                                                }
+                                                                                ?
+                                                                            </DialogDescription>
+                                                                        </DialogHeader>
+                                                                        <Form
+                                                                            action={`/workspaces/${workspace.slug}/members/${member.id}`}
+                                                                            method="delete"
+                                                                            disableWhileProcessing
+                                                                            onSuccess={() =>
+                                                                                setRemoveConfirmId(
+                                                                                    null,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            {({
+                                                                                processing,
+                                                                            }) => (
+                                                                                <div className="flex justify-end gap-2">
+                                                                                    <Button
+                                                                                        type="button"
+                                                                                        variant="outline"
+                                                                                        onClick={() =>
+                                                                                            setRemoveConfirmId(
+                                                                                                null,
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        Cancel
+                                                                                    </Button>
+                                                                                    <Button
+                                                                                        type="submit"
+                                                                                        variant="destructive"
+                                                                                        disabled={
+                                                                                            processing
+                                                                                        }
+                                                                                    >
+                                                                                        {processing
+                                                                                            ? 'Removing...'
+                                                                                            : 'Remove'}
+                                                                                    </Button>
+                                                                                </div>
+                                                                            )}
+                                                                        </Form>
+                                                                    </DialogContent>
+                                                                </Dialog>
                                                             )}
                                                         </td>
                                                     )}

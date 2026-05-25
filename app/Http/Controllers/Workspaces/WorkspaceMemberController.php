@@ -12,7 +12,7 @@ use App\Queries\GetWorkspaceMembers;
 use App\Traits\APIResponder;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
+use Illuminate\Http\RedirectResponse;
 final readonly class WorkspaceMemberController
 {
     use APIResponder;
@@ -37,10 +37,10 @@ final readonly class WorkspaceMemberController
         Workspace $workspace,
         User $member,
         DeleteWorkspaceMember $action,
-    ): JsonResponse|Response {
+    ): RedirectResponse {
         $action->handle($workspace, $user, $member);
 
-        return $this->noContent();
+        return to_route('workspaces.members.page', $workspace);
     }
 
 }

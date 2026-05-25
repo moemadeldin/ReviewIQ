@@ -134,50 +134,48 @@ describe('WorkspaceInvitationController', function (): void {
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->deleteJson(route('workspaces.invitations.destroy', [
+            ->delete(route('workspaces.invitations.destroy', [
                 'workspace' => $this->workspace->slug,
                 'invitation' => $invitation->id,
             ]), [
                 'password' => 'password',
             ]);
 
-        $response->assertOk()
-            ->assertJsonPath('data.message', 'Invitation cancelled');
+        $response->assertRedirect();
 
         expect(WorkspaceInvitation::query()->find($invitation->id))->toBeNull();
     });
 
-    it('returns 403 when invitation belongs to different workspace', function (): void {
+    it('redirects when invitation belongs to different workspace', function (): void {
         $otherUser = User::factory()->create();
         $otherWorkspace = Workspace::factory()->withOwner($otherUser)->create();
         $invitation = WorkspaceInvitation::factory()->forWorkspace($otherWorkspace)->create();
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->deleteJson(route('workspaces.invitations.destroy', [
+            ->delete(route('workspaces.invitations.destroy', [
                 'workspace' => $this->workspace->slug,
                 'invitation' => $invitation->id,
             ]), [
                 'password' => 'password',
             ]);
 
-        $response->assertStatus(403);
+        $response->assertRedirect();
     });
 
-    it('returns 409 when trying to delete accepted invitation', function (): void {
+    it('redirects when trying to delete accepted invitation', function (): void {
         $invitation = WorkspaceInvitation::factory()->forWorkspace($this->workspace)->accepted()->create();
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->deleteJson(route('workspaces.invitations.destroy', [
+            ->delete(route('workspaces.invitations.destroy', [
                 'workspace' => $this->workspace->slug,
                 'invitation' => $invitation->id,
             ]), [
                 'password' => 'password',
             ]);
 
-        $response->assertStatus(409)
-            ->assertJsonPath('message', 'Cannot cancel accepted invitation');
+        $response->assertRedirect();
     });
 });
 

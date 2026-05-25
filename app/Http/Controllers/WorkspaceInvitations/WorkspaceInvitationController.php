@@ -15,6 +15,7 @@ use App\Queries\GetWorkspaceInvitations;
 use App\Traits\APIResponder;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 final readonly class WorkspaceInvitationController
@@ -57,17 +58,17 @@ final readonly class WorkspaceInvitationController
         WorkspaceOwnerRequest $request,
         Workspace $workspace,
         WorkspaceInvitation $invitation,
-    ): JsonResponse {
+    ): RedirectResponse {
         if ($invitation->workspace_id !== $workspace->id) {
-            return $this->fail('Invitation does not belong to this workspace', Response::HTTP_FORBIDDEN);
+            return to_route('workspaces.invitations.page', $workspace);
         }
 
         if ($invitation->accepted_at !== null) {
-            return $this->fail('Cannot cancel accepted invitation', Response::HTTP_CONFLICT);
+            return to_route('workspaces.invitations.page', $workspace);
         }
 
         $invitation->delete();
 
-        return $this->success(['message' => 'Invitation cancelled'], 'ok');
+        return to_route('workspaces.invitations.page', $workspace);
     }
 }

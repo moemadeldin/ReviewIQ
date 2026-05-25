@@ -1,9 +1,17 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
@@ -47,7 +55,7 @@ export default function Invitations() {
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(invitationsCurrentPage || 1);
     const [hasMore, setHasMore] = useState(invitationsHasMore || false);
-    const [cancelling, setCancelling] = useState<string | null>(null);
+    const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
 
     const canManage = isOwner;
 
@@ -72,43 +80,6 @@ export default function Invitations() {
             console.error('Failed to fetch invitations:', error);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleCancel = async (invitationId: string) => {
-        if (!confirm('Are you sure you want to cancel this invitation?'))
-            return;
-
-        setCancelling(invitationId);
-        try {
-            const response = await fetch(
-                `/workspaces/${workspace.slug}/invitations/${invitationId}`,
-                {
-                    method: 'DELETE',
-                    headers: {
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN':
-                            (
-                                document.querySelector(
-                                    'meta[name="csrf-token"]',
-                                ) as HTMLMetaElement
-                            )?.content || '',
-                    },
-                },
-            );
-
-            const result = await response.json();
-
-            if (result.status === 'Success') {
-                await fetchInvitations(page);
-            } else {
-                alert(result.message || 'Failed to cancel invitation');
-            }
-        } catch (error) {
-            console.error('Failed to cancel invitation:', error);
-            alert('Failed to cancel invitation');
-        } finally {
-            setCancelling(null);
         }
     };
 
@@ -215,24 +186,99 @@ export default function Invitations() {
                                                     </td>
                                                     {canManage && (
                                                         <td className="px-4 py-3 text-right">
-                                                            <Button
-                                                                variant="destructive"
-                                                                size="sm"
-                                                                onClick={() =>
-                                                                    handleCancel(
-                                                                        invitation.id,
-                                                                    )
-                                                                }
-                                                                disabled={
-                                                                    cancelling ===
+                                                            <Dialog
+                                                                open={
+                                                                    cancelConfirmId ===
                                                                     invitation.id
                                                                 }
+                                                                onOpenChange={(
+                                                                    open,
+                                                                ) =>
+                                                                    !open &&
+                                                                    setCancelConfirmId(
+                                                                        null,
+                                                                    )
+                                                                }
                                                             >
-                                                                {cancelling ===
-                                                                invitation.id
-                                                                    ? 'Cancelling...'
-                                                                    : 'Cancel'}
-                                                            </Button>
+                                                                <DialogTrigger
+                                                                    asChild
+                                                                >
+                                                                    <Button
+                                                                        variant="destructive"
+                                                                        size="sm"
+                                                                        onClick={() =>
+                                                                            setCancelConfirmId(
+                                                                                invitation.id,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        Cancel
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent>
+                                                                    <DialogHeader>
+                                                                        <DialogTitle>
+                                                                            Cancel
+                                                                            invitation
+                                                                        </DialogTitle>
+                                                                        <DialogDescription>
+                                                                            Are
+                                                                            you
+                                                                            sure
+                                                                            you
+                                                                            want
+                                                                            to
+                                                                            cancel
+                                                                            this
+                                                                            invitation
+                                                                            for{' '}
+                                                                            {
+                                                                                invitation.email
+                                                                            }
+                                                                            ?
+                                                                        </DialogDescription>
+                                                                    </DialogHeader>
+                                                                    <Form
+                                                                        action={`/workspaces/${workspace.slug}/invitations/${invitation.id}`}
+                                                                        method="delete"
+                                                                        disableWhileProcessing
+                                                                        onSuccess={() =>
+                                                                            setCancelConfirmId(
+                                                                                null,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        {({
+                                                                            processing,
+                                                                        }) => (
+                                                                            <div className="flex justify-end gap-2">
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="outline"
+                                                                                    onClick={() =>
+                                                                                        setCancelConfirmId(
+                                                                                            null,
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    Cancel
+                                                                                </Button>
+                                                                                <Button
+                                                                                    type="submit"
+                                                                                    variant="destructive"
+                                                                                    disabled={
+                                                                                        processing
+                                                                                    }
+                                                                                >
+                                                                                    {processing
+                                                                                        ? 'Cancelling...'
+                                                                                        : 'Cancel invitation'}
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
+                                                                    </Form>
+                                                                </DialogContent>
+                                                            </Dialog>
                                                         </td>
                                                     )}
                                                 </tr>
