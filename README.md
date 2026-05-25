@@ -26,7 +26,8 @@ ReviewIQ is an AI-powered pull request review tool that leverages LLMs to analyz
 - **AI**: Groq (Llama 3.3 70B)
 - **Real-time**: Laravel Reverb (WebSocket)
 - **Queue**: Laravel Queue with database driver
-- **Database**: MySQL/PostgreSQL
+- **Cache**: Redis (via predis)
+- **Database**: PostgreSQL
 
 ## Getting Started
 
@@ -35,8 +36,10 @@ ReviewIQ is an AI-powered pull request review tool that leverages LLMs to analyz
 - PHP 8.5+
 - Node.js 20+
 - Composer
-- MySQL or PostgreSQL
+- Redis 6+
+- PostgreSQL
 - Groq API key
+- GitHub OAuth App (Client ID + Secret)
 
 ### Installation
 
@@ -54,11 +57,7 @@ npm install
 # Copy environment file
 cp .env.example .env
 
-# Configure your environment variables
-# - Database credentials
-# - Groq API key (GROQ_API_KEY)
-# - GitHub OAuth tokens
-# - Reverb credentials
+# Configure your environment variables (see Configuration section below)
 
 # Generate application key
 php artisan key:generate
@@ -73,7 +72,7 @@ npm run build
 ### Running the Application
 
 ```bash
-# Start all services (server, queue, reverb, vite)
+# Start all services (servers, queue, reverb, vite)
 composer dev
 
 # Or manually:
@@ -83,42 +82,51 @@ php artisan reverb:start
 npm run dev
 ```
 
-### Webhook Setup
+### Testing
 
-Configure your GitHub repository webhook:
-- URL: `https://your-domain.com/api/v1/webhooks/github`
-- Secret: Set `GITHUB_WEBHOOK_SECRET` in `.env`
-- Events: `pull_request`
+```bash
+# Run the full test suite
+php artisan test
 
-## Usage
-
-1. **Connect GitHub Account** - Sign in via GitHub OAuth
-2. **Add Repository** - Enable a repository for reviews
-3. **Configure Rules** - Set custom review rules per repository
-4. **Create PR** - Open a pull request to trigger automatic review
-5. **View Results** - See real-time streaming analysis and final review
+# Run a specific test file
+php artisan test --filter=RepositoryControllerTest
+```
 
 ## Configuration
 
 ### Environment Variables
 
 ```env
+# Application
+APP_URL=https://your-domain.com
+
 # Database
-DB_CONNECTION=mysql
+DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
-DB_PORT=3306
+DB_PORT=5432
 DB_DATABASE=reviewiq
-DB_USERNAME=root
+DB_USERNAME=postgres
 DB_PASSWORD=
+
+# Cache (Redis)
+CACHE_STORE=redis
+REDIS_CLIENT=predis
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_PASSWORD=
 
 # Groq AI
 GROQ_API_KEY=your_groq_api_key
+GROQ_API_CHAT=https://api.groq.com/openai/v1/chat/completions
 GROQ_MODEL=llama-3.3-70b-versatile
 
-# GitHub
+# GitHub OAuth
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 GITHUB_WEBHOOK_SECRET=
+
+# GitHub Webhook URL (use ngrok URL for local development)
+GITHUB_WEBHOOK_URL=https://your-domain.com
 
 # Reverb (WebSocket)
 REVERB_APP_ID=
@@ -128,9 +136,38 @@ REVERB_HOST=
 REVERB_PORT=
 ```
 
+### Webhook Setup
+
+For GitHub to send pull request events to your local environment, you need a public URL. Use [ngrok](https://ngrok.com) or a similar tunnel:
+
+```bash
+ngrok http 8000
+```
+
+Set the resulting URL as `GITHUB_WEBHOOK_URL` in `.env`:
+
+```env
+GITHUB_WEBHOOK_URL=https://your-ngrok-id.ngrok-free.dev
+```
+
+Configure your GitHub repository webhook:
+- **Payload URL**: `https://your-domain.com/api/v1/webhooks/github`
+- **Content type**: `application/json`
+- **Secret**: Set `GITHUB_WEBHOOK_SECRET` in `.env`
+- **Events**: `Pull requests`
+
 ### Custom Review Rules
 
 Repositories can have custom review rules configured via the UI or API.
+
+## Usage
+
+1. **Connect GitHub Account** - Sign in via GitHub OAuth (`/auth/github`)
+2. **Create a Workspace** - Set up a workspace for your team
+3. **Add Repository** - Connect a GitHub repo from the Repositories page
+4. **Configure Rules** - Set custom review rules per repository
+5. **Create PR** - Open a pull request to trigger automatic review
+6. **View Results** - See real-time streaming analysis and final review
 
 ## Commands
 
@@ -138,14 +175,15 @@ Repositories can have custom review rules configured via the UI or API.
 # Retry failed/pending reviews
 php artisan reviews:retry
 
-# Process a specific PR review
-php artisan tinker --execute="App\Jobs\ProcessPullRequestReview::dispatch(\$pr);"
+# Inspect or run ad-hoc code
+php artisan tinker
 ```
 
 ## API Endpoints
 
-- `POST /api/v1/webhooks/github` - GitHub webhook receiver
-- `POST /api/v1/auth/github` - GitHub OAuth login
+- `POST /api/v1/webhooks/github` - GitHub webhook receiver (PR events)
+- `GET /auth/github` - Redirect to GitHub OAuth authorization
+- `GET /auth/github/callback` - GitHub OAuth callback handler
 - `GET /broadcasting/auth` - WebSocket authentication
 
 ## License
