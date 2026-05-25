@@ -4,19 +4,22 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Workspaces;
 
+use App\Actions\Workspaces\DeleteWorkspaceMember;
 use App\Http\Resources\WorkspaceMemberResource;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Queries\GetWorkspaceMembers;
 use App\Traits\APIResponder;
+use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
-
-final readonly class GetWorkspaceMembersController
+use Illuminate\Http\Response;
+final readonly class WorkspaceMemberController
 {
     use APIResponder;
 
     public function __construct(private GetWorkspaceMembers $getWorkspaceMembers) {}
 
-    public function __invoke(
+    public function index(
         Workspace $workspace,
     ): JsonResponse {
         $page = (int) request()->query('page', 1);
@@ -28,4 +31,16 @@ final readonly class GetWorkspaceMembersController
             'has_more' => $data->hasMorePages(),
         ], 'ok');
     }
+
+    public function destroy(
+        #[CurrentUser()] User $user,
+        Workspace $workspace,
+        User $member,
+        DeleteWorkspaceMember $action,
+    ): JsonResponse|Response {
+        $action->handle($workspace, $user, $member);
+
+        return $this->noContent();
+    }
+
 }

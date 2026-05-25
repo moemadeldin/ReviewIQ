@@ -14,7 +14,7 @@ use App\Http\Controllers\Repositories\GetConnectedRepositoriesController;
 use App\Http\Controllers\Repositories\RepositoryController;
 use App\Http\Controllers\Reviews\ReviewController;
 use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
-use App\Http\Controllers\Workspaces\GetWorkspaceMembersController;
+use App\Http\Controllers\Workspaces\WorkspaceMemberController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
 use App\Http\Controllers\Workspaces\WorkspacePageController;
 use App\Http\Controllers\Workspaces\WorkspaceSwitchController;
@@ -56,7 +56,12 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::post('workspaces/{workspace}/select', WorkspaceSwitchController::class)->name('workspaces.select');
 
     // Workspace Members API...
-    Route::get('workspaces/{workspace}/members/data', GetWorkspaceMembersController::class)->name('workspaces.members');
+
+    Route::controller(WorkspaceMemberController::class)->group(function (): void {
+        Route::get('workspaces/{workspace}/members/data', 'index')->name('workspaces.members');    
+        Route::delete('workspaces/{workspace}/members/{member}', 'destroy')->name('workspaces.delete.member');    
+
+    });
 
     // Workspace Repos API...
     Route::get('workspaces/{workspace}/repos/data', GetConnectedRepositoriesController::class)->name('workspaces.repos');

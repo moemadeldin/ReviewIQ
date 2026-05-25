@@ -160,11 +160,10 @@ export default function Members() {
                 },
             );
 
-            const result = await response.json();
-
-            if (result.status === 'Success') {
+            if (response.ok) {
                 await fetchMembers(page);
             } else {
+                const result = await response.json().catch(() => ({}));
                 alert(result.message || 'Failed to remove member');
             }
         } catch (error) {
