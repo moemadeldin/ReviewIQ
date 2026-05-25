@@ -14,8 +14,8 @@ use App\Http\Controllers\Repositories\GetConnectedRepositoriesController;
 use App\Http\Controllers\Repositories\RepositoryController;
 use App\Http\Controllers\Reviews\ReviewController;
 use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
-use App\Http\Controllers\Workspaces\WorkspaceMemberController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
+use App\Http\Controllers\Workspaces\WorkspaceMemberController;
 use App\Http\Controllers\Workspaces\WorkspacePageController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -56,8 +56,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     // Workspace Members API...
 
     Route::controller(WorkspaceMemberController::class)->group(function (): void {
-        Route::get('workspaces/{workspace}/members/data', 'index')->name('workspaces.members');    
-        Route::delete('workspaces/{workspace}/members/{member}', 'destroy')->name('workspaces.delete.member');    
+        Route::get('workspaces/{workspace}/members/data', 'index')->name('workspaces.members');
+        Route::delete('workspaces/{workspace}/members/{member}', 'destroy')->name('workspaces.delete.member');
 
     });
 

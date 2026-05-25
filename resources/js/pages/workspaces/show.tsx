@@ -1,10 +1,15 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
+import {
+    Users,
+    GitBranch,
+    Mail,
+    FileCheck,
+    Settings,
+    Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
-import { Users, GitBranch, Mail, FileCheck, Settings, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Dialog,
     DialogContent,
@@ -13,6 +18,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
@@ -29,7 +36,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Show() {
-    const { auth, workspace } = usePage<{ auth: Auth } & WorkspaceShowProps>().props;
+    const { auth, workspace } = usePage<{ auth: Auth } & WorkspaceShowProps>()
+        .props;
     const isOwner = auth.user.id === workspace.owner_id;
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -55,7 +63,9 @@ export default function Show() {
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogHeader>
-                                        <DialogTitle>Rename workspace</DialogTitle>
+                                        <DialogTitle>
+                                            Rename workspace
+                                        </DialogTitle>
                                         <DialogDescription>
                                             Change the name of {workspace.name}
                                         </DialogDescription>
@@ -78,7 +88,9 @@ export default function Show() {
                                                         type="text"
                                                         name="name"
                                                         required
-                                                        defaultValue={workspace.name}
+                                                        defaultValue={
+                                                            workspace.name
+                                                        }
                                                     />
                                                     {errors.name && (
                                                         <p className="text-sm text-red-500">
@@ -90,7 +102,9 @@ export default function Show() {
                                                     <Button
                                                         type="button"
                                                         variant="outline"
-                                                        onClick={() => setEditOpen(false)}
+                                                        onClick={() =>
+                                                            setEditOpen(false)
+                                                        }
                                                     >
                                                         Cancel
                                                     </Button>
@@ -98,7 +112,9 @@ export default function Show() {
                                                         type="submit"
                                                         disabled={processing}
                                                     >
-                                                        {processing ? 'Saving...' : 'Save'}
+                                                        {processing
+                                                            ? 'Saving...'
+                                                            : 'Save'}
                                                     </Button>
                                                 </div>
                                             </>
@@ -107,7 +123,10 @@ export default function Show() {
                                 </DialogContent>
                             </Dialog>
 
-                            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                            <Dialog
+                                open={deleteOpen}
+                                onOpenChange={setDeleteOpen}
+                            >
                                 <DialogTrigger asChild>
                                     <Button variant="destructive">
                                         <Trash2 className="mr-2 h-4 w-4" />
@@ -116,11 +135,13 @@ export default function Show() {
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogHeader>
-                                        <DialogTitle>Delete workspace</DialogTitle>
+                                        <DialogTitle>
+                                            Delete workspace
+                                        </DialogTitle>
                                         <DialogDescription>
                                             This will permanently delete{' '}
-                                            {workspace.name} and all associated data.
-                                            This action cannot be undone.
+                                            {workspace.name} and all associated
+                                            data. This action cannot be undone.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <Form
@@ -134,7 +155,9 @@ export default function Show() {
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    onClick={() => setDeleteOpen(false)}
+                                                    onClick={() =>
+                                                        setDeleteOpen(false)
+                                                    }
                                                 >
                                                     Cancel
                                                 </Button>
@@ -143,7 +166,9 @@ export default function Show() {
                                                     variant="destructive"
                                                     disabled={processing}
                                                 >
-                                                    {processing ? 'Deleting...' : 'Delete workspace'}
+                                                    {processing
+                                                        ? 'Deleting...'
+                                                        : 'Delete workspace'}
                                                 </Button>
                                             </div>
                                         )}

@@ -50,10 +50,8 @@ final readonly class AttachRepository
     {
         try {
             return (string) $this->github->registerWebhook($token, $fullName);
-        } catch (RequestException $e) {
-            if ($e->response->status() !== 422) {
-                throw $e;
-            }
+        } catch (RequestException $requestException) {
+            throw_if($requestException->response->status() !== 422, $requestException);
 
             $existing = Repository::query()
                 ->where('full_name', $fullName)

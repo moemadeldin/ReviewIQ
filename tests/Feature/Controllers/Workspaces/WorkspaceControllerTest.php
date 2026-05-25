@@ -27,7 +27,7 @@ it('creates a workspace', function (): void {
             'name' => 'Acme Inc',
         ]);
 
-    $response->assertRedirectToRoute('dashboard');
+    $response->assertRedirectToRoute('workspaces.index');
 
     $this->assertDatabaseHas('workspaces', [
         'name' => 'Acme Inc',

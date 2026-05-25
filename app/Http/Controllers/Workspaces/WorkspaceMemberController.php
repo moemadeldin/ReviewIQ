@@ -13,6 +13,7 @@ use App\Traits\APIResponder;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+
 final readonly class WorkspaceMemberController
 {
     use APIResponder;
@@ -42,5 +43,4 @@ final readonly class WorkspaceMemberController
 
         return to_route('workspaces.members.page', $workspace);
     }
-
 }

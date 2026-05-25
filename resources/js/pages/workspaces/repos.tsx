@@ -81,19 +81,22 @@ export default function Repos() {
 
         try {
             const method = currentStatus ? 'DELETE' : 'POST';
-            const response = await fetch(`/workspaces/${workspace.slug}/repos/${repoFullName}`, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN':
-                        (
-                            document.querySelector(
-                                'meta[name="csrf-token"]',
-                            ) as HTMLMetaElement
-                        )?.content || '',
+            const response = await fetch(
+                `/workspaces/${workspace.slug}/repos/${repoFullName}`,
+                {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN':
+                            (
+                                document.querySelector(
+                                    'meta[name="csrf-token"]',
+                                ) as HTMLMetaElement
+                            )?.content || '',
+                    },
                 },
-            });
+            );
 
             const result = await response.json();
 

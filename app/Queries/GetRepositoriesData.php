@@ -36,12 +36,11 @@ final readonly class GetRepositoriesData
                 ->toArray();
 
             $githubRepos = collect($githubRepos)
-                ->reject(fn (array $repo): bool =>
-                    in_array($repo['full_name'], $allActiveFullNames, true)
+                ->reject(fn (array $repo): bool => in_array($repo['full_name'], $allActiveFullNames, true)
                     && ! isset($connectedRepos[$repo['full_name']]),
                 )
                 ->values()
-                ->toArray();
+                ->all();
         } else {
             $connectedRepos = Repository::query()
                 ->whereIn('workspace_id', $user->workspaces()->pluck('workspace_id'))
