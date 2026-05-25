@@ -1,4 +1,4 @@
-import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowRight } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -96,24 +96,6 @@ function WorkspaceCard({
                             View
                         </Button>
                     </Link>
-                    {!isCurrent && (
-                        <Form
-                            action={`/workspaces/${workspace.id}/select`}
-                            method="post"
-                            className="flex-1"
-                        >
-                            {({ processing }) => (
-                                <Button
-                                    type="submit"
-                                    variant="secondary"
-                                    className="w-full"
-                                    disabled={processing}
-                                >
-                                    {processing ? '...' : 'Switch'}
-                                </Button>
-                            )}
-                        </Form>
-                    )}
                 </div>
             </CardHeader>
         </Card>

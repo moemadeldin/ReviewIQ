@@ -23,7 +23,6 @@ final readonly class RequireWorkspace
         'workspaces.create',
         'workspaces.store',
         'workspaces.index',
-        'workspaces.select',
         'workspaces.destroy',
         'workspaces.invitations.store',
         'logout',

@@ -17,7 +17,6 @@ use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
 use App\Http\Controllers\Workspaces\WorkspaceMemberController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
 use App\Http\Controllers\Workspaces\WorkspacePageController;
-use App\Http\Controllers\Workspaces\WorkspaceSwitchController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -53,9 +52,6 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('workspaces/{workspace}/invitations', 'store')->name('workspaces.invitations.store');
         Route::delete('workspaces/{workspace}/invitations/{invitation}', 'destroy')->name('workspaces.invitations.destroy');
     });
-
-    // Workspace Switch ...
-    Route::post('workspaces/{workspace}/select', WorkspaceSwitchController::class)->name('workspaces.select');
 
     // Workspace Members API...
 

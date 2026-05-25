@@ -83,30 +83,6 @@ it('renders workspace index page', function (): void {
             ->has('workspaces'));
 });
 
-it('switches current workspace', function (): void {
-    $user = User::factory()->create();
-    $workspace1 = Workspace::factory()->withOwner($user)->create(['name' => 'Workspace 1']);
-    $workspace2 = Workspace::factory()->withOwner($user)->create(['name' => 'Workspace 2']);
-
-    $response = $this->actingAs($user)
-        ->post(route('workspaces.select', $workspace2));
-
-    $response->assertRedirectToRoute('dashboard');
-
-    expect(session('current_workspace_id'))->toBe($workspace2->id);
-});
-
-// it('prevents switching to unauthorized workspace', function (): void {
-//     $userA = User::factory()->create();
-//     $userB = User::factory()->create();
-//     $workspaceB = Workspace::factory()->withOwner($userB)->create();
-
-//     $response = $this->actingAs($userA)
-//         ->post(route('workspaces.select', $workspaceB));
-
-//     $response->assertForbidden();
-// });
-
 it('user A cannot read workspace B data', function (): void {
     $userA = User::factory()->create();
     $userB = User::factory()->create();
