@@ -1,0 +1,153 @@
+services:
+  app:
+    build: &php-build
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: reviewiq-app
+    entrypoint: docker-entrypoint.sh
+    command: php-fpm
+    env_file:
+      - docker/.env.docker
+    volumes:
+      - .:/app
+      - /app/vendor
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - reviewiq
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "${APP_PORT:-80}:80"
+    volumes:
+      - .:/app
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - reviewiq
+
+  postgres:
+    image: postgres:17-alpine
+    shm_size: 128mb
+    environment:
+      POSTGRES_DB: reviewiq
+      POSTGRES_USER: reviewiq
+      POSTGRES_PASSWORD: reviewiq
+    ports:
+      - "${FORWARD_DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reviewiq"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - reviewiq
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - reviewiq
+
+  reverb:
+    build: *php-build
+    image: reviewiq-app
+    entrypoint: docker-entrypoint.sh
+    command: php artisan reverb:start
+    env_file:
+      - docker/.env.docker
+    environment:
+      REVERB_HOST: localhost
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+    ports:
+      - "${REVERB_PORT:-8080}:8080"
+    volumes:
+      - .:/app
+      - /app/vendor
+    depends_on:
+      app:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - reviewiq
+
+  queue:
+    build: *php-build
+    image: reviewiq-app
+    entrypoint: docker-entrypoint.sh
+    command: php artisan queue:work --tries=3 --backoff=3
+    env_file:
+      - docker/.env.docker
+    volumes:
+      - .:/app
+      - /app/vendor
+    depends_on:
+      app:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - reviewiq
+
+  scheduler:
+    build: *php-build
+    image: reviewiq-app
+    entrypoint: docker-entrypoint.sh
+    command: php artisan schedule:work
+    env_file:
+      - docker/.env.docker
+    volumes:
+      - .:/app
+      - /app/vendor
+    depends_on:
+      app:
+        condition: service_started
+    networks:
+      - reviewiq
+
+  vite:
+    build: *php-build
+    image: reviewiq-app
+    entrypoint: sh
+    command: >
+      -c "
+      cp -n .env.example .env 2>/dev/null;
+      php artisan key:generate --force --quiet;
+      php artisan wayfinder:generate --with-form;
+      exec bun run dev --host 0.0.0.0
+      "
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    environment:
+      APP_ENV: local
+    volumes:
+      - .:/app
+      - /app/vendor
+      - /app/node_modules
+    depends_on:
+      - app
+    networks:
+      - reviewiq
+
+volumes:
+  pgdata:
+
+networks:
+  reviewiq:
+    driver: bridge
