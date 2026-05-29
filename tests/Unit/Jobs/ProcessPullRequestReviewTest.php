@@ -43,19 +43,19 @@ it('processes pull request review successfully', function (): void {
 
     $promptBuilder = new PromptBuilder();
 
-    $reviewContent = json_encode([
+    $reviewContent = [
         'summary' => 'Good code',
         'score' => 85,
         'score_rationale' => 'Well written',
         'issues' => [],
         'highlights' => ['Clean code'],
         'recommendation' => 'approve',
-    ]);
+    ];
 
     $mockAIReviewer = $this->mock(AIReviewer::class);
     $mockAIReviewer->shouldReceive('review')
         ->once()
-        ->andReturn(['content' => $reviewContent]);
+        ->andReturn($reviewContent);
 
     $job = new ProcessPullRequestReview($pr);
     $job->handle($diffService, $promptBuilder, $mockAIReviewer);

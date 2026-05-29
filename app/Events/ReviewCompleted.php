@@ -16,11 +16,11 @@ final class ReviewCompleted implements ShouldBroadcast
     use InteractsWithSockets;
     use SerializesModels;
 
+    /**
+     * @param  array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, mixed>, highlights?: array<int, mixed>, recommendation?: string}  $review
+     */
     public function __construct(
         public readonly string $prId,
-        /**
-         * @var array{content: string}
-         */
         public readonly array $review,
     ) {}
 
@@ -32,7 +32,7 @@ final class ReviewCompleted implements ShouldBroadcast
     }
 
     /**
-     * @return array{prId: string, review: array{content: string}}
+     * @return array{prId: string, review: array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, mixed>, highlights?: array<int, mixed>, recommendation?: string}}
      */
     public function broadcastWith(): array
     {

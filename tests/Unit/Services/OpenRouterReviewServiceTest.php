@@ -60,6 +60,7 @@ it('performs non-streaming review successfully', function (): void {
     $service = createOpenRouterService($client);
     $result = $service->review('system prompt', 'user prompt');
 
+    $data = $result;
     expect($result['content'])->toBeJson();
     $data = json_decode($result['content'], true);
     expect($data['summary'])->toBe('Good code')
@@ -180,6 +181,7 @@ it('sanitizes score to int', function (): void {
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
+    $data = $result;
     $data = json_decode($result['content'], true);
     expect($data['score'])->toBe(85);
 });
@@ -203,6 +205,7 @@ it('provides defaults for missing optional fields', function (): void {
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
+    $data = $result;
     $data = json_decode($result['content'], true);
     expect($data['highlights'])->toBe([])
         ->and($data['recommendation'])->toBe('comment')
@@ -224,6 +227,7 @@ it('parses json with markdown fences', function (): void {
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
+    $data = $result;
     $data = json_decode($result['content'], true);
     expect($data['summary'])->toBe('Good code');
 });
@@ -249,6 +253,7 @@ it('sanitizes issues severity', function (): void {
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
+    $data = $result;
     $data = json_decode($result['content'], true);
     expect($data['issues'][0]['severity'])->toBe('medium');
 });
@@ -283,6 +288,7 @@ it('handles streaming edge cases', function (): void {
         $chunksReceived .= $chunk;
     });
 
+    $data = $result;
     expect($result['content'])->toBeJson();
     $data = json_decode($result['content'], true);
     expect($data['summary'])->toBe('test')
@@ -308,6 +314,8 @@ it('throws on stream request failure', function (): void {
 it('rejects constructor with empty base url', function (): void {
     $client = $this->createMock(Client::class);
 
+    expect(fn (): OpenRouterReviewService => new OpenRouterReviewService($client, '', 'key', 'model', 0.2, 2000))
+        ->toThrow(InvalidArgumentException::class, 'Base URL cannot be empty.');
     $service = new OpenRouterReviewService($client, '', 'key', 'model', 0.2, 2000);
 
     expect(fn (): array => $service->review('system', 'user'))
@@ -331,6 +339,7 @@ it('repairs missing colon before bracket key', function (): void {
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
+    $data = $result;
     expect($result['content'])->toBeJson();
     $data = json_decode($result['content'], true);
     expect($data['issues'][0]['severity'])->toBe('high');
@@ -365,6 +374,7 @@ it('repairs common json malformations', function (): void {
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
+    $data = $result;
     expect($result['content'])->toBeJson();
     $data = json_decode($result['content'], true);
     expect($data['summary'])->toBe(' PR introduces significant change')

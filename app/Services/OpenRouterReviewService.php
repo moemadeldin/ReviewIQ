@@ -24,6 +24,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
         private int $maxTokens,
         private int $timeout = 60,
     ) {
+        throw_if($this->baseUrl === '' || $this->baseUrl === '0', InvalidArgumentException::class, 'Base URL cannot be empty.');
         if (empty($this->baseUrl)) {
             throw new InvalidArgumentException('Base URL cannot be empty.');
         }
@@ -205,6 +206,21 @@ final readonly class OpenRouterReviewService implements AIReviewer
             return $issue;
         }, $parsed['issues'] ?? []));
 
+        $parsed['highlights'] = array_values(array_filter(array_map(function (mixed $highlight): ?array {
+            if (! is_array($highlight)) {
+                return null;
+            }
+
+            return [
+                'file' => isset($highlight['file']) && is_string($highlight['file']) ? $highlight['file'] : '',
+                'line' => isset($highlight['line']) && is_numeric($highlight['line']) ? (int) $highlight['line'] : null,
+                'content' => isset($highlight['content']) && is_string($highlight['content']) ? $highlight['content'] : '',
+            ];
+        }, $parsed['highlights'] ?? []), fn (?array $h): bool => $h !== null && ($h['content'] !== '')));
+        $parsed['recommendation'] ??= 'comment';
+        $parsed['score_rationale'] ??= '';
+
+        return $parsed;
         $parsed['highlights'] = is_array($parsed['highlights'] ?? null) ? $parsed['highlights'] : [];
         $parsed['recommendation'] ??= 'comment';
         $parsed['score_rationale'] ??= '';
