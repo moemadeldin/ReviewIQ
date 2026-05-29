@@ -147,8 +147,8 @@ final readonly class OpenRouterReviewService implements AIReviewer
         $clean = (string) preg_replace('/^```(?:json)?\s*/m', '', $raw);
         $clean = mb_trim((string) preg_replace('/\s*```$/m', '', $clean));
 
-        $firstBrace = strpos($clean, '{');
-        $lastBrace = strrpos($clean, '}');
+        $firstBrace = mb_strpos($clean, '{');
+        $lastBrace = mb_strrpos($clean, '}');
 
         if ($firstBrace !== false && $lastBrace !== false && $lastBrace >= $firstBrace) {
             $clean = mb_substr($clean, $firstBrace, $lastBrace - $firstBrace + 1);
