@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Exceptions\ReviewParseException;
-use App\Services\GroqReviewService;
+use App\Services\OpenRouterReviewService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
@@ -13,27 +13,27 @@ use Illuminate\Support\Facades\Log;
 use Psr\Http\Message\StreamInterface;
 
 beforeEach(function (): void {
-    Config::set('services.groq.base_url', 'https://api.groq.com/openai/v1/');
-    Config::set('services.groq.api_key', 'test-api-key');
-    Config::set('services.groq.model', 'llama-3.3-70b-versatile');
-    Config::set('services.groq.temperature', 0.2);
-    Config::set('services.groq.max_tokens', 2000);
+    Config::set('services.openrouter.base_url', 'https://openrouter.ai/api/v1/');
+    Config::set('services.openrouter.api_key', 'test-api-key');
+    Config::set('services.openrouter.model', 'deepseek/deepseek-v4-flash:free');
+    Config::set('services.openrouter.temperature', 0.2);
+    Config::set('services.openrouter.max_tokens', 2000);
     Log::spy();
 });
 
-function createService(Client $client): GroqReviewService
+function createOpenRouterService(Client $client): OpenRouterReviewService
 {
-    return new GroqReviewService(
+    return new OpenRouterReviewService(
         $client,
-        config('services.groq.base_url'),
-        config('services.groq.api_key'),
-        config('services.groq.model'),
-        (float) config('services.groq.temperature'),
-        (int) config('services.groq.max_tokens'),
+        config('services.openrouter.base_url'),
+        config('services.openrouter.api_key'),
+        config('services.openrouter.model'),
+        (float) config('services.openrouter.temperature'),
+        (int) config('services.openrouter.max_tokens'),
     );
 }
 
-function validJsonResponse(): string
+function openRouterValidJsonResponse(): string
 {
     return json_encode([
         'summary' => 'Good code',
@@ -48,7 +48,7 @@ function validJsonResponse(): string
 it('performs non-streaming review successfully', function (): void {
     $response = new Response(200, [], json_encode([
         'choices' => [
-            ['message' => ['content' => validJsonResponse()]],
+            ['message' => ['content' => openRouterValidJsonResponse()]],
         ],
     ]));
 
@@ -57,7 +57,7 @@ it('performs non-streaming review successfully', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
     $result = $service->review('system prompt', 'user prompt');
 
     expect($result['content'])->toBeJson();
@@ -95,7 +95,7 @@ it('performs streaming review successfully', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
     $chunksReceived = '';
     $result = $service->stream(
         systemPrompt: 'test',
@@ -119,10 +119,10 @@ it('throws on http failure during review', function (): void {
             request: new Request('POST', 'test'),
         ));
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
 
     expect(fn (): array => $service->review('system', 'user'))
-        ->toThrow(RuntimeException::class, 'Groq API error: Connection timeout');
+        ->toThrow(RuntimeException::class, 'OpenRouter API error: Connection timeout');
 });
 
 it('throws on invalid json response', function (): void {
@@ -137,7 +137,7 @@ it('throws on invalid json response', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
 
     expect(fn (): array => $service->review('system', 'user'))
         ->toThrow(ReviewParseException::class);
@@ -155,10 +155,10 @@ it('throws on missing required fields', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
 
     expect(fn (): array => $service->review('system', 'user'))
-        ->toThrow(ReviewParseException::class, 'Groq response missing required fields');
+        ->toThrow(ReviewParseException::class, 'OpenRouter response missing required fields');
 });
 
 it('sanitizes score to int', function (): void {
@@ -177,7 +177,7 @@ it('sanitizes score to int', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
     $data = json_decode($result['content'], true);
@@ -200,7 +200,7 @@ it('provides defaults for missing optional fields', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
     $data = json_decode($result['content'], true);
@@ -212,7 +212,7 @@ it('provides defaults for missing optional fields', function (): void {
 it('parses json with markdown fences', function (): void {
     $response = new Response(200, [], json_encode([
         'choices' => [
-            ['message' => ['content' => "```json\n".validJsonResponse()."\n```"]],
+            ['message' => ['content' => "```json\n".openRouterValidJsonResponse()."\n```"]],
         ],
     ]));
 
@@ -221,7 +221,7 @@ it('parses json with markdown fences', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
     $data = json_decode($result['content'], true);
@@ -246,7 +246,7 @@ it('sanitizes issues severity', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
     $data = json_decode($result['content'], true);
@@ -277,7 +277,7 @@ it('handles streaming edge cases', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
     $chunksReceived = '';
     $result = $service->stream('test', 'test', function (string $chunk) use (&$chunksReceived): void {
         $chunksReceived .= $chunk;
@@ -299,19 +299,17 @@ it('throws on stream request failure', function (): void {
             request: new Request('POST', 'test'),
         ));
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
 
     expect(fn (): array => $service->stream('test', 'test', fn (string $chunk): null => null))
-        ->toThrow(RuntimeException::class, 'Groq API error: Stream failed');
+        ->toThrow(RuntimeException::class, 'OpenRouter API error: Stream failed');
 });
 
 it('rejects constructor with empty base url', function (): void {
     $client = $this->createMock(Client::class);
 
-    $service = new GroqReviewService($client, '', 'key', 'model', 0.2, 2000);
-
-    expect(fn (): array => $service->review('system', 'user'))
-        ->toThrow(JsonException::class);
+    expect(fn () => new OpenRouterReviewService($client, '', 'key', 'model', 0.2, 2000))
+        ->toThrow(InvalidArgumentException::class, 'Base URL cannot be empty.');
 });
 
 it('repairs missing colon before bracket key', function (): void {
@@ -328,7 +326,7 @@ it('repairs missing colon before bracket key', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
     expect($result['content'])->toBeJson();
@@ -362,7 +360,7 @@ it('repairs common json malformations', function (): void {
         ->method('post')
         ->willReturn($response);
 
-    $service = createService($client);
+    $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
     expect($result['content'])->toBeJson();

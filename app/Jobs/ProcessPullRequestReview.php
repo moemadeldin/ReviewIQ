@@ -128,7 +128,7 @@ final class ProcessPullRequestReview implements ShouldQueue
 
         event(new ReviewCompleted(
             prId: $this->pullRequest->id,
-            review: $reviewResult,
+            review: $reviewData ?? [],
         ));
 
         Log::info('Review stored for PR #'.$this->pullRequest->number, [

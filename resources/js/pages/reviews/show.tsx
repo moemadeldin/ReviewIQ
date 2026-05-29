@@ -129,7 +129,7 @@ export default function PullRequestShow() {
         }
     };
 
-    const score = pullRequest.review?.score ?? null;
+    const score = showReview?.score ?? null;
     const radius = 45;
     const circumference = 2 * Math.PI * radius;
     const progress = score !== null ? (score / 100) * circumference : 0;
@@ -146,10 +146,10 @@ export default function PullRequestShow() {
                         title={pullRequest.title || `#${pullRequest.number}`}
                         description={`Pull request in ${pullRequest.repository?.full_name || 'Unknown'}`}
                     />
-                    {pullRequest.diff_url && (
+                    {pullRequest.repository?.full_name && pullRequest.number && (
                         <Button asChild>
                             <a
-                                href={pullRequest.diff_url}
+                                href={`https://github.com/${pullRequest.repository.full_name}/pull/${pullRequest.number}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
@@ -289,14 +289,14 @@ export default function PullRequestShow() {
                             </Card>
                         )}
 
-                        {pullRequest.review?.highlights &&
-                            pullRequest.review.highlights.length > 0 && (
+                        {showReview?.highlights &&
+                            showReview.highlights.length > 0 && (
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>
                                             Highlights (
                                             {
-                                                pullRequest.review.highlights
+                                                showReview.highlights
                                                     .length
                                             }
                                             )
@@ -304,7 +304,7 @@ export default function PullRequestShow() {
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-4">
-                                            {pullRequest.review.highlights.map(
+                                            {showReview.highlights.map(
                                                 (highlight, index) => (
                                                     <div
                                                         key={index}
@@ -332,7 +332,7 @@ export default function PullRequestShow() {
                                 </Card>
                             )}
 
-                        {!pullRequest.review && (
+                        {!showReview && (
                             <Card>
                                 <CardContent className="py-12 text-center">
                                     <div className="text-lg font-medium text-muted-foreground">
@@ -393,11 +393,11 @@ export default function PullRequestShow() {
                                             </span>
                                         </div>
                                     </div>
-                                    {pullRequest.review?.recommendation && (
+                                    {showReview?.recommendation && (
                                         <div className="mt-4 text-center">
                                             <Badge variant="outline">
                                                 {
-                                                    pullRequest.review
+                                                    showReview
                                                         .recommendation
                                                 }
                                             </Badge>
@@ -432,14 +432,14 @@ export default function PullRequestShow() {
                                             ).toLocaleString()}
                                         </div>
                                     </div>
-                                    {pullRequest.review?.created_at && (
+                                    {showReview?.created_at && (
                                         <div>
                                             <div className="text-sm text-muted-foreground">
                                                 Reviewed
                                             </div>
                                             <div className="text-sm font-medium">
                                                 {new Date(
-                                                    pullRequest.review
+                                                    showReview
                                                         .created_at,
                                                 ).toLocaleString()}
                                             </div>

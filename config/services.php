@@ -45,12 +45,12 @@ return [
         'base_url' => env('GITHUB_BASE_URL'),
         'scopes' => ['read:user', 'repo'],
     ],
-    'groq' => [
-        'api_key' => env('GROQ_API_KEY'),
-        'base_url' => env('GROQ_API_CHAT'),
-        'model' => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
-        'temperature' => (int) env('GROQ_TEMPERATURE', 0.2),
-        'max_tokens' => (int) env('GROQ_MAX_TOKENS', 2000),
-        'timeout' => env('GROQ_TIMEOUT', 60),
+    'openrouter' => [
+        'api_key' => env('OPENROUTER_API_KEY'),
+        'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1/'),
+        'model' => env('OPENROUTER_MODEL', 'deepseek/deepseek-v4-flash:free'),
+        'temperature' => (float) env('OPENROUTER_TEMPERATURE', 0.2),
+        'max_tokens' => (int) env('OPENROUTER_MAX_TOKENS', 2000),
+        'timeout' => env('OPENROUTER_TIMEOUT', 60),
     ],
 ];
