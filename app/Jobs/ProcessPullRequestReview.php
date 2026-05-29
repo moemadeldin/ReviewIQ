@@ -84,6 +84,7 @@ final class ProcessPullRequestReview implements ShouldQueue
             'preview' => mb_substr($diff, 0, 120),
         ]);
 
+        /** @var array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, array{}>, highlights?: array<int, string>, recommendation?: string} $reviewResult */
         $reviewResult = $aiReviewer->review(
             systemPrompt: $promptBuilder->buildSystemPrompt(),
             userPrompt: $promptBuilder->buildUserPrompt(
@@ -95,44 +96,26 @@ final class ProcessPullRequestReview implements ShouldQueue
             ),
         );
 
-        /** @var array{content: string} $reviewResult */
-        $reviewContent = $reviewResult['content'];
-        /** @var array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, array{}>, highlights?: array<int, string>, recommendation?: string}|false $reviewData */
-        $reviewData = json_decode($reviewContent, true);
-
-        /** @var string $summary */
-        $summary = is_array($reviewData) ? ($reviewData['summary'] ?? '') : '';
-        /** @var int $score */
-        $score = is_array($reviewData) ? ($reviewData['score'] ?? 0) : 0;
-        /** @var string $scoreRationale */
-        $scoreRationale = is_array($reviewData) ? ($reviewData['score_rationale'] ?? '') : '';
-        /** @var array<int, array<string, mixed>> $issues */
-        $issues = is_array($reviewData) ? ($reviewData['issues'] ?? []) : [];
-        /** @var array<int, string> $highlights */
-        $highlights = is_array($reviewData) ? ($reviewData['highlights'] ?? []) : [];
-        /** @var string $recommendation */
-        $recommendation = is_array($reviewData) ? ($reviewData['recommendation'] ?? 'comment') : 'comment';
-
         Review::query()->create([
             'pull_request_id' => $this->pullRequest->id,
-            'summary' => $summary,
-            'score' => $score,
-            'score_rationale' => $scoreRationale,
-            'issues' => $issues,
-            'highlights' => $highlights,
-            'recommendation' => $recommendation,
-            'raw_response' => $reviewContent,
+            'summary' => $reviewResult['summary'] ?? '',
+            'score' => $reviewResult['score'] ?? 0,
+            'score_rationale' => $reviewResult['score_rationale'] ?? '',
+            'issues' => $reviewResult['issues'] ?? [],
+            'highlights' => $reviewResult['highlights'] ?? [],
+            'recommendation' => $reviewResult['recommendation'] ?? 'comment',
+            'raw_response' => json_encode($reviewResult),
         ]);
 
         $this->pullRequest->update(['status' => PullRequestStatus::Reviewed]);
 
         event(new ReviewCompleted(
             prId: $this->pullRequest->id,
-            review: $reviewData ?? [],
+            review: $reviewResult,
         ));
 
         Log::info('Review stored for PR #'.$this->pullRequest->number, [
-            'score' => $reviewData['score'] ?? 0,
+            'score' => $reviewResult['score'] ?? 0,
         ]);
     }
 

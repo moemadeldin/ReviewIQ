@@ -219,8 +219,6 @@ final readonly class OpenRouterReviewService implements AIReviewer
         $parsed['recommendation'] ??= 'comment';
         $parsed['score_rationale'] ??= '';
 
-        $encoded = json_encode($parsed);
-
-        return ['content' => $encoded !== false ? $encoded : '{}'];
+        return $parsed;
     }
 }
