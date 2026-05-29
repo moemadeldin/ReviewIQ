@@ -178,9 +178,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
         $json = (string) preg_replace('/:\s*([a-zA-Z_]\w*)"?([,}\]]|$)/', ': "$1"$2', $json);
 
-        $json = (string) preg_replace('/:\s*,/', ': null,', $json);
-
-        return $json;
+        return (string) preg_replace('/:\s*,/', ': null,', $json);
     }
 
     private function sanitize(array $parsed): array
