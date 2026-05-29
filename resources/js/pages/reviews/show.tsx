@@ -146,18 +146,19 @@ export default function PullRequestShow() {
                         title={pullRequest.title || `#${pullRequest.number}`}
                         description={`Pull request in ${pullRequest.repository?.full_name || 'Unknown'}`}
                     />
-                    {pullRequest.diff_url && (
-                        <Button asChild>
-                            <a
-                                href={pullRequest.diff_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                View on GitHub
-                            </a>
-                        </Button>
-                    )}
+                    {pullRequest.repository?.full_name &&
+                        pullRequest.number && (
+                            <Button asChild>
+                                <a
+                                    href={`https://github.com/${pullRequest.repository.full_name}/pull/${pullRequest.number}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    View on GitHub
+                                </a>
+                            </Button>
+                        )}
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-3">
@@ -273,14 +274,34 @@ export default function PullRequestShow() {
                                                         >
                                                             {issue.severity}
                                                         </Badge>
-                                                        <code className="font-mono text-sm">
-                                                            {issue.file}:
-                                                            {issue.line}
-                                                        </code>
+                                                        {issue.file && (
+                                                            <code className="font-mono text-sm">
+                                                                {issue.file}
+                                                                {issue.line !=
+                                                                null
+                                                                    ? `:${issue.line}`
+                                                                    : ''}
+                                                            </code>
+                                                        )}
                                                     </div>
-                                                    <p className="text-sm">
-                                                        {issue.message}
-                                                    </p>
+                                                    {issue.title && (
+                                                        <p className="mb-1 text-sm font-medium">
+                                                            {issue.title}
+                                                        </p>
+                                                    )}
+                                                    {issue.description && (
+                                                        <p className="mb-2 text-sm text-muted-foreground">
+                                                            {issue.description}
+                                                        </p>
+                                                    )}
+                                                    {issue.suggestion && (
+                                                        <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">
+                                                            <span className="font-medium">
+                                                                Suggestion:
+                                                            </span>{' '}
+                                                            {issue.suggestion}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             ),
                                         )}
@@ -310,20 +331,35 @@ export default function PullRequestShow() {
                                                         key={index}
                                                         className="rounded-lg border p-4"
                                                     >
-                                                        <div className="mb-2 flex items-center gap-2">
-                                                            <code className="font-mono text-sm">
-                                                                {highlight.file}
-                                                                :
-                                                                {highlight.line}
-                                                            </code>
-                                                        </div>
-                                                        <pre className="overflow-x-auto rounded-md bg-muted p-3 text-sm">
-                                                            <code>
-                                                                {
-                                                                    highlight.content
-                                                                }
-                                                            </code>
-                                                        </pre>
+                                                        {typeof highlight ===
+                                                        'string' ? (
+                                                            <p className="text-sm">
+                                                                {highlight}
+                                                            </p>
+                                                        ) : (
+                                                            <>
+                                                                <div className="mb-2 flex items-center gap-2">
+                                                                    <code className="font-mono text-sm">
+                                                                        {
+                                                                            highlight.file
+                                                                        }
+                                                                        {highlight.line !=
+                                                                        null
+                                                                            ? `:${highlight.line}`
+                                                                            : ''}
+                                                                    </code>
+                                                                </div>
+                                                                {highlight.content && (
+                                                                    <pre className="overflow-x-auto rounded-md bg-muted p-3 text-sm">
+                                                                        <code>
+                                                                            {
+                                                                                highlight.content
+                                                                            }
+                                                                        </code>
+                                                                    </pre>
+                                                                )}
+                                                            </>
+                                                        )}
                                                     </div>
                                                 ),
                                             )}

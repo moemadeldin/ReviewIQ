@@ -11,7 +11,7 @@ ReviewIQ is an AI-powered pull request review tool that leverages LLMs to analyz
 
 ## Features
 
-- **AI Code Review** - Automated code analysis using Groq's LLM
+- **AI Code Review** - Automated code analysis using DeepSeek V4 Flash via OpenRouter
 - **Real-time Streaming** - Live review progress via WebSocket (Reverb)
 - **GitHub Integration** - Webhook-based PR detection and diff fetching
 - **Workspace Management** - Multi-tenant support with team collaboration
@@ -23,7 +23,7 @@ ReviewIQ is an AI-powered pull request review tool that leverages LLMs to analyz
 - **Backend**: Laravel 13, PHP 8.5+
 - **Frontend**: React 18, Inertia 3, TypeScript
 - **UI**: Shadcn/UI, Tailwind CSS
-- **AI**: Groq (Llama 3.3 70B)
+- **AI**: DeepSeek V4 Flash (via OpenRouter)
 - **Real-time**: Laravel Reverb (WebSocket)
 - **Queue**: Laravel Queue with database driver
 - **Cache**: Redis (via predis)
@@ -38,7 +38,7 @@ ReviewIQ is an AI-powered pull request review tool that leverages LLMs to analyz
 - Composer
 - Redis 6+
 - PostgreSQL
-- Groq API key
+- OpenRouter API key (free DeepSeek V4 Flash)
 - GitHub OAuth App (Client ID + Secret)
 
 ### Installation
@@ -115,10 +115,10 @@ REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 REDIS_PASSWORD=
 
-# Groq AI
-GROQ_API_KEY=your_groq_api_key
-GROQ_API_CHAT=https://api.groq.com/openai/v1/chat/completions
-GROQ_MODEL=llama-3.3-70b-versatile
+# OpenRouter AI (DeepSeek V4 Flash)
+OPENROUTER_API_KEY=your_openrouter_api_key
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1/
+OPENROUTER_MODEL=deepseek/deepseek-v4-flash:free
 
 # GitHub OAuth
 GITHUB_CLIENT_ID=
