@@ -114,10 +114,6 @@ final readonly class OpenRouterReviewService implements AIReviewer
             ],
         ];
 
-        if (! $stream) {
-            $body['response_format'] = ['type' => 'json_object'];
-        }
-
         if ($stream) {
             $body['stream'] = true;
         }
@@ -148,7 +144,16 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
     private function parse(string $raw): array
     {
-        $clean = mb_trim((string) preg_replace(['/^```(?:json)?\s*/m', '/\s*```$/m'], '', $raw));
+        $clean = (string) preg_replace('/^```(?:json)?\s*/m', '', $raw);
+        $clean = mb_trim((string) preg_replace('/\s*```$/m', '', $clean));
+
+        $firstBrace = strpos($clean, '{');
+        $lastBrace = strrpos($clean, '}');
+
+        if ($firstBrace !== false && $lastBrace !== false && $lastBrace >= $firstBrace) {
+            $clean = mb_substr($clean, $firstBrace, $lastBrace - $firstBrace + 1);
+        }
+
         $clean = $this->repairJson($clean);
 
         /** @var array<string, mixed>|null $parsed */
