@@ -10,6 +10,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Sleep;
+use InvalidArgumentException;
 use RuntimeException;
 
 final readonly class OpenRouterReviewService implements AIReviewer
@@ -21,7 +22,12 @@ final readonly class OpenRouterReviewService implements AIReviewer
         private string $model,
         private float $temperature,
         private int $maxTokens,
-    ) {}
+        private int $timeout = 60,
+    ) {
+        if (empty($this->baseUrl)) {
+            throw new InvalidArgumentException('Base URL cannot be empty.');
+        }
+    }
 
     public function review(string $systemPrompt, string $userPrompt): array
     {
@@ -42,7 +48,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
                 'json' => $this->buildRequestBody($systemPrompt, $userPrompt, stream: true),
                 'headers' => $this->buildHeaders(),
                 'stream' => true,
-                'read_timeout' => 120,
+                'read_timeout' => $this->timeout,
             ]);
 
             $body = $response->getBody();

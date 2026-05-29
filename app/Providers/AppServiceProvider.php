@@ -24,12 +24,13 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(DiffProvider::class, GitHubDiffService::class);
         $this->app->bind(AIReviewer::class, OpenRouterReviewService::class);
         $this->app->singleton(OpenRouterReviewService::class, fn (): OpenRouterReviewService => new OpenRouterReviewService(
-            client: new Client(['timeout' => 120]),
+            client: new Client(['timeout' => config('services.openrouter.timeout')]),
             baseUrl: config('services.openrouter.base_url'),
             apiKey: config('services.openrouter.api_key'),
             model: config('services.openrouter.model'),
             temperature: (float) config('services.openrouter.temperature'),
             maxTokens: (int) config('services.openrouter.max_tokens'),
+            timeout: (int) config('services.openrouter.timeout'),
         ));
     }
 }
