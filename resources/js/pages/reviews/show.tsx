@@ -146,18 +146,19 @@ export default function PullRequestShow() {
                         title={pullRequest.title || `#${pullRequest.number}`}
                         description={`Pull request in ${pullRequest.repository?.full_name || 'Unknown'}`}
                     />
-                    {pullRequest.repository?.full_name && pullRequest.number && (
-                        <Button asChild>
-                            <a
-                                href={`https://github.com/${pullRequest.repository.full_name}/pull/${pullRequest.number}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                View on GitHub
-                            </a>
-                        </Button>
-                    )}
+                    {pullRequest.repository?.full_name &&
+                        pullRequest.number && (
+                            <Button asChild>
+                                <a
+                                    href={`https://github.com/${pullRequest.repository.full_name}/pull/${pullRequest.number}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    View on GitHub
+                                </a>
+                            </Button>
+                        )}
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-3">
@@ -295,11 +296,7 @@ export default function PullRequestShow() {
                                     <CardHeader>
                                         <CardTitle>
                                             Highlights (
-                                            {
-                                                showReview.highlights
-                                                    .length
-                                            }
-                                            )
+                                            {showReview.highlights.length})
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
@@ -396,10 +393,7 @@ export default function PullRequestShow() {
                                     {showReview?.recommendation && (
                                         <div className="mt-4 text-center">
                                             <Badge variant="outline">
-                                                {
-                                                    showReview
-                                                        .recommendation
-                                                }
+                                                {showReview.recommendation}
                                             </Badge>
                                         </div>
                                     )}
@@ -439,8 +433,7 @@ export default function PullRequestShow() {
                                             </div>
                                             <div className="text-sm font-medium">
                                                 {new Date(
-                                                    showReview
-                                                        .created_at,
+                                                    showReview.created_at,
                                                 ).toLocaleString()}
                                             </div>
                                         </div>

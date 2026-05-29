@@ -17,7 +17,7 @@ final class ReviewCompleted implements ShouldBroadcast
     use SerializesModels;
 
     /**
-     * @param array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, mixed>, highlights?: array<int, mixed>, recommendation?: string} $review
+     * @param  array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, mixed>, highlights?: array<int, mixed>, recommendation?: string}  $review
      */
     public function __construct(
         public readonly string $prId,

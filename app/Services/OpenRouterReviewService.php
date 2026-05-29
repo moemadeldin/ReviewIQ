@@ -24,9 +24,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
         private int $maxTokens,
         private int $timeout = 60,
     ) {
-        if (empty($this->baseUrl)) {
-            throw new InvalidArgumentException('Base URL cannot be empty.');
-        }
+        throw_if($this->baseUrl === '' || $this->baseUrl === '0', InvalidArgumentException::class, 'Base URL cannot be empty.');
     }
 
     public function review(string $systemPrompt, string $userPrompt): array

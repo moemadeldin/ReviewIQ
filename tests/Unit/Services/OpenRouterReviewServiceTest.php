@@ -305,7 +305,7 @@ it('throws on stream request failure', function (): void {
 it('rejects constructor with empty base url', function (): void {
     $client = $this->createMock(Client::class);
 
-    expect(fn () => new OpenRouterReviewService($client, '', 'key', 'model', 0.2, 2000))
+    expect(fn (): OpenRouterReviewService => new OpenRouterReviewService($client, '', 'key', 'model', 0.2, 2000))
         ->toThrow(InvalidArgumentException::class, 'Base URL cannot be empty.');
 });
 
