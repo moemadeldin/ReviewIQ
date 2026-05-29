@@ -25,6 +25,9 @@ final readonly class OpenRouterReviewService implements AIReviewer
         private int $timeout = 60,
     ) {
         throw_if($this->baseUrl === '' || $this->baseUrl === '0', InvalidArgumentException::class, 'Base URL cannot be empty.');
+        if (empty($this->baseUrl)) {
+            throw new InvalidArgumentException('Base URL cannot be empty.');
+        }
     }
 
     public function review(string $systemPrompt, string $userPrompt): array
@@ -218,5 +221,12 @@ final readonly class OpenRouterReviewService implements AIReviewer
         $parsed['score_rationale'] ??= '';
 
         return $parsed;
+        $parsed['highlights'] = is_array($parsed['highlights'] ?? null) ? $parsed['highlights'] : [];
+        $parsed['recommendation'] ??= 'comment';
+        $parsed['score_rationale'] ??= '';
+
+        $encoded = json_encode($parsed);
+
+        return ['content' => $encoded !== false ? $encoded : '{}'];
     }
 }

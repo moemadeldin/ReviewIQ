@@ -8,6 +8,8 @@ mkdir -p storage/framework/cache/data \
 
 chmod -R 775 storage bootstrap/cache
 
+rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+
 php artisan storage:link --quiet 2>/dev/null || true
 
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
