@@ -23,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
     )
     ->withSchedule(function (Schedule $schedule): void {
-        $schedule->command('reviews:retry')->hourly();
+        $schedule->command('reviews:retry')->everyMinute();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);

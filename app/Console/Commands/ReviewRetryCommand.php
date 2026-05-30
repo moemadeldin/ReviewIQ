@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Enums\PullRequestStatus;
 use App\Jobs\ProcessPullRequestReview;
 use App\Models\PullRequest;
 use Illuminate\Console\Attributes\Description;
@@ -17,7 +18,7 @@ final class ReviewRetryCommand extends Command
     public function handle(): int
     {
         $prs = PullRequest::query()
-            ->whereIn('status', ['pending', 'failed'])
+            ->whereNot('status', PullRequestStatus::Reviewed)
             ->get();
 
         if ($prs->isEmpty()) {
