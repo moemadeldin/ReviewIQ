@@ -17,11 +17,4 @@ return new class extends Migration
             $table->text('description')->nullable()->after('title');
         });
     }
-
-    public function down(): void
-    {
-        Schema::table('pull_requests', function (Blueprint $table): void {
-            $table->dropColumn('description');
-        });
-    }
 };
