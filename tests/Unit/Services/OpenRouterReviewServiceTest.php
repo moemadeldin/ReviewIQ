@@ -30,6 +30,7 @@ function createOpenRouterService(Client $client): OpenRouterReviewService
         config('services.openrouter.model'),
         (float) config('services.openrouter.temperature'),
         (int) config('services.openrouter.max_tokens'),
+        (int) config('services.openrouter.timeout', 60),
     );
 }
 
@@ -60,11 +61,8 @@ it('performs non-streaming review successfully', function (): void {
     $service = createOpenRouterService($client);
     $result = $service->review('system prompt', 'user prompt');
 
-    $data = $result;
-    expect($result['content'])->toBeJson();
-    $data = json_decode((string) $result['content'], true);
-    expect($data['summary'])->toBe('Good code')
-        ->and($data['score'])->toBe(85);
+    expect($result['summary'])->toBe('Good code')
+        ->and($result['score'])->toBe(85);
 });
 
 it('performs streaming review successfully', function (): void {
@@ -106,7 +104,7 @@ it('performs streaming review successfully', function (): void {
         },
     );
 
-    expect($result['content'])->toBeJson();
+    expect($result['summary'])->toBe('Good code');
     expect($chunksReceived)->toContain('Good code');
     expect($chunksReceived)->toContain('approve');
 });
@@ -180,8 +178,7 @@ it('sanitizes score to int', function (): void {
 
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
-    $data = json_decode((string) $result['content'], true);
-    expect($data['score'])->toBe(85);
+    expect($result['score'])->toBe(85);
 });
 
 it('provides defaults for missing optional fields', function (): void {
@@ -202,10 +199,9 @@ it('provides defaults for missing optional fields', function (): void {
 
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
-    $data = json_decode((string) $result['content'], true);
-    expect($data['highlights'])->toBe([])
-        ->and($data['recommendation'])->toBe('comment')
-        ->and($data['score_rationale'])->toBe('');
+    expect($result['highlights'])->toBe([])
+        ->and($result['recommendation'])->toBe('comment')
+        ->and($result['score_rationale'])->toBe('');
 });
 
 it('parses json with markdown fences', function (): void {
@@ -222,8 +218,7 @@ it('parses json with markdown fences', function (): void {
 
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
-    $data = json_decode((string) $result['content'], true);
-    expect($data['summary'])->toBe('Good code');
+    expect($result['summary'])->toBe('Good code');
 });
 
 it('sanitizes issues severity', function (): void {
@@ -246,8 +241,7 @@ it('sanitizes issues severity', function (): void {
 
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
-    $data = json_decode((string) $result['content'], true);
-    expect($data['issues'][0]['severity'])->toBe('medium');
+    expect($result['issues'][0]['severity'])->toBe('medium');
 });
 
 it('handles streaming edge cases', function (): void {
@@ -280,11 +274,8 @@ it('handles streaming edge cases', function (): void {
         $chunksReceived .= $chunk;
     });
 
-    $data = $result;
-    expect($result['content'])->toBeJson();
-    $data = json_decode((string) $result['content'], true);
-    expect($data['summary'])->toBe('test')
-        ->and($data['score'])->toBe(50);
+    expect($result['summary'])->toBe('test')
+        ->and($result['score'])->toBe(50);
     expect($chunksReceived)->toContain('test');
 });
 
@@ -388,10 +379,6 @@ it('rejects constructor with empty base url', function (): void {
 
     expect(fn (): OpenRouterReviewService => new OpenRouterReviewService($client, '', 'key', 'model', 0.2, 2000))
         ->toThrow(InvalidArgumentException::class, 'Base URL cannot be empty.');
-    $service = new OpenRouterReviewService($client, '', 'key', 'model', 0.2, 2000);
-
-    expect(fn (): array => $service->review('system', 'user'))
-        ->toThrow(JsonException::class);
 });
 
 it('repairs missing colon before bracket key', function (): void {
@@ -411,10 +398,7 @@ it('repairs missing colon before bracket key', function (): void {
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
-    $data = $result;
-    expect($result['content'])->toBeJson();
-    $data = json_decode((string) $result['content'], true);
-    expect($data['issues'][0]['severity'])->toBe('high');
+    expect($result['issues'][0]['severity'])->toBe('high');
 });
 
 it('repairs common json malformations', function (): void {
@@ -446,12 +430,9 @@ it('repairs common json malformations', function (): void {
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
 
-    $data = $result;
-    expect($result['content'])->toBeJson();
-    $data = json_decode((string) $result['content'], true);
-    expect($data['summary'])->toBe(' PR introduces significant change')
-        ->and($data['score'])->toBe(70)
-        ->and($data['score_rationale'])->toBe('The score is 70')
-        ->and($data['issues'][0]['severity'])->toBe('medium')
-        ->and($data['recommendation'])->toBe('request_changes');
+    expect($result['summary'])->toBe(' PR introduces significant change')
+        ->and($result['score'])->toBe(70)
+        ->and($result['score_rationale'])->toBe('The score is 70')
+        ->and($result['issues'][0]['severity'])->toBe('medium')
+        ->and($result['recommendation'])->toBe('request_changes');
 });

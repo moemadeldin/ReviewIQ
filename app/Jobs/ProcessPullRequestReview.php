@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Contracts\AIReviewer;
 use App\Contracts\DiffProvider;
+use App\Contracts\GitHubAppAuth;
 use App\Enums\PullRequestStatus;
 use App\Events\ReviewCompleted;
 use App\Models\PullRequest;

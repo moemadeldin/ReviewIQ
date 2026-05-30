@@ -19,15 +19,15 @@ final readonly class GitHubApiService implements GitHubApi
 
     private const int REPOS_CACHE_TTL = 300;
 
-    private const int REPOS_PER_PAGE = 10;
-
     public function __construct(private string $baseUrl) {}
 
     /**
      * @return array<int, array{id: int, full_name: string, language: string|null}>
      */
-    public function getUserRepos(string $token, int $page = 1, int $perPage = self::REPOS_PER_PAGE): array
+    public function getUserRepos(string $token, int $page = 1, int $perPage = 0): array
     {
+        $perPage = $perPage > 0 ? $perPage : (int) config('services.github.repos_per_page', 10);
+
         $cacheKey = sprintf('github:repos:%s:page:%d', hash('sha256', $token), $page);
 
         return Cache::remember($cacheKey, self::REPOS_CACHE_TTL, function () use ($token, $page, $perPage): array {

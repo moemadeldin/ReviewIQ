@@ -109,9 +109,9 @@ it('caches the installation token', function (): void {
     file_put_contents($path, TEST_PRIVATE_KEY);
     Config::set('services.github_app.private_key_path', $path);
 
-    Cache::shouldReceive('remember')
+    Cache::shouldReceive('get')
         ->once()
-        ->with('github:installation_token:136722736', 55 * 60, Mockery::on(fn ($closure): bool => is_callable($closure)))
+        ->with('github:installation_token:136722736')
         ->andReturn('cached_token');
 
     $auth = new GitHubAppAuth();
@@ -168,4 +168,4 @@ it('throws when GitHub API returns no token', function (): void {
 
     $auth = new GitHubAppAuth();
     $auth->getInstallationToken();
-})->throws(RuntimeException::class, 'Failed to get GitHub App installation token');
+})->throws(RuntimeException::class, 'Failed to get a valid GitHub App installation token');
