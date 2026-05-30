@@ -161,6 +161,31 @@ export default function PullRequestShow() {
                                 </a>
                             </Button>
                         )}
+                    {showReview && (
+                        <form
+                            action={`/workspaces/${workspace.slug}/reviews/${pullRequest.id}/re-review`}
+                            method="POST"
+                        >
+                            <input
+                                type="hidden"
+                                name="_token"
+                                value={
+                                    (
+                                        document.querySelector(
+                                            'meta[name="csrf-token"]',
+                                        ) as HTMLMetaElement
+                                    )?.content ?? ''
+                                }
+                            />
+                            <Button
+                                variant="outline"
+                                type="submit"
+                                disabled={isReviewing}
+                            >
+                                {isReviewing ? 'Reviewing...' : 'Re-review'}
+                            </Button>
+                        </form>
+                    )}
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-3">

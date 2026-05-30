@@ -52,7 +52,7 @@ final class ProcessPullRequestReview implements ShouldQueue
     ): void {
         $updated = PullRequest::query()
             ->where('id', $this->pullRequest->id)
-            ->where('status', PullRequestStatus::Pending)
+            ->whereIn('status', [PullRequestStatus::Pending, PullRequestStatus::Reviewing])
             ->update(['status' => PullRequestStatus::Reviewing]);
 
         if (! $updated) {
@@ -92,6 +92,7 @@ final class ProcessPullRequestReview implements ShouldQueue
             userPrompt: $promptBuilder->buildUserPrompt(
                 diff: $diff,
                 prTitle: $this->pullRequest->title ?? '',
+                prDescription: $this->pullRequest->description,
                 repoLanguage: $repository->language,
                 customRules: $repository->custom_rules,
             ),
@@ -126,8 +127,13 @@ final class ProcessPullRequestReview implements ShouldQueue
     {
         Log::error('Review job failed for PR #'.$this->pullRequest->number, [
             'error' => $e->getMessage(),
+            'attempts' => $this->attempts(),
         ]);
 
-        $this->pullRequest->update(['status' => PullRequestStatus::Pending]);
+        $status = $this->attempts() >= $this->job->maxTries()
+            ? PullRequestStatus::Failed
+            : PullRequestStatus::Pending;
+
+        $this->pullRequest->update(['status' => $status]);
     }
 }

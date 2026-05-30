@@ -51,7 +51,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
             return;
         }
 
-        /** @var array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}} $prPayload */
+        /** @var array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}, body: string|null} $prPayload */
         $prPayload = $payload['pull_request'];
 
         $pr = PullRequest::query()->updateOrCreate(
@@ -63,6 +63,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
                 'author' => $prPayload['user']['login'],
                 'diff_url' => $prPayload['diff_url'],
                 'head_sha' => $prPayload['head']['sha'],
+                'description' => $prPayload['body'] ?? null,
             ]
         );
 

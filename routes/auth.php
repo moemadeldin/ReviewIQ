@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\UserTwoFactorAuthenticationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Repositories\GetConnectedRepositoriesController;
 use App\Http\Controllers\Repositories\RepositoryController;
+use App\Http\Controllers\Reviews\ReReviewController;
 use App\Http\Controllers\Reviews\ReviewController;
 use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
@@ -78,6 +79,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('workspaces/{workspace}/reviews/data', [ReviewController::class, 'index'])->name('reviews.index');
     Route::get('workspaces/{workspace}/reviews', [WorkspacePageController::class, 'reviews'])->name('reviews.page');
     Route::get('workspaces/{workspace}/reviews/{pullRequest}', [WorkspacePageController::class, 'review'])->name('reviews.show');
+    Route::post('workspaces/{workspace}/reviews/{pullRequest}/re-review', ReReviewController::class)->name('reviews.re-review');
 
     // Invitations...
 
