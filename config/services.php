@@ -45,6 +45,11 @@ return [
         'base_url' => env('GITHUB_BASE_URL'),
         'scopes' => ['read:user', 'repo'],
     ],
+    'github_app' => [
+        'app_id' => env('GITHUB_APP_ID'),
+        'installation_id' => env('GITHUB_APP_INSTALLATION_ID'),
+        'private_key_path' => env('GITHUB_APP_PRIVATE_KEY_PATH', storage_path('oauth/reviewiq-pr-reviewer.pem')),
+    ],
     'openrouter' => [
         'api_key' => env('OPENROUTER_API_KEY'),
         'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1/'),
