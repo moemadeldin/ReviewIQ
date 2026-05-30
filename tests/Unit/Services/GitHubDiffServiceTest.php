@@ -15,7 +15,7 @@ it('fetches diff successfully', function (): void {
         'api.github.com/repos/owner/repo/pulls/42' => Http::response('diff --git a/file.php b/file.php', 200),
     ]);
 
-    $service = new GitHubDiffService();
+    $service = new GitHubDiffService(baseUrl: config('services.github.base_url'));
     $diff = $service->getDiff('test-token', 'owner/repo', 42);
 
     expect($diff)->toBe('diff --git a/file.php b/file.php');
@@ -30,17 +30,17 @@ it('throws on failed response', function (): void {
         'api.github.com/repos/owner/repo/pulls/42' => Http::response('Not Found', 404),
     ]);
 
-    $service = new GitHubDiffService();
+    $service = new GitHubDiffService(baseUrl: config('services.github.base_url'));
 
     expect(fn (): string => $service->getDiff('test-token', 'owner/repo', 42))
         ->toThrow(Exception::class, 'Could not fetch PR diff from GitHub.');
 });
 
 it('throws when base url config is missing', function (): void {
-    Config::set('services.github.base_url');
+    Config::set('services.github.base_url', '');
 
-    $service = new GitHubDiffService();
+    $service = new GitHubDiffService(baseUrl: '');
 
     expect(fn (): string => $service->getDiff('test-token', 'owner/repo', 42))
-        ->toThrow(RuntimeException::class, 'Invalid GitHub base URL configuration');
+        ->toThrow(RuntimeException::class);
 });

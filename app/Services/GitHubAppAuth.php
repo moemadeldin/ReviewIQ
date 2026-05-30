@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\GitHubAppAuth as GitHubAppAuthContract;
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-final class GitHubAppAuth
+final readonly class GitHubAppAuth implements GitHubAppAuthContract
 {
-    private const TOKEN_TTL_SECONDS = 55 * 60;
+    private const int TOKEN_TTL_SECONDS = 55 * 60;
 
     private const int JWT_TTL_SECONDS = 600;
-
-    private static string $cachedPrivateKey = '';
 
     public function getInstallationToken(): string
     {
@@ -112,20 +111,16 @@ final class GitHubAppAuth
     /** @return non-empty-string */
     private function privateKey(): string
     {
-        if (self::$cachedPrivateKey !== '') {
-            return self::$cachedPrivateKey;
-        }
+        return Cache::remember('github:app:private_key', now()->addDay(), function (): string {
+            $path = config('services.github_app.private_key_path');
+            throw_unless(is_string($path) && $path !== '', RuntimeException::class, 'GitHub App private key path not configured');
+            throw_unless(is_file($path), RuntimeException::class, 'GitHub App private key not found at: '.$path);
+            throw_unless(is_readable($path), RuntimeException::class, 'GitHub App private key is not readable at: '.$path);
 
-        $path = config('services.github_app.private_key_path');
-        throw_unless(is_string($path) && $path !== '', RuntimeException::class, 'GitHub App private key path not configured');
-        throw_unless(is_file($path), RuntimeException::class, 'GitHub App private key not found at: '.$path);
-        throw_unless(is_readable($path), RuntimeException::class, 'GitHub App private key is not readable at: '.$path);
+            $contents = file_get_contents($path);
+            throw_unless(is_string($contents) && $contents !== '', RuntimeException::class, 'Failed to read GitHub App private key at: '.$path);
 
-        $contents = file_get_contents($path);
-        throw_unless(is_string($contents) && $contents !== '', RuntimeException::class, 'Failed to read GitHub App private key at: '.$path);
-
-        self::$cachedPrivateKey = $contents;
-
-        return self::$cachedPrivateKey;
+            return $contents;
+        });
     }
 }

@@ -44,6 +44,7 @@ return [
         'webhook_url' => env('GITHUB_WEBHOOK_URL'),
         'base_url' => env('GITHUB_BASE_URL'),
         'scopes' => ['read:user', 'repo'],
+        'repos_per_page' => env('GITHUB_REPOS_PER_PAGE', 10),
     ],
     'github_app' => [
         'app_id' => env('GITHUB_APP_ID', ''),

@@ -101,9 +101,9 @@ it('fetches and caches installation token', function (): void {
 it('returns cached token without HTTP call', function (): void {
     setupKey();
 
-    Cache::shouldReceive('remember')
+    Cache::shouldReceive('get')
         ->once()
-        ->with('github:installation_token:136722736', 55 * 60, Mockery::on(fn ($closure): bool => is_callable($closure)))
+        ->with('github:installation_token:136722736')
         ->andReturn('cached_token');
 
     $auth = new GitHubAppAuth();

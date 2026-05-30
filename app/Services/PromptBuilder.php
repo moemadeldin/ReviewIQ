@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-final class PromptBuilder
+final readonly class PromptBuilder
 {
     public function buildSystemPrompt(): string
     {
