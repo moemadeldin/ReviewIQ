@@ -89,7 +89,7 @@ final readonly class GitHubApiService implements GitHubApi
     }
 
     /**
-     * @param array<int, array{file: string, line: int|null, severity: string, message: string}> $issues
+     * @param  array<int, array{file: string, line: int|null, severity: string, message: string}>  $issues
      */
     public function postReviewComments(string $token, string $fullName, int $prNumber, string $commitSha, array $issues, string $body): void
     {
@@ -99,12 +99,17 @@ final readonly class GitHubApiService implements GitHubApi
         $comments = [];
 
         foreach ($issues as $issue) {
-            if (! isset($issue['line']) || $issue['line'] === null) {
+            if (! isset($issue['line'])) {
                 continue;
             }
-
+            if ($issue['line'] === null) {
+                continue;
+            }
+            if (! isset($issue['file']) || $issue['file'] === '') {
+                continue;
+            }
             $comments[] = [
-                'path' => $issue['file'] ?? '',
+                'path' => $issue['file'],
                 'line' => $issue['line'],
                 'side' => 'RIGHT',
                 'body' => sprintf('**%s**: %s', $issue['severity'] ?? 'medium', $issue['description'] ?? $issue['title'] ?? $issue['message'] ?? ''),
@@ -115,7 +120,7 @@ final readonly class GitHubApiService implements GitHubApi
             return;
         }
 
-        $response = Http::withToken($token)
+        $response = Http::retry(2, 200)->withToken($token)
             ->withHeaders([
                 'Accept' => 'application/vnd.github+json',
                 'X-GitHub-Api-Version' => '2022-11-28',
