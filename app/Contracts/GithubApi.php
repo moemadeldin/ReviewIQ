@@ -14,4 +14,9 @@ interface GitHubApi
     public function registerWebhook(string $token, string $fullName): int;
 
     public function deleteWebhook(string $token, string $fullName, string $webhookId): void;
+
+    /**
+     * @param array<int, array{file: string, line: int|null, severity: string, message: string}> $issues
+     */
+    public function postReviewComments(string $token, string $fullName, int $prNumber, string $commitSha, array $issues): void;
 }

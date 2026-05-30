@@ -8,6 +8,7 @@ use App\Contracts\AIReviewer;
 use App\Contracts\DiffProvider;
 use App\Enums\PullRequestStatus;
 use App\Events\ReviewCompleted;
+use App\Jobs\PostReviewComments;
 use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\Review;
@@ -113,6 +114,8 @@ final class ProcessPullRequestReview implements ShouldQueue
             prId: $this->pullRequest->id,
             review: $reviewResult,
         ));
+
+        PostReviewComments::dispatch($this->pullRequest);
 
         Log::info('Review stored for PR #'.$this->pullRequest->number, [
             'score' => $reviewResult['score'] ?? 0,

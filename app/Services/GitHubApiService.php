@@ -87,4 +87,45 @@ final readonly class GitHubApiService implements GitHubApi
 
         $response->throw();
     }
+
+    /**
+     * @param array<int, array{file: string, line: int|null, severity: string, message: string}> $issues
+     */
+    public function postReviewComments(string $token, string $fullName, int $prNumber, string $commitSha, array $issues): void
+    {
+        $baseUrl = config('services.github.base_url');
+        throw_unless(is_string($baseUrl), RuntimeException::class, 'Invalid GitHub base URL configuration');
+
+        $comments = [];
+
+        foreach ($issues as $issue) {
+            if ($issue['line'] === null) {
+                continue;
+            }
+
+            $comments[] = [
+                'path' => $issue['file'],
+                'line' => $issue['line'],
+                'body' => sprintf('**%s**: %s', $issue['severity'], $issue['message']),
+            ];
+        }
+
+        if ($comments === []) {
+            return;
+        }
+
+        $response = Http::withToken($token)
+            ->withHeaders([
+                'Accept' => 'application/vnd.github+json',
+                'X-GitHub-Api-Version' => '2022-11-28',
+            ])
+            ->post($baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', [
+                'commit_id' => $commitSha,
+                'body' => 'AI Code Review',
+                'event' => 'COMMENT',
+                'comments' => $comments,
+            ]);
+
+        $response->throw();
+    }
 }
