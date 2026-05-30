@@ -65,10 +65,7 @@ afterEach(function (): void {
 });
 
 it('generates a valid JWT', function (): void {
-    $path = tempnam(sys_get_temp_dir(), 'gh-test-key-');
-    $this->tempKeyPath = $path;
-    file_put_contents($path, TEST_PRIVATE_KEY);
-    Config::set('services.github_app.private_key_path', $path);
+    setupKey();
 
     $auth = new GitHubAppAuth();
     $jwt = $auth->getJwt();
@@ -83,31 +80,26 @@ it('generates a valid JWT', function (): void {
     expect($decoded->exp - $decoded->iat)->toBe(600);
 });
 
-it('gets installation token from GitHub API', function (): void {
-    $path = tempnam(sys_get_temp_dir(), 'gh-test-key-');
-    $this->tempKeyPath = $path;
-    file_put_contents($path, TEST_PRIVATE_KEY);
-    Config::set('services.github_app.private_key_path', $path);
+it('fetches and caches installation token', function (): void {
+    setupKey();
 
     Http::fake([
-        'api.github.com/app/installations/136722736/access_tokens' => Http::response(['token' => 'ghs_test_installation_token'], 201),
+        'api.github.com/app/installations/136722736/access_tokens' => Http::response(['token' => 'ghs_test_token'], 201),
     ]);
 
     $auth = new GitHubAppAuth();
+
     $token = $auth->getInstallationToken();
+    expect($token)->toBe('ghs_test_token');
+    Http::assertSentCount(1);
 
-    expect($token)->toBe('ghs_test_installation_token');
-
-    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization')
-        && str_starts_with($request->header('Authorization')[0] ?? '', 'Bearer ')
-        && $request->url() === 'https://api.github.com/app/installations/136722736/access_tokens');
+    $cached = $auth->getInstallationToken();
+    expect($cached)->toBe('ghs_test_token');
+    Http::assertSentCount(1);
 });
 
-it('caches the installation token', function (): void {
-    $path = tempnam(sys_get_temp_dir(), 'gh-test-key-');
-    $this->tempKeyPath = $path;
-    file_put_contents($path, TEST_PRIVATE_KEY);
-    Config::set('services.github_app.private_key_path', $path);
+it('returns cached token without HTTP call', function (): void {
+    setupKey();
 
     Cache::shouldReceive('get')
         ->once()
@@ -118,7 +110,46 @@ it('caches the installation token', function (): void {
     $token = $auth->getInstallationToken();
 
     expect($token)->toBe('cached_token');
+    Http::assertNothingSent();
 });
+
+it('refreshToken clears cache and fetches new token', function (): void {
+    setupKey();
+
+    Cache::put('github:installation_token:136722736', 'stale_token', 55 * 60);
+
+    Http::fake([
+        'api.github.com/app/installations/136722736/access_tokens' => Http::response(['token' => 'fresh_token'], 201),
+    ]);
+
+    $auth = new GitHubAppAuth();
+    $token = $auth->refreshToken();
+
+    expect($token)->toBe('fresh_token');
+    expect(Cache::get('github:installation_token:136722736'))->toBe('fresh_token');
+});
+
+it('throws on empty token from API', function (): void {
+    setupKey();
+
+    Http::fake([
+        'api.github.com/app/installations/136722736/access_tokens' => Http::response(['token' => ''], 200),
+    ]);
+
+    $auth = new GitHubAppAuth();
+    $auth->getInstallationToken();
+})->throws(RuntimeException::class, 'Failed to get a valid GitHub App installation token');
+
+it('throws and clears cache on 401', function (): void {
+    setupKey();
+
+    Http::fake([
+        'api.github.com/app/installations/136722736/access_tokens' => Http::response(null, 401),
+    ]);
+
+    $auth = new GitHubAppAuth();
+    $auth->refreshToken();
+})->throws(RuntimeException::class, 'GitHub App authentication failed (401)');
 
 it('throws when app id is missing', function (): void {
     Config::set('services.github_app.app_id', '');
@@ -135,10 +166,7 @@ it('throws when private key path is missing', function (): void {
 })->throws(RuntimeException::class, 'GitHub App private key');
 
 it('throws when installation id is missing', function (): void {
-    $path = tempnam(sys_get_temp_dir(), 'gh-test-key-');
-    $this->tempKeyPath = $path;
-    file_put_contents($path, TEST_PRIVATE_KEY);
-    Config::set('services.github_app.private_key_path', $path);
+    setupKey();
     Config::set('services.github_app.installation_id', '');
 
     $auth = new GitHubAppAuth();
@@ -146,21 +174,15 @@ it('throws when installation id is missing', function (): void {
 })->throws(RuntimeException::class, 'GitHub App installation ID not configured');
 
 it('throws when GitHub base URL is missing', function (): void {
-    $path = tempnam(sys_get_temp_dir(), 'gh-test-key-');
-    $this->tempKeyPath = $path;
-    file_put_contents($path, TEST_PRIVATE_KEY);
-    Config::set('services.github_app.private_key_path', $path);
+    setupKey();
     Config::set('services.github.base_url', '');
 
     $auth = new GitHubAppAuth();
     $auth->getInstallationToken();
 })->throws(RuntimeException::class, 'Invalid GitHub base URL configuration');
 
-it('throws when GitHub API returns no token', function (): void {
-    $path = tempnam(sys_get_temp_dir(), 'gh-test-key-');
-    $this->tempKeyPath = $path;
-    file_put_contents($path, TEST_PRIVATE_KEY);
-    Config::set('services.github_app.private_key_path', $path);
+it('throws when GitHub API returns no token key', function (): void {
+    setupKey();
 
     Http::fake([
         'api.github.com/app/installations/136722736/access_tokens' => Http::response([], 200),

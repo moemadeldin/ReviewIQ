@@ -47,8 +47,8 @@ return [
         'repos_per_page' => env('GITHUB_REPOS_PER_PAGE', 10),
     ],
     'github_app' => [
-        'app_id' => env('GITHUB_APP_ID'),
-        'installation_id' => env('GITHUB_APP_INSTALLATION_ID'),
+        'app_id' => env('GITHUB_APP_ID', ''),
+        'installation_id' => env('GITHUB_APP_INSTALLATION_ID', ''),
         'private_key_path' => env('GITHUB_APP_PRIVATE_KEY_PATH', storage_path('oauth/reviewiq-pr-reviewer.pem')),
     ],
     'openrouter' => [

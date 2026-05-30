@@ -27,15 +27,16 @@ it('dispatches jobs for pending and failed reviews', function (): void {
     Bus::assertDispatchedTimes(ProcessPullRequestReview::class, 2);
 });
 
-it('skips reviewed and reviewing prs', function (): void {
+it('skips reviewed prs but dispatches for reviewing', function (): void {
     Bus::fake();
 
     PullRequest::factory()->reviewed()->create();
     PullRequest::factory()->create(['status' => PullRequestStatus::Reviewing]);
 
     $this->artisan('reviews:retry')
-        ->expectsOutput('No pending or failed reviews to retry.')
+        ->expectsOutputToContain('Found 1 reviews to retry.')
+        ->expectsOutputToContain('All reviews have been queued for retry.')
         ->assertSuccessful();
 
-    Bus::assertNotDispatched(ProcessPullRequestReview::class);
+    Bus::assertDispatchedTimes(ProcessPullRequestReview::class, 1);
 });

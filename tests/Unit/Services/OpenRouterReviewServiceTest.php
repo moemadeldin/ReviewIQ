@@ -107,6 +107,7 @@ it('performs streaming review successfully', function (): void {
     expect($result['summary'])->toBe('Good code');
     expect($chunksReceived)->toContain('Good code');
     expect($chunksReceived)->toContain('approve');
+    expect($result['summary'])->toBe('Good code');
 });
 
 it('throws on http failure during review', function (): void {
