@@ -51,7 +51,7 @@ final class ProcessPullRequestReview implements ShouldQueue
         PromptBuilder $promptBuilder,
         AIReviewer $aiReviewer,
     ): void {
-        if (in_array($this->pullRequest->status, [PullRequestStatus::Reviewing, PullRequestStatus::Reviewed], true)) {
+        if ($this->pullRequest->status === PullRequestStatus::Reviewed) {
             Log::info('PR #'.$this->pullRequest->number.' already processed, skipping');
 
             return;
@@ -110,7 +110,9 @@ final class ProcessPullRequestReview implements ShouldQueue
                 'raw_response' => json_encode($reviewResult),
             ]);
 
-        $this->pullRequest->update(['status' => PullRequestStatus::Reviewed]);
+        $this->pullRequest->update([
+            'status' => PullRequestStatus::Reviewed,
+        ]);
 
         event(new ReviewCompleted(
             prId: $this->pullRequest->id,

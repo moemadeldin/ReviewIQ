@@ -30,7 +30,7 @@ final class ReviewRetryCommand extends Command
         $this->info(sprintf('Found %d reviews to retry.', $prs->count()));
 
         foreach ($prs as $pr) {
-            if ($pr->status === PullRequestStatus::Reviewing) {
+            if ($pr->status === PullRequestStatus::Reviewing && $pr->updated_at->diffInMinutes(now()) > 10) {
                 $pr->update(['status' => PullRequestStatus::Pending]);
             }
 
