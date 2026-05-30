@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Contracts\GitHubApi;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -102,12 +104,18 @@ final readonly class GitHubApiService implements GitHubApi
             if (! isset($issue['line'])) {
                 continue;
             }
+
             if ($issue['line'] === null) {
                 continue;
             }
-            if (! isset($issue['file']) || $issue['file'] === '') {
+
+            if (! isset($issue['file'])) {
                 continue;
             }
+            if ($issue['file'] === '') {
+                continue;
+            }
+
             $comments[] = [
                 'path' => $issue['file'],
                 'line' => $issue['line'],
@@ -120,18 +128,52 @@ final readonly class GitHubApiService implements GitHubApi
             return;
         }
 
-        $response = Http::retry(2, 200)->withToken($token)
-            ->withHeaders([
-                'Accept' => 'application/vnd.github+json',
-                'X-GitHub-Api-Version' => '2022-11-28',
-            ])
-            ->post($baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', [
-                'commit_id' => $commitSha,
-                'body' => $body,
-                'event' => 'COMMENT',
-                'comments' => $comments,
+        try {
+            $response = Http::retry(2, 200)->withToken($token)
+                ->withHeaders([
+                    'Accept' => 'application/vnd.github+json',
+                    'X-GitHub-Api-Version' => '2022-11-28',
+                ])
+                ->post($baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', [
+                    'commit_id' => $commitSha,
+                    'body' => $body,
+                    'event' => 'COMMENT',
+                    'comments' => $comments,
+                ]);
+
+            $response->throw();
+        } catch (RequestException $e) {
+            if ($e->response->status() !== 422) {
+                throw $e;
+            }
+
+            Log::warning('Batch review comments rejected (422), posting individually', [
+                'repo' => $fullName,
+                'pr' => $prNumber,
+                'total' => count($comments),
             ]);
 
-        $response->throw();
+            foreach ($comments as $single) {
+                $resp = Http::withToken($token)
+                    ->withHeaders([
+                        'Accept' => 'application/vnd.github+json',
+                        'X-GitHub-Api-Version' => '2022-11-28',
+                    ])
+                    ->post($baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/comments', [
+                        'commit_id' => $commitSha,
+                        'path' => $single['path'],
+                        'line' => $single['line'],
+                        'body' => $single['body'],
+                    ]);
+
+                if ($resp->failed()) {
+                    Log::warning('Skipping comment with unresolvable path', [
+                        'file' => $single['path'],
+                        'line' => $single['line'],
+                        'status' => $resp->status(),
+                    ]);
+                }
+            }
+        }
     }
 }

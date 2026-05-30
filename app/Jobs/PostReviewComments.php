@@ -72,8 +72,8 @@ final class PostReviewComments implements ShouldQueue
                 issues: $issues,
                 body: $body,
             );
-        } catch (RequestException $e) {
-            if ($e->response->status() === Response::HTTP_UNAUTHORIZED) {
+        } catch (RequestException $requestException) {
+            if ($requestException->response?->status() === Response::HTTP_UNAUTHORIZED) {
                 $gitHub->postReviewComments(
                     token: $githubApp->refreshToken(),
                     fullName: $repoFullName,
@@ -83,7 +83,7 @@ final class PostReviewComments implements ShouldQueue
                     body: $body,
                 );
             } else {
-                throw $e;
+                throw $requestException;
             }
         }
 

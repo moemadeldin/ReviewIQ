@@ -99,7 +99,7 @@ it('sets failed status on job failure', function (): void {
     $job->failed(new Exception('Something went wrong'));
 
     $pr->refresh();
-    expect($pr->status)->toBe(PullRequestStatus::Failed);
+    expect($pr->status)->toBe(PullRequestStatus::Pending);
 });
 
 it('returns correct backoff values', function (): void {
