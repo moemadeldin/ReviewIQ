@@ -8,7 +8,6 @@ use App\Contracts\AIReviewer;
 use App\Contracts\DiffProvider;
 use App\Enums\PullRequestStatus;
 use App\Events\ReviewCompleted;
-use App\Jobs\PostReviewComments;
 use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\Review;
@@ -102,14 +101,14 @@ final class ProcessPullRequestReview implements ShouldQueue
         Review::query()->updateOrCreate(
             ['pull_request_id' => $this->pullRequest->id],
             [
-            'summary' => $reviewResult['summary'] ?? '',
-            'score' => $reviewResult['score'] ?? 0,
-            'score_rationale' => $reviewResult['score_rationale'] ?? '',
-            'issues' => $reviewResult['issues'] ?? [],
-            'highlights' => $reviewResult['highlights'] ?? [],
-            'recommendation' => $reviewResult['recommendation'] ?? 'comment',
-            'raw_response' => json_encode($reviewResult),
-        ]);
+                'summary' => $reviewResult['summary'] ?? '',
+                'score' => $reviewResult['score'] ?? 0,
+                'score_rationale' => $reviewResult['score_rationale'] ?? '',
+                'issues' => $reviewResult['issues'] ?? [],
+                'highlights' => $reviewResult['highlights'] ?? [],
+                'recommendation' => $reviewResult['recommendation'] ?? 'comment',
+                'raw_response' => json_encode($reviewResult),
+            ]);
 
         $this->pullRequest->update(['status' => PullRequestStatus::Reviewed]);
 
@@ -118,7 +117,7 @@ final class ProcessPullRequestReview implements ShouldQueue
             review: $reviewResult,
         ));
 
-        PostReviewComments::dispatch($this->pullRequest);
+        dispatch(new PostReviewComments($this->pullRequest));
 
         Log::info('Review stored for PR #'.$this->pullRequest->number, [
             'score' => $reviewResult['score'] ?? 0,

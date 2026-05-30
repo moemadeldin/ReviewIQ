@@ -89,7 +89,7 @@ final readonly class GitHubApiService implements GitHubApi
     }
 
     /**
-     * @param array<int, array{file: string, line: int|null, severity: string, message: string}> $issues
+     * @param  array<int, array{file: string, line: int|null, severity: string, message: string}>  $issues
      */
     public function postReviewComments(string $token, string $fullName, int $prNumber, string $commitSha, array $issues, string $body): void
     {
@@ -99,10 +99,12 @@ final readonly class GitHubApiService implements GitHubApi
         $comments = [];
 
         foreach ($issues as $issue) {
-            if (! isset($issue['line']) || $issue['line'] === null) {
+            if (! isset($issue['line'])) {
                 continue;
             }
-
+            if ($issue['line'] === null) {
+                continue;
+            }
             $comments[] = [
                 'path' => $issue['file'] ?? '',
                 'line' => $issue['line'],

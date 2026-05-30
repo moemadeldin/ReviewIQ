@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Firebase\JWT\JWT;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -28,6 +27,21 @@ final readonly class GitHubAppAuth
         Cache::forget($this->cacheKey());
 
         return $this->fetchAndCache();
+    }
+
+    public function getJwt(): string
+    {
+        $now = time();
+
+        return JWT::encode(
+            payload: [
+                'iat' => $now,
+                'exp' => $now + 600,
+                'iss' => $this->appId(),
+            ],
+            key: $this->privateKey(),
+            alg: 'RS256',
+        );
     }
 
     private function fetchAndCache(): string
@@ -64,21 +78,6 @@ final readonly class GitHubAppAuth
     private function cacheKey(): string
     {
         return 'github:installation_token:'.$this->installationId();
-    }
-
-    public function getJwt(): string
-    {
-        $now = time();
-
-        return JWT::encode(
-            payload: [
-                'iat' => $now,
-                'exp' => $now + 600,
-                'iss' => $this->appId(),
-            ],
-            key: $this->privateKey(),
-            alg: 'RS256',
-        );
     }
 
     private function baseUrl(): string

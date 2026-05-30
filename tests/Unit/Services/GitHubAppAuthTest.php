@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 
-const TEST_PRIVATE_KEY = <<<'KEY'
+const TEST_PRIVATE_KEY = <<<'KEY_WRAP'
 -----BEGIN PRIVATE KEY-----
 MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQClJYmgTEwWKkuu
 F0ELEznmKugAmTd4CIZuDi5WkD266kdMVGv5uVNtp7YDxntL7L8RVrSFFCYHfB60
@@ -38,9 +38,9 @@ yrsrVbIZxRxXB4dGHN7PMt2yjHmLCRjoByRw6GWw/QS0+wsFyrwghF7JBqUcbU7M
 I0MRrgnKCo0wpuGKnUqTpYMybHYZfPGkvlqojybiLr1dEyR1osGnawqwQ2p4sQeW
 ETyLdestDMece8UhMGJt1g==
 -----END PRIVATE KEY-----
-KEY;
+KEY_WRAP;
 
-const TEST_PUBLIC_KEY = <<<'KEY'
+const TEST_PUBLIC_KEY = <<<'KEY_WRAP'
 -----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApSWJoExMFipLrhdBCxM5
 5iroAJk3eAiGbg4uVpA9uupHTFRr+blTbae2A8Z7S+y/EVa0hRQmB3wetNeIJNJt
@@ -50,7 +50,7 @@ UHA9QP80lL2ZU022Crw9fNO4dk6VOHCgaaDsE8MPwBHDd4J3BJqkcOiyx41cQZ34
 qMJVwhKWvHrmGv11WjorpH9zJuAh17MISOYlda+hRQSetCMgfGqzHlDofxYgJFWn
 PwIDAQAB
 -----END PUBLIC KEY-----
-KEY;
+KEY_WRAP;
 
 function setupKey(): string
 {
@@ -69,7 +69,7 @@ beforeEach(function (): void {
 });
 
 afterEach(function (): void {
-    if (isset($this->tempKeyPath)) {
+    if (property_exists($this, 'tempKeyPath') && $this->tempKeyPath !== null) {
         @unlink($this->tempKeyPath);
     }
 });

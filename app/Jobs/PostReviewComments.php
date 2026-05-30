@@ -12,6 +12,8 @@ use App\Services\GitHubAppAuth;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Response;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -59,14 +61,31 @@ final class PostReviewComments implements ShouldQueue
             $review->summary ?? '',
         );
 
-        $gitHub->postReviewComments(
-            token: $githubApp->getInstallationToken(),
-            fullName: $repoFullName,
-            prNumber: $prNumber,
-            commitSha: $commitSha,
-            issues: $issues,
-            body: $body,
-        );
+        $token = $githubApp->getInstallationToken();
+
+        try {
+            $gitHub->postReviewComments(
+                token: $token,
+                fullName: $repoFullName,
+                prNumber: $prNumber,
+                commitSha: $commitSha,
+                issues: $issues,
+                body: $body,
+            );
+        } catch (RequestException $e) {
+            if ($e->response()->status() === Response::HTTP_UNAUTHORIZED) {
+                $gitHub->postReviewComments(
+                    token: $githubApp->refreshToken(),
+                    fullName: $repoFullName,
+                    prNumber: $prNumber,
+                    commitSha: $commitSha,
+                    issues: $issues,
+                    body: $body,
+                );
+            } else {
+                throw $e;
+            }
+        }
 
         Log::info('Posted '.count($issues).' review comments for PR #'.$this->pullRequest->number, [
             'repo' => $repoFullName,
