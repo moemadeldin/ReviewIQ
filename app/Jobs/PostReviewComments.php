@@ -73,7 +73,7 @@ final class PostReviewComments implements ShouldQueue
                 body: $body,
             );
         } catch (RequestException $e) {
-            if ($e->response->status() === Response::HTTP_UNAUTHORIZED) {
+            if ($e->response?->status() === Response::HTTP_UNAUTHORIZED) {
                 $gitHub->postReviewComments(
                     token: $githubApp->refreshToken(),
                     fullName: $repoFullName,
