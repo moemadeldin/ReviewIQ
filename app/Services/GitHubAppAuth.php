@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Firebase\JWT\JWT;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -13,23 +14,56 @@ final readonly class GitHubAppAuth
 {
     public function getInstallationToken(): string
     {
-        return Cache::remember('github:installation_token:'.$this->installationId(), 55 * 60, function (): string {
-            $response = Http::withToken($this->getJwt())
-                ->withHeaders([
-                    'Accept' => 'application/vnd.github+json',
-                    'X-GitHub-Api-Version' => '2022-11-28',
-                ])
-                ->post($this->baseUrl().'/app/installations/'.$this->installationId().'/access_tokens');
+        $cached = Cache::get($this->cacheKey());
 
-            $response->throw();
+        if (is_string($cached) && $cached !== '') {
+            return $cached;
+        }
 
-            /** @var array{token: string}|null $data */
-            $data = $response->json();
+        return $this->fetchAndCache();
+    }
 
-            throw_unless(isset($data['token']), RuntimeException::class, 'Failed to get GitHub App installation token');
+    public function refreshToken(): string
+    {
+        Cache::forget($this->cacheKey());
 
-            return $data['token'];
-        });
+        return $this->fetchAndCache();
+    }
+
+    private function fetchAndCache(): string
+    {
+        $response = Http::withToken($this->getJwt())
+            ->withHeaders([
+                'Accept' => 'application/vnd.github+json',
+                'X-GitHub-Api-Version' => '2022-11-28',
+            ])
+            ->post($this->baseUrl().'/app/installations/'.$this->installationId().'/access_tokens');
+
+        if ($response->status() === 401) {
+            Cache::forget($this->cacheKey());
+
+            throw new RuntimeException('GitHub App authentication failed (401)');
+        }
+
+        $response->throw();
+
+        /** @var array{token: string}|null $data */
+        $data = $response->json();
+
+        throw_unless(
+            isset($data['token']) && is_string($data['token']) && $data['token'] !== '',
+            RuntimeException::class,
+            'Failed to get a valid GitHub App installation token',
+        );
+
+        Cache::put($this->cacheKey(), $data['token'], 55 * 60);
+
+        return $data['token'];
+    }
+
+    private function cacheKey(): string
+    {
+        return 'github:installation_token:'.$this->installationId();
     }
 
     public function getJwt(): string

@@ -115,7 +115,7 @@ final readonly class GitHubApiService implements GitHubApi
             return;
         }
 
-        $response = Http::withToken($token)
+        $response = Http::retry(2, 200)->withToken($token)
             ->withHeaders([
                 'Accept' => 'application/vnd.github+json',
                 'X-GitHub-Api-Version' => '2022-11-28',
