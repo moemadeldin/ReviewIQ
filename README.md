@@ -5,18 +5,30 @@
     <img src="https://img.shields.io/badge/Laravel-13-FF2D20?style=flat&logo=laravel&logoColor=white" alt="Laravel Version">
     <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=white" alt="React Version">
     <img src="https://img.shields.io/badge/Inertia-3-FFFFFF?style=flat&logoColor=white" alt="Inertia Version">
+    <img src="https://img.shields.io/badge/CI-Passing-28A745?style=flat&logo=githubactions&logoColor=white" alt="CI">
+</p>
+
+<p align="center">
+    <a href="https://github.com/moemadeldin/ReviewIQ/actions/workflows/ci.yml">
+        <img src="https://github.com/moemadeldin/ReviewIQ/actions/workflows/ci.yml/badge.svg" alt="CI">
+    </a>
 </p>
 
 ReviewIQ is an AI-powered pull request review tool that leverages LLMs to analyze code changes and provide intelligent feedback in real-time.
 
 ## Features
 
-- **AI Code Review** - Automated code analysis using DeepSeek V4 Flash via OpenRouter
-- **Real-time Streaming** - Live review progress via WebSocket (Reverb)
-- **GitHub Integration** - Webhook-based PR detection and diff fetching
-- **Workspace Management** - Multi-tenant support with team collaboration
-- **Structured Feedback** - Score-based reviews with issues, highlights, and recommendations
-- **Automatic Retries** - Scheduled jobs for failed/pending reviews
+- **AI Code Review** — Automated code analysis using DeepSeek V4 Flash via OpenRouter with structured JSON output (score, issues, highlights, recommendation)
+- **Real-time Streaming** — Live review progress via WebSocket (Reverb) with per-chunk streaming
+- **GitHub App Authentication** — Authenticates as a GitHub App bot using JWT + installation tokens with automatic refresh on 401
+- **Webhook Integration** — Auto-detects new and updated PRs via GitHub webhooks (opened/synchronize)
+- **PR Description Context** — AI reviews include PR description for richer analysis
+- **Manual Re-review** — One-click re-review button from the review detail page
+- **In-App Notifications** — Get notified in real-time when a review completes
+- **Workspace Management** — Multi-tenant support with team collaboration, roles, and invitations
+- **Individual Comment Fallback** — Falls back to posting comments one-by-one if batch review is rejected (422), skipping problematic paths
+- **Automatic Retry Scheduler** — Retries failed/pending reviews every 5 minutes with a 10-minute cooldown
+- **JSON Repair & Sanitization** — Handles malformed AI responses (trailing commas, missing quotes, stray characters) and validates severity levels
 
 ## Tech Stack
 
@@ -40,6 +52,7 @@ ReviewIQ is an AI-powered pull request review tool that leverages LLMs to analyz
 - PostgreSQL
 - OpenRouter API key (free DeepSeek V4 Flash)
 - GitHub OAuth App (Client ID + Secret)
+- GitHub App (App ID, Installation ID, and private key)
 
 ### Installation
 
@@ -125,6 +138,11 @@ GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 GITHUB_WEBHOOK_SECRET=
 
+# GitHub App (for PR review bot authentication)
+GITHUB_APP_ID=3912217
+GITHUB_APP_INSTALLATION_ID=
+GITHUB_APP_PRIVATE_KEY_PATH=storage/oauth/reviewiq-pr-reviewer.pem
+
 # GitHub Webhook URL (use ngrok URL for local development)
 GITHUB_WEBHOOK_URL=https://your-domain.com
 
@@ -172,7 +190,10 @@ Repositories can have custom review rules configured via the UI or API.
 ## Commands
 
 ```bash
-# Retry failed/pending reviews
+# Retry failed/pending reviews (runs automatically every 5 minutes)
+php artisan reviews:retry
+
+# Clear stale reviewing PRs stuck longer than 10 minutes
 php artisan reviews:retry
 
 # Inspect or run ad-hoc code
