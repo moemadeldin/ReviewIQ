@@ -52,16 +52,6 @@ PwIDAQAB
 -----END PUBLIC KEY-----
 KEY_WRAP;
 
-function setupKey(): string
-{
-    $path = tempnam(sys_get_temp_dir(), 'gh-test-key-');
-    file_put_contents($path, TEST_PRIVATE_KEY);
-    Config::set('services.github_app.private_key_path', $path);
-    test()->tempKeyPath = $path;
-
-    return $path;
-}
-
 beforeEach(function (): void {
     Config::set('services.github.base_url', 'https://api.github.com');
     Config::set('services.github_app.app_id', '3912217');
@@ -111,7 +101,10 @@ it('fetches and caches installation token', function (): void {
 it('returns cached token without HTTP call', function (): void {
     setupKey();
 
-    Cache::put('github:installation_token:136722736', 'cached_token', 55 * 60);
+    Cache::shouldReceive('remember')
+        ->once()
+        ->with('github:installation_token:136722736', 55 * 60, Mockery::on(fn ($closure): bool => is_callable($closure)))
+        ->andReturn('cached_token');
 
     $auth = new GitHubAppAuth();
     $token = $auth->getInstallationToken();

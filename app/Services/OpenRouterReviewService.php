@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Contracts\AIReviewer;
 use App\Exceptions\ReviewParseException;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Sleep;
@@ -15,6 +16,10 @@ use RuntimeException;
 
 final readonly class OpenRouterReviewService implements AIReviewer
 {
+    private const int STREAM_READ_CHUNK = 1024;
+
+    private const int STREAM_SLEEP_US = 10_000;
+
     public function __construct(
         private Client $client,
         private string $baseUrl,
@@ -25,12 +30,12 @@ final readonly class OpenRouterReviewService implements AIReviewer
         private int $timeout = 60,
     ) {
         throw_if($this->baseUrl === '' || $this->baseUrl === '0', InvalidArgumentException::class, 'Base URL cannot be empty.');
-        throw_if($this->baseUrl === '' || $this->baseUrl === '0', InvalidArgumentException::class, 'Base URL cannot be empty.');
+        throw_if($this->apiKey === '' || $this->apiKey === '0', InvalidArgumentException::class, 'API key cannot be empty.');
     }
 
     public function review(string $systemPrompt, string $userPrompt): array
     {
-        $response = $this->send($systemPrompt, $userPrompt, stream: false);
+        $response = $this->send($systemPrompt, $userPrompt);
         $raw = $response['choices'][0]['message']['content'] ?? '';
 
         throw_if($raw === '', ReviewParseException::class, 'OpenRouter returned empty response');
@@ -53,10 +58,10 @@ final readonly class OpenRouterReviewService implements AIReviewer
             $body = $response->getBody();
 
             while (! $body->eof()) {
-                $line = $body->read(1024);
+                $line = $body->read(self::STREAM_READ_CHUNK);
 
                 if ($line === '' || $line === '0') {
-                    Sleep::usleep(10000);
+                    Sleep::usleep(self::STREAM_SLEEP_US);
 
                     continue;
                 }
@@ -84,8 +89,8 @@ final readonly class OpenRouterReviewService implements AIReviewer
                     $onChunk($chunk);
                 }
             }
-        } catch (RequestException $requestException) {
-            $this->handleRequestException($requestException, 'streaming');
+        } catch (GuzzleException $guzzleException) {
+            $this->handleGuzzleException($guzzleException, 'streaming');
         }
 
         throw_if($fullContent === '', ReviewParseException::class, 'OpenRouter returned empty streaming response');
@@ -93,15 +98,15 @@ final readonly class OpenRouterReviewService implements AIReviewer
         return $this->parse($fullContent);
     }
 
-    private function send(string $systemPrompt, string $userPrompt, bool $stream): array
+    private function send(string $systemPrompt, string $userPrompt): array
     {
         try {
             $response = $this->client->post($this->baseUrl.'chat/completions', [
-                'json' => $this->buildRequestBody($systemPrompt, $userPrompt, stream: $stream),
+                'json' => $this->buildRequestBody($systemPrompt, $userPrompt, stream: false),
                 'headers' => $this->buildHeaders(),
             ]);
-        } catch (RequestException $requestException) {
-            $this->handleRequestException($requestException, 'review');
+        } catch (GuzzleException $guzzleException) {
+            $this->handleGuzzleException($guzzleException, 'review');
         }
 
         return json_decode((string) $response->getBody(), associative: true, flags: JSON_THROW_ON_ERROR);
@@ -128,22 +133,24 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
     private function buildHeaders(): array
     {
-        return [
-            'Authorization' => 'Bearer '.$this->apiKey,
-        ];
+        return ['Authorization' => 'Bearer '.$this->apiKey];
     }
 
-    private function handleRequestException(RequestException $e, string $context): never
+    private function handleGuzzleException(GuzzleException $e, string $context): never
     {
+
+        $status = $e instanceof RequestException
+            ? $e->getResponse()?->getStatusCode()
+            : null;
+
         Log::error(sprintf('OpenRouter API %s request failed', $context), [
-            'status' => $e->getResponse()?->getStatusCode(),
-            'body' => $e->getResponse()?->getBody()?->getContents(),
+            'status' => $status,
         ]);
 
         throw new RuntimeException(
             sprintf('OpenRouter API error: %s', $e->getMessage()),
             $e->getCode(),
-            $e
+            $e,
         );
     }
 
@@ -172,7 +179,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
         throw_unless(
             isset($parsed['summary'], $parsed['score'], $parsed['issues']),
             ReviewParseException::class,
-            'OpenRouter response missing required fields'
+            'OpenRouter response missing required fields',
         );
 
         return $this->sanitize($parsed);
@@ -181,15 +188,10 @@ final readonly class OpenRouterReviewService implements AIReviewer
     private function repairJson(string $json): string
     {
         $json = (string) preg_replace('/(?<=[\s,{])(\w+)"(?=\s*:)/', '"$1"', $json);
-
         $json = (string) preg_replace('/"(\w+)\s+\[/', '"$1": [', $json);
-
         $json = (string) preg_replace('/(?<=[\s,{])(\w+)\s+"([^"]+)"/', '"$1": "$2"', $json);
-
         $json = (string) preg_replace('/:\s*([a-zA-Z_]\w*)"?([,}\]]|$)/', ': "$1"$2', $json);
-
         $json = (string) preg_replace('/,\s*"\s*([}\]])/', '$1', $json);
-
         $json = (string) preg_replace('/,\s*([}\]])/', '$1', $json);
 
         return (string) preg_replace('/:\s*,/', ': null,', $json);
@@ -209,21 +211,25 @@ final readonly class OpenRouterReviewService implements AIReviewer
             return $issue;
         }, $parsed['issues'] ?? []));
 
-        $parsed['highlights'] = array_values(array_filter(array_map(function (mixed $highlight): ?array {
-            if (is_string($highlight)) {
-                return ['file' => '', 'line' => null, 'content' => $highlight];
-            }
+        $parsed['highlights'] = array_values(array_filter(
+            array_map(function (mixed $highlight): ?array {
+                if (is_string($highlight)) {
+                    return ['file' => '', 'line' => null, 'content' => $highlight];
+                }
 
-            if (! is_array($highlight)) {
-                return null;
-            }
+                if (! is_array($highlight)) {
+                    return null;
+                }
 
-            return [
-                'file' => isset($highlight['file']) && is_string($highlight['file']) ? $highlight['file'] : '',
-                'line' => isset($highlight['line']) && is_numeric($highlight['line']) ? (int) $highlight['line'] : null,
-                'content' => isset($highlight['content']) && is_string($highlight['content']) ? $highlight['content'] : '',
-            ];
-        }, $parsed['highlights'] ?? []), fn (?array $h): bool => $h !== null && ($h['content'] !== '')));
+                return [
+                    'file' => isset($highlight['file']) && is_string($highlight['file']) ? $highlight['file'] : '',
+                    'line' => isset($highlight['line']) && is_numeric($highlight['line']) ? (int) $highlight['line'] : null,
+                    'content' => isset($highlight['content']) && is_string($highlight['content']) ? $highlight['content'] : '',
+                ];
+            }, $parsed['highlights'] ?? []),
+            fn (?array $h): bool => $h !== null && $h['content'] !== '',
+        ));
+
         $parsed['recommendation'] ??= 'comment';
         $parsed['score_rationale'] ??= '';
 
