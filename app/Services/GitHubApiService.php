@@ -105,8 +105,11 @@ final readonly class GitHubApiService implements GitHubApi
             if ($issue['line'] === null) {
                 continue;
             }
+            if (! isset($issue['file']) || $issue['file'] === '') {
+                continue;
+            }
             $comments[] = [
-                'path' => $issue['file'] ?? '',
+                'path' => $issue['file'],
                 'line' => $issue['line'],
                 'side' => 'RIGHT',
                 'body' => sprintf('**%s**: %s', $issue['severity'] ?? 'medium', $issue['description'] ?? $issue['title'] ?? $issue['message'] ?? ''),
