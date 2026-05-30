@@ -92,6 +92,7 @@ final class ProcessPullRequestReview implements ShouldQueue
             userPrompt: $promptBuilder->buildUserPrompt(
                 diff: $diff,
                 prTitle: $this->pullRequest->title ?? '',
+                prDescription: $this->pullRequest->description,
                 repoLanguage: $repository->language,
                 customRules: $repository->custom_rules,
             ),
