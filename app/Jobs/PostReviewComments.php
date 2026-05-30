@@ -12,6 +12,7 @@ use App\Services\GitHubAppAuth;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -44,10 +45,10 @@ final class PostReviewComments implements ShouldQueue
         $repository = $this->pullRequest->repository;
         throw_unless($repository instanceof Repository, RuntimeException::class, 'Repository not found');
 
-        /** @var int $prNumber */
-        $prNumber = $this->pullRequest->number;
         /** @var string $repoFullName */
         $repoFullName = $repository->full_name;
+        /** @var int $prNumber */
+        $prNumber = $this->pullRequest->number;
         /** @var string $commitSha */
         $commitSha = $this->pullRequest->head_sha;
         /** @var array<int, array{file: string, line: int|null, severity: string, message: string}> $issues */
@@ -59,8 +60,10 @@ final class PostReviewComments implements ShouldQueue
             $review->summary ?? '',
         );
 
+        $token = $this->resolveToken($githubApp);
+
         $gitHub->postReviewComments(
-            token: $githubApp->getInstallationToken(),
+            token: $token,
             fullName: $repoFullName,
             prNumber: $prNumber,
             commitSha: $commitSha,
@@ -78,5 +81,18 @@ final class PostReviewComments implements ShouldQueue
         Log::error('Failed to post review comments for PR #'.$this->pullRequest->number, [
             'error' => $e->getMessage(),
         ]);
+    }
+
+    private function resolveToken(GitHubAppAuth $githubApp): string
+    {
+        try {
+            return $githubApp->getInstallationToken();
+        } catch (RequestException $requestException) {
+            if ($requestException->response?->status() === Response::HTTP_UNAUTHORIZED) {
+                return $githubApp->refreshToken();
+            }
+
+            throw $requestException;
+        }
     }
 }

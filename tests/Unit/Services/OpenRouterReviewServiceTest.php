@@ -62,7 +62,7 @@ it('performs non-streaming review successfully', function (): void {
 
     $data = $result;
     expect($result['content'])->toBeJson();
-    $data = json_decode($result['content'], true);
+    $data = json_decode((string) $result['content'], true);
     expect($data['summary'])->toBe('Good code')
         ->and($data['score'])->toBe(85);
 });
@@ -180,9 +180,7 @@ it('sanitizes score to int', function (): void {
 
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
-
-    $data = $result;
-    $data = json_decode($result['content'], true);
+    $data = json_decode((string) $result['content'], true);
     expect($data['score'])->toBe(85);
 });
 
@@ -204,9 +202,7 @@ it('provides defaults for missing optional fields', function (): void {
 
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
-
-    $data = $result;
-    $data = json_decode($result['content'], true);
+    $data = json_decode((string) $result['content'], true);
     expect($data['highlights'])->toBe([])
         ->and($data['recommendation'])->toBe('comment')
         ->and($data['score_rationale'])->toBe('');
@@ -226,9 +222,7 @@ it('parses json with markdown fences', function (): void {
 
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
-
-    $data = $result;
-    $data = json_decode($result['content'], true);
+    $data = json_decode((string) $result['content'], true);
     expect($data['summary'])->toBe('Good code');
 });
 
@@ -252,9 +246,7 @@ it('sanitizes issues severity', function (): void {
 
     $service = createOpenRouterService($client);
     $result = $service->review('system', 'user');
-
-    $data = $result;
-    $data = json_decode($result['content'], true);
+    $data = json_decode((string) $result['content'], true);
     expect($data['issues'][0]['severity'])->toBe('medium');
 });
 
@@ -290,7 +282,7 @@ it('handles streaming edge cases', function (): void {
 
     $data = $result;
     expect($result['content'])->toBeJson();
-    $data = json_decode($result['content'], true);
+    $data = json_decode((string) $result['content'], true);
     expect($data['summary'])->toBe('test')
         ->and($data['score'])->toBe(50);
     expect($chunksReceived)->toContain('test');
@@ -421,7 +413,7 @@ it('repairs missing colon before bracket key', function (): void {
 
     $data = $result;
     expect($result['content'])->toBeJson();
-    $data = json_decode($result['content'], true);
+    $data = json_decode((string) $result['content'], true);
     expect($data['issues'][0]['severity'])->toBe('high');
 });
 
@@ -456,7 +448,7 @@ it('repairs common json malformations', function (): void {
 
     $data = $result;
     expect($result['content'])->toBeJson();
-    $data = json_decode($result['content'], true);
+    $data = json_decode((string) $result['content'], true);
     expect($data['summary'])->toBe(' PR introduces significant change')
         ->and($data['score'])->toBe(70)
         ->and($data['score_rationale'])->toBe('The score is 70')

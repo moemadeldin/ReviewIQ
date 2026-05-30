@@ -9,27 +9,30 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-final readonly class GitHubAppAuth
+final class GitHubAppAuth
 {
+    private const TOKEN_TTL_SECONDS = 55 * 60;
+
+    private const int JWT_TTL_SECONDS = 600;
+
+    private static string $cachedPrivateKey = '';
+
     public function getInstallationToken(): string
     {
-        return Cache::remember('github:installation_token:'.$this->installationId(), 55 * 60, function (): string {
-            $response = Http::withToken($this->getJwt())
-                ->withHeaders([
-                    'Accept' => 'application/vnd.github+json',
-                    'X-GitHub-Api-Version' => '2022-11-28',
-                ])
-                ->post($this->baseUrl().'/app/installations/'.$this->installationId().'/access_tokens');
+        $cached = Cache::get($this->cacheKey());
 
-            $response->throw();
+        if (is_string($cached) && $cached !== '') {
+            return $cached;
+        }
 
-            /** @var array{token: string}|null $data */
-            $data = $response->json();
+        return $this->fetchAndCache();
+    }
 
-            throw_unless(isset($data['token']), RuntimeException::class, 'Failed to get GitHub App installation token');
+    public function refreshToken(): string
+    {
+        Cache::forget($this->cacheKey());
 
-            return $data['token'];
-        });
+        return $this->fetchAndCache();
     }
 
     public function getJwt(): string
@@ -39,12 +42,47 @@ final readonly class GitHubAppAuth
         return JWT::encode(
             payload: [
                 'iat' => $now,
-                'exp' => $now + 600,
+                'exp' => $now + self::JWT_TTL_SECONDS,
                 'iss' => $this->appId(),
             ],
             key: $this->privateKey(),
             alg: 'RS256',
         );
+    }
+
+    private function fetchAndCache(): string
+    {
+        $response = Http::withToken($this->getJwt())
+            ->withHeaders([
+                'Accept' => 'application/vnd.github+json',
+                'X-GitHub-Api-Version' => '2022-11-28',
+            ])
+            ->post($this->baseUrl().'/app/installations/'.$this->installationId().'/access_tokens');
+
+        if ($response->status() === 401) {
+            Cache::forget($this->cacheKey());
+            throw new RuntimeException('GitHub App authentication failed (401)');
+        }
+
+        $response->throw();
+
+        /** @var array{token: string}|null $data */
+        $data = $response->json();
+
+        throw_unless(
+            isset($data['token']) && is_string($data['token']) && $data['token'] !== '',
+            RuntimeException::class,
+            'Failed to get a valid GitHub App installation token',
+        );
+
+        Cache::put($this->cacheKey(), $data['token'], self::TOKEN_TTL_SECONDS);
+
+        return $data['token'];
+    }
+
+    private function cacheKey(): string
+    {
+        return 'github:installation_token:'.$this->installationId();
     }
 
     private function baseUrl(): string
@@ -71,20 +109,23 @@ final readonly class GitHubAppAuth
         return $id;
     }
 
-    /**
-     * @return non-empty-string
-     */
+    /** @return non-empty-string */
     private function privateKey(): string
     {
+        if (self::$cachedPrivateKey !== '') {
+            return self::$cachedPrivateKey;
+        }
+
         $path = config('services.github_app.private_key_path');
         throw_unless(is_string($path) && $path !== '', RuntimeException::class, 'GitHub App private key path not configured');
-
         throw_unless(is_file($path), RuntimeException::class, 'GitHub App private key not found at: '.$path);
         throw_unless(is_readable($path), RuntimeException::class, 'GitHub App private key is not readable at: '.$path);
 
         $contents = file_get_contents($path);
         throw_unless(is_string($contents) && $contents !== '', RuntimeException::class, 'Failed to read GitHub App private key at: '.$path);
 
-        return $contents;
+        self::$cachedPrivateKey = $contents;
+
+        return self::$cachedPrivateKey;
     }
 }
