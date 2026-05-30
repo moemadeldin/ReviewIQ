@@ -106,9 +106,9 @@ it('performs streaming review successfully', function (): void {
         },
     );
 
-    expect($result['content'])->toBeJson();
     expect($chunksReceived)->toContain('Good code');
     expect($chunksReceived)->toContain('approve');
+    expect($result['summary'])->toBe('Good code');
 });
 
 it('throws on http failure during review', function (): void {
@@ -388,10 +388,6 @@ it('rejects constructor with empty base url', function (): void {
 
     expect(fn (): OpenRouterReviewService => new OpenRouterReviewService($client, '', 'key', 'model', 0.2, 2000))
         ->toThrow(InvalidArgumentException::class, 'Base URL cannot be empty.');
-    $service = new OpenRouterReviewService($client, '', 'key', 'model', 0.2, 2000);
-
-    expect(fn (): array => $service->review('system', 'user'))
-        ->toThrow(JsonException::class);
 });
 
 it('repairs missing colon before bracket key', function (): void {

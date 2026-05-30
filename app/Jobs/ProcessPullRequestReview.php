@@ -109,8 +109,6 @@ final class ProcessPullRequestReview implements ShouldQueue
             ],
         );
 
-        $this->pullRequest->update(['status' => PullRequestStatus::Reviewed]);
-
         event(new ReviewCompleted(
             prId: $this->pullRequest->id,
             review: $reviewResult,
