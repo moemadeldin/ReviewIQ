@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/moemadeldin/ReviewIQ/actions/workflows/ci.yml">
-        <img src="https://github.com/moemadeldin/ReviewIQ/actions/workflows/ci.yml/badge.svg" alt="CI">
+    <a href="https://github.com/moemadeldin/ReviewIQ/actions/workflows/tests.yml">
+        <img src="https://github.com/moemadeldin/ReviewIQ/actions/workflows/tests.yml/badge.svg" alt="CI">
     </a>
 </p>
 
