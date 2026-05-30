@@ -53,12 +53,19 @@ final class PostReviewComments implements ShouldQueue
         /** @var array<int, array{file: string, line: int|null, severity: string, message: string}> $issues */
         $issues = $review->issues;
 
+        $body = sprintf(
+            "## ReviewIQ Review — Score: %d/100\n\n%s",
+            $review->score ?? 0,
+            $review->summary ?? '',
+        );
+
         $gitHub->postReviewComments(
             token: $githubApp->getInstallationToken(),
             fullName: $repoFullName,
             prNumber: $prNumber,
             commitSha: $commitSha,
             issues: $issues,
+            body: $body,
         );
 
         Log::info('Posted '.count($issues).' review comments for PR #'.$this->pullRequest->number, [

@@ -18,5 +18,8 @@ interface GitHubApi
     /**
      * @param array<int, array{file: string, line: int|null, severity: string, message: string}> $issues
      */
-    public function postReviewComments(string $token, string $fullName, int $prNumber, string $commitSha, array $issues): void;
+    /**
+     * @param array<int, array{file?: string, line?: int|null, severity?: string, message?: string, description?: string, title?: string}> $issues
+     */
+    public function postReviewComments(string $token, string $fullName, int $prNumber, string $commitSha, array $issues, string $body): void;
 }

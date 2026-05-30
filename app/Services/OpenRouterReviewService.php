@@ -187,6 +187,10 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
         $json = (string) preg_replace('/:\s*([a-zA-Z_]\w*)"?([,}\]]|$)/', ': "$1"$2', $json);
 
+        $json = (string) preg_replace('/,\s*"\s*([}\]])/', '$1', $json);
+
+        $json = (string) preg_replace('/,\s*([}\]])/', '$1', $json);
+
         return (string) preg_replace('/:\s*,/', ': null,', $json);
     }
 
@@ -205,6 +209,10 @@ final readonly class OpenRouterReviewService implements AIReviewer
         }, $parsed['issues'] ?? []));
 
         $parsed['highlights'] = array_values(array_filter(array_map(function (mixed $highlight): ?array {
+            if (is_string($highlight)) {
+                return ['file' => '', 'line' => null, 'content' => $highlight];
+            }
+
             if (! is_array($highlight)) {
                 return null;
             }

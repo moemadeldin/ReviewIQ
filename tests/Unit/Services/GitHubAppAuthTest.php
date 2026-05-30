@@ -111,7 +111,7 @@ it('caches the installation token', function (): void {
 
     Cache::shouldReceive('remember')
         ->once()
-        ->with('github:installation_token', 55 * 60, \Mockery::on(fn ($closure): bool => is_callable($closure)))
+        ->with('github:installation_token:136722736', 55 * 60, \Mockery::on(fn ($closure): bool => is_callable($closure)))
         ->andReturn('cached_token');
 
     $auth = new GitHubAppAuth();

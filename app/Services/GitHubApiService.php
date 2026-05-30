@@ -91,7 +91,7 @@ final readonly class GitHubApiService implements GitHubApi
     /**
      * @param array<int, array{file: string, line: int|null, severity: string, message: string}> $issues
      */
-    public function postReviewComments(string $token, string $fullName, int $prNumber, string $commitSha, array $issues): void
+    public function postReviewComments(string $token, string $fullName, int $prNumber, string $commitSha, array $issues, string $body): void
     {
         $baseUrl = config('services.github.base_url');
         throw_unless(is_string($baseUrl), RuntimeException::class, 'Invalid GitHub base URL configuration');
@@ -99,14 +99,15 @@ final readonly class GitHubApiService implements GitHubApi
         $comments = [];
 
         foreach ($issues as $issue) {
-            if ($issue['line'] === null) {
+            if (! isset($issue['line']) || $issue['line'] === null) {
                 continue;
             }
 
             $comments[] = [
-                'path' => $issue['file'],
+                'path' => $issue['file'] ?? '',
                 'line' => $issue['line'],
-                'body' => sprintf('**%s**: %s', $issue['severity'], $issue['description'] ?? $issue['title'] ?? $issue['message'] ?? ''),
+                'side' => 'RIGHT',
+                'body' => sprintf('**%s**: %s', $issue['severity'] ?? 'medium', $issue['description'] ?? $issue['title'] ?? $issue['message'] ?? ''),
             ];
         }
 
@@ -121,7 +122,7 @@ final readonly class GitHubApiService implements GitHubApi
             ])
             ->post($baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', [
                 'commit_id' => $commitSha,
-                'body' => 'AI Code Review',
+                'body' => $body,
                 'event' => 'COMMENT',
                 'comments' => $comments,
             ]);

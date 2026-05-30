@@ -13,7 +13,7 @@ final readonly class GitHubAppAuth
 {
     public function getInstallationToken(): string
     {
-        return Cache::remember('github:installation_token', 55 * 60, function (): string {
+        return Cache::remember('github:installation_token:'.$this->installationId(), 55 * 60, function (): string {
             $response = Http::withToken($this->getJwt())
                 ->withHeaders([
                     'Accept' => 'application/vnd.github+json',
@@ -79,7 +79,10 @@ final readonly class GitHubAppAuth
         $path = config('services.github_app.private_key_path');
         throw_unless(is_string($path) && $path !== '', RuntimeException::class, 'GitHub App private key path not configured');
 
-        $contents = @file_get_contents($path);
+        throw_unless(is_file($path), RuntimeException::class, 'GitHub App private key not found at: '.$path);
+        throw_unless(is_readable($path), RuntimeException::class, 'GitHub App private key is not readable at: '.$path);
+
+        $contents = file_get_contents($path);
         throw_unless(is_string($contents) && $contents !== '', RuntimeException::class, 'Failed to read GitHub App private key at: '.$path);
 
         return $contents;

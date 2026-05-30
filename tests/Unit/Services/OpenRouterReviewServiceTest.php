@@ -302,6 +302,86 @@ it('throws on stream request failure', function (): void {
         ->toThrow(RuntimeException::class, 'OpenRouter API error: Stream failed');
 });
 
+it('converts string highlights to object format', function (): void {
+    $raw = json_encode([
+        'summary' => 'test',
+        'score' => 80,
+        'issues' => [],
+        'highlights' => ['Clean architecture', 'Good error handling'],
+        'recommendation' => 'approve',
+    ]);
+
+    $response = new Response(200, [], json_encode([
+        'choices' => [
+            ['message' => ['content' => $raw]],
+        ],
+    ]));
+
+    $client = $this->createMock(Client::class);
+    $client->expects($this->once())
+        ->method('post')
+        ->willReturn($response);
+
+    $service = createOpenRouterService($client);
+    $result = $service->review('system', 'user');
+
+    expect($result['highlights'])->toHaveCount(2);
+    expect($result['highlights'][0])->toHaveKey('file');
+    expect($result['highlights'][0])->toHaveKey('line');
+    expect($result['highlights'][0])->toHaveKey('content');
+    expect($result['highlights'][0]['content'])->toBe('Clean architecture');
+    expect($result['highlights'][1]['content'])->toBe('Good error handling');
+});
+
+it('repairs trailing comma with stray quote before closing brace', function (): void {
+    $raw = '{
+  "summary": "test",
+  "score": 82,
+  "issues": [],
+  "highlights": [
+    "Clean code"
+  ],
+ "}';
+
+    $response = new Response(200, [], json_encode([
+        'choices' => [
+            ['message' => ['content' => $raw]],
+        ],
+    ]));
+
+    $client = $this->createMock(Client::class);
+    $client->expects($this->once())
+        ->method('post')
+        ->willReturn($response);
+
+    $service = createOpenRouterService($client);
+    $result = $service->review('system', 'user');
+
+    expect($result['summary'])->toBe('test')
+        ->and($result['score'])->toBe(82);
+});
+
+it('repairs trailing comma before closing brace', function (): void {
+    $raw = '{"summary": "test", "score": 75, "issues": [],}';
+
+    $response = new Response(200, [], json_encode([
+        'choices' => [
+            ['message' => ['content' => $raw]],
+        ],
+    ]));
+
+    $client = $this->createMock(Client::class);
+    $client->expects($this->once())
+        ->method('post')
+        ->willReturn($response);
+
+    $service = createOpenRouterService($client);
+    $result = $service->review('system', 'user');
+
+    expect($result['summary'])->toBe('test')
+        ->and($result['score'])->toBe(75);
+});
+
 it('rejects constructor with empty base url', function (): void {
     $client = $this->createMock(Client::class);
 
