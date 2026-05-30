@@ -130,6 +130,6 @@ final class ProcessPullRequestReview implements ShouldQueue
             'error' => $e->getMessage(),
         ]);
 
-        $this->pullRequest->update(['status' => PullRequestStatus::Failed]);
+        $this->pullRequest->update(['status' => PullRequestStatus::Pending]);
     }
 }

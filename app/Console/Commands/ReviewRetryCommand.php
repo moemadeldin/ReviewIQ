@@ -30,6 +30,10 @@ final class ReviewRetryCommand extends Command
         $this->info(sprintf('Found %d reviews to retry.', $prs->count()));
 
         foreach ($prs as $pr) {
+            if ($pr->status === PullRequestStatus::Reviewing) {
+                $pr->update(['status' => PullRequestStatus::Pending]);
+            }
+
             $this->info(sprintf('Dispatching review for PR #%s (%s)', $pr->number, $pr->id));
             dispatch(new ProcessPullRequestReview($pr));
         }
