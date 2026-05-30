@@ -6,13 +6,12 @@ namespace App\Jobs;
 
 use App\Contracts\AIReviewer;
 use App\Contracts\DiffProvider;
+use App\Contracts\GitHubAppAuth;
 use App\Enums\PullRequestStatus;
 use App\Events\ReviewCompleted;
-use App\Jobs\PostReviewComments;
 use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\Review;
-use App\Models\User;
 use App\Models\Workspace;
 use App\Services\PromptBuilder;
 use Illuminate\Bus\Queueable;
@@ -39,9 +38,7 @@ final class ProcessPullRequestReview implements ShouldQueue
         public readonly PullRequest $pullRequest,
     ) {}
 
-    /**
-     * @return array<int, int>
-     */
+    /** @return array<int, int> */
     public function backoff(): array
     {
         return [30, 120, 300];
@@ -51,12 +48,20 @@ final class ProcessPullRequestReview implements ShouldQueue
         DiffProvider $diffService,
         PromptBuilder $promptBuilder,
         AIReviewer $aiReviewer,
+        GitHubAppAuth $githubApp,
     ): void {
-        if (in_array($this->pullRequest->status, [PullRequestStatus::Reviewing, PullRequestStatus::Reviewed], true)) {
-            Log::info('PR #'.$this->pullRequest->number.' already processed, skipping');
+        $updated = PullRequest::query()
+            ->where('id', $this->pullRequest->id)
+            ->whereIn('status', [PullRequestStatus::Pending, PullRequestStatus::Reviewing])
+            ->update(['status' => PullRequestStatus::Reviewing]);
+
+        if (! $updated) {
+            Log::info('PR #'.$this->pullRequest->number.' already processing or reviewed, skipping');
 
             return;
         }
+
+        $this->pullRequest->refresh();
 
         $repository = $this->pullRequest->repository;
         throw_unless($repository instanceof Repository, RuntimeException::class, 'Repository not found');
@@ -64,20 +69,14 @@ final class ProcessPullRequestReview implements ShouldQueue
         $workspace = $repository->workspace;
         throw_unless($workspace instanceof Workspace, RuntimeException::class, 'Workspace not found');
 
-        $owner = $workspace->owner;
-        throw_unless($owner instanceof User, RuntimeException::class, 'Workspace owner not found');
-
         $prNumber = $this->pullRequest->number;
         throw_unless(is_int($prNumber), RuntimeException::class, 'Invalid PR number');
+
         $repoFullName = $repository->full_name;
         throw_unless($repoFullName !== '', RuntimeException::class, 'Invalid repository full name');
 
-        $this->pullRequest->update(['status' => PullRequestStatus::Reviewing]);
-
-        /** @var string $token */
-        $token = $owner->github_token;
         $diff = $diffService->getDiff(
-            token: $token,
+            token: $githubApp->getInstallationToken(),
             repoFullName: $repoFullName,
             prNumber: $prNumber,
         );
@@ -93,7 +92,7 @@ final class ProcessPullRequestReview implements ShouldQueue
             userPrompt: $promptBuilder->buildUserPrompt(
                 diff: $diff,
                 prTitle: $this->pullRequest->title ?? '',
-                // prDescription: $this->pullRequest->description,
+                prDescription: $this->pullRequest->description,
                 repoLanguage: $repository->language,
                 customRules: $repository->custom_rules,
             ),
@@ -102,23 +101,22 @@ final class ProcessPullRequestReview implements ShouldQueue
         Review::query()->updateOrCreate(
             ['pull_request_id' => $this->pullRequest->id],
             [
-            'summary' => $reviewResult['summary'] ?? '',
-            'score' => $reviewResult['score'] ?? 0,
-            'score_rationale' => $reviewResult['score_rationale'] ?? '',
-            'issues' => $reviewResult['issues'] ?? [],
-            'highlights' => $reviewResult['highlights'] ?? [],
-            'recommendation' => $reviewResult['recommendation'] ?? 'comment',
-            'raw_response' => json_encode($reviewResult),
-        ]);
-
-        $this->pullRequest->update(['status' => PullRequestStatus::Reviewed]);
+                'summary' => $reviewResult['summary'] ?? '',
+                'score' => $reviewResult['score'] ?? 0,
+                'score_rationale' => $reviewResult['score_rationale'] ?? '',
+                'issues' => $reviewResult['issues'] ?? [],
+                'highlights' => $reviewResult['highlights'] ?? [],
+                'recommendation' => $reviewResult['recommendation'] ?? 'comment',
+                'raw_response' => json_encode($reviewResult),
+            ],
+        );
 
         event(new ReviewCompleted(
             prId: $this->pullRequest->id,
             review: $reviewResult,
         ));
 
-        PostReviewComments::dispatch($this->pullRequest);
+        dispatch(new PostReviewComments($this->pullRequest));
 
         Log::info('Review stored for PR #'.$this->pullRequest->number, [
             'score' => $reviewResult['score'] ?? 0,
@@ -129,8 +127,13 @@ final class ProcessPullRequestReview implements ShouldQueue
     {
         Log::error('Review job failed for PR #'.$this->pullRequest->number, [
             'error' => $e->getMessage(),
+            'attempts' => $this->attempts(),
         ]);
 
-        $this->pullRequest->update(['status' => PullRequestStatus::Failed]);
+        $status = $this->attempts() >= $this->job->maxTries()
+            ? PullRequestStatus::Failed
+            : PullRequestStatus::Pending;
+
+        $this->pullRequest->update(['status' => $status]);
     }
 }

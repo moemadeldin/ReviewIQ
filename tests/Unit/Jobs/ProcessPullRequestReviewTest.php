@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Contracts\AIReviewer;
 use App\Contracts\DiffProvider;
+use App\Contracts\GitHubAppAuth;
 use App\Enums\PullRequestStatus;
 use App\Jobs\ProcessPullRequestReview;
 use App\Models\PullRequest;
@@ -35,6 +36,11 @@ it('processes pull request review successfully', function (): void {
         'title' => 'Test PR',
     ]);
 
+    $githubApp = $this->mock(GitHubAppAuth::class);
+    $githubApp->shouldReceive('getInstallationToken')
+        ->once()
+        ->andReturn('test-token');
+
     $diffService = $this->mock(DiffProvider::class);
     $diffService->shouldReceive('getDiff')
         ->once()
@@ -58,7 +64,7 @@ it('processes pull request review successfully', function (): void {
         ->andReturn($reviewContent);
 
     $job = new ProcessPullRequestReview($pr);
-    $job->handle($diffService, $promptBuilder, $mockAIReviewer);
+    $job->handle($diffService, $promptBuilder, $mockAIReviewer, $githubApp);
 
     $pr->refresh();
     expect($pr->status)->toBe(PullRequestStatus::Reviewed);
@@ -83,8 +89,10 @@ it('skips processing when PR is already reviewing or reviewed', function (): voi
     $mockAIReviewer = $this->mock(AIReviewer::class);
     $mockAIReviewer->shouldNotReceive('review');
 
+    $githubApp = $this->mock(GitHubAppAuth::class);
+
     $job = new ProcessPullRequestReview($pr);
-    $job->handle($diffService, $promptBuilder, $mockAIReviewer);
+    $job->handle($diffService, $promptBuilder, $mockAIReviewer, $githubApp);
 
     $pr->refresh();
     expect($pr->status)->toBe(PullRequestStatus::Reviewed);
@@ -99,7 +107,7 @@ it('sets failed status on job failure', function (): void {
     $job->failed(new Exception('Something went wrong'));
 
     $pr->refresh();
-    expect($pr->status)->toBe(PullRequestStatus::Failed);
+    expect($pr->status)->toBe(PullRequestStatus::Pending);
 });
 
 it('returns correct backoff values', function (): void {
