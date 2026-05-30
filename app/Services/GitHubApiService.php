@@ -106,7 +106,7 @@ final readonly class GitHubApiService implements GitHubApi
             $comments[] = [
                 'path' => $issue['file'],
                 'line' => $issue['line'],
-                'body' => sprintf('**%s**: %s', $issue['severity'], $issue['message']),
+                'body' => sprintf('**%s**: %s', $issue['severity'], $issue['description'] ?? $issue['title'] ?? $issue['message'] ?? ''),
             ];
         }
 

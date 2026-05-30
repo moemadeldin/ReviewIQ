@@ -97,8 +97,9 @@ final class ProcessPullRequestReview implements ShouldQueue
             ),
         );
 
-        Review::query()->create([
-            'pull_request_id' => $this->pullRequest->id,
+        Review::query()->updateOrCreate(
+            ['pull_request_id' => $this->pullRequest->id],
+            [
             'summary' => $reviewResult['summary'] ?? '',
             'score' => $reviewResult['score'] ?? 0,
             'score_rationale' => $reviewResult['score_rationale'] ?? '',

@@ -199,6 +199,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
             $issue['severity'] = in_array($issue['severity'] ?? null, ['critical', 'high', 'medium', 'low', 'praise'], strict: true)
                 ? $issue['severity']
                 : 'medium';
+            $issue['message'] = $issue['message'] ?? $issue['description'] ?? $issue['title'] ?? '';
 
             return $issue;
         }, $parsed['issues'] ?? []));
