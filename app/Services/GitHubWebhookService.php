@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Contracts\WebhookProvider;
+use App\Enums\PullRequestAction;
 use App\Enums\PullRequestStatus;
 use App\Exceptions\WebhookException;
 use App\Jobs\ProcessPullRequestReview;
@@ -33,7 +34,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
             'github_repo_id' => $githubRepoId,
         ]);
 
-        if ($event !== 'pull_request' || ! in_array($action, ['opened', 'synchronize'], true)) {
+        if ($event !== 'pull_request' || ! in_array($action, [PullRequestAction::Opened->value, PullRequestAction::Synchronize->value], true)) {
             return;
         }
 
