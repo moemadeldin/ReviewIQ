@@ -53,8 +53,8 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
     {
         $response = Http::withToken($this->getJwt())
             ->withHeaders([
-                'Accept' => 'application/vnd.github+json',
-                'X-GitHub-Api-Version' => '2022-11-28',
+                'Accept' => config('services.github.accept_json'),
+                'X-GitHub-Api-Version' => config('services.github.api_version'),
             ])
             ->post($this->baseUrl().'/app/installations/'.$this->installationId().'/access_tokens');
 

@@ -9,15 +9,12 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 final readonly class GitHubApiService implements GitHubApi
 {
-    private const string GITHUB_API_VERSION = '2022-11-28';
-
     private const int REPOS_CACHE_TTL = 300;
 
     public function __construct(private string $baseUrl) {}
@@ -112,8 +109,8 @@ final readonly class GitHubApiService implements GitHubApi
     private function http(string $token): PendingRequest
     {
         return Http::withToken($token)->withHeaders([
-            'Accept' => 'application/vnd.github+json',
-            'X-GitHub-Api-Version' => self::GITHUB_API_VERSION,
+            'Accept' => config('services.github.accept_json'),
+            'X-GitHub-Api-Version' => config('services.github.api_version'),
         ]);
     }
 

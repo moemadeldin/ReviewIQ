@@ -21,7 +21,7 @@ it('fetches diff successfully', function (): void {
     expect($diff)->toBe('diff --git a/file.php b/file.php');
 
     Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer test-token')
-        && $request->hasHeader('Accept', 'application/vnd.github.v3.diff')
+        && $request->hasHeader('Accept', config('services.github.accept_diff'))
         && $request->url() === 'https://api.github.com/repos/owner/repo/pulls/42');
 });
 
