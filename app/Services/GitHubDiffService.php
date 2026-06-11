@@ -23,8 +23,8 @@ final readonly class GitHubDiffService implements DiffProvider
         return Cache::remember($cacheKey, self::DIFF_CACHE_TTL, function () use ($token, $repoFullName, $prNumber): string {
             $response = Http::withToken($token)
                 ->withHeaders([
-                    'Accept' => 'application/vnd.github.v3.diff',
-                    'X-GitHub-Api-Version' => '2022-11-28',
+                    'Accept' => config('services.github.accept_diff'),
+                    'X-GitHub-Api-Version' => config('services.github.api_version'),
                 ])
                 ->get($this->baseUrl.sprintf('/repos/%s/pulls/%d', $repoFullName, $prNumber));
 

@@ -45,6 +45,9 @@ return [
         'base_url' => env('GITHUB_BASE_URL'),
         'scopes' => ['read:user', 'repo'],
         'repos_per_page' => env('GITHUB_REPOS_PER_PAGE', 10),
+        'api_version' => env('GITHUB_API_VERSION', '2022-11-28'),
+        'accept_json' => env('GITHUB_ACCEPT_JSON', 'application/vnd.github+json'),
+        'accept_diff' => env('GITHUB_ACCEPT_DIFF', 'application/vnd.github.v3.diff'),
     ],
     'github_app' => [
         'app_id' => env('GITHUB_APP_ID', ''),
