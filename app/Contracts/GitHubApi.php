@@ -13,6 +13,8 @@ interface GitHubApi
 
     public function registerWebhook(string $token, string $fullName): int;
 
+    public function findWebhookId(string $token, string $fullName): ?int;
+
     public function deleteWebhook(string $token, string $fullName, string $webhookId): void;
 
     /**

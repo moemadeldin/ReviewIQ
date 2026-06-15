@@ -65,6 +65,33 @@ final readonly class GitHubApiService implements GitHubApi
         return $json['id'];
     }
 
+    public function findWebhookId(string $token, string $fullName): ?int
+    {
+        $appUrl = config('app.url');
+        throw_unless(is_string($appUrl), RuntimeException::class, 'Invalid app URL configuration');
+
+        $webhookUrl = config('services.github.webhook_url', $appUrl.'/api/v1/webhooks/github');
+
+        $response = $this->http($token)->get($this->baseUrl.'/repos/'.$fullName.'/hooks', [
+            'per_page' => 100,
+        ]);
+
+        if ($response->failed()) {
+            return null;
+        }
+
+        /** @var array<int, array{id: int, config: array{url: string}}> $hooks */
+        $hooks = $response->json();
+
+        foreach ($hooks as $hook) {
+            if (($hook['config']['url'] ?? '') === $webhookUrl) {
+                return $hook['id'];
+            }
+        }
+
+        return null;
+    }
+
     public function deleteWebhook(string $token, string $fullName, string $webhookId): void
     {
         $this->http($token)

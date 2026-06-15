@@ -51,14 +51,20 @@ final readonly class AttachRepository
         try {
             return (string) $this->github->registerWebhook($token, $fullName);
         } catch (RequestException $requestException) {
-            throw_if($requestException->response->status() !== 422, $requestException);
+            throw_if($requestException->response->status() !== Response::HTTP_UNPROCESSABLE_ENTITY, $requestException);
 
             $existing = Repository::query()
                 ->where('full_name', $fullName)
                 ->whereNotNull('webhook_id')
                 ->first();
 
-            return $existing?->webhook_id;
+            if ($existing?->webhook_id !== null) {
+                return $existing->webhook_id;
+            }
+
+            $webhookId = $this->github->findWebhookId($token, $fullName);
+
+            return $webhookId !== null ? (string) $webhookId : null;
         }
     }
 }
