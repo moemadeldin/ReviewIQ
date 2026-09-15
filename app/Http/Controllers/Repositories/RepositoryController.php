@@ -24,9 +24,17 @@ final readonly class RepositoryController
         private GetRepositoriesData $getRepositoriesData,
     ) {}
 
-    public function index(#[CurrentUser()] User $user, Workspace $workspace, Request $request): JsonResponse
+    public function index(#[CurrentUser()] User $user, Request $request): JsonResponse
     {
         $page = (int) $request->query('page', 1);
+
+        $workspace = null;
+        $workspaceId = $request->query('workspace_id');
+
+        if (is_string($workspaceId) && $workspaceId !== '') {
+            $workspace = $user->workspaces()->find($workspaceId);
+        }
+
         $data = $this->getRepositoriesData->handle($user, $workspace, $page);
 
         return $this->success($data, 'ok');

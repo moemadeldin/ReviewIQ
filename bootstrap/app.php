@@ -49,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
+                    'status' => 'Failed',
                     'message' => $e->getMessage(),
                     'trace' => app()->isLocal() ? $e->getTraceAsString() : null,
                 ], $e instanceof HttpException ? $e->getStatusCode() : 500);

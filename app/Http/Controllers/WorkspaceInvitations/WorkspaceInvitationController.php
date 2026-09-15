@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\WorkspaceInvitations;
 
 use App\Actions\WorkspaceInvitations\CreateInvitationAction;
+use App\Enums\Roles;
 use App\Http\Requests\WorkspaceInvitations\GenerateInvitationRequest;
 use App\Http\Requests\Workspaces\WorkspaceOwnerRequest;
 use App\Http\Resources\WorkspaceInvitationResource;
@@ -15,7 +16,7 @@ use App\Queries\GetWorkspaceInvitations;
 use App\Traits\APIResponder;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 
 final readonly class WorkspaceInvitationController
@@ -47,7 +48,18 @@ final readonly class WorkspaceInvitationController
             return $this->fail('Only owners and admins can invite users', Response::HTTP_FORBIDDEN);
         }
 
-        $invitation = $action->handle($workspace, $user, $request->validated()['email'], $request->validated()['role'] ?? null);
+        $role = $request->input('role');
+
+        try {
+            $invitation = $action->handle(
+                $workspace,
+                $user,
+                $request->string('email')->toString(),
+                is_string($role) ? Roles::from($role) : Roles::Member,
+            );
+        } catch (RuntimeException $exception) {
+            return $this->fail($exception->getMessage(), Response::HTTP_CONFLICT);
+        }
 
         return $this->success([
             'invitation' => $invitation,

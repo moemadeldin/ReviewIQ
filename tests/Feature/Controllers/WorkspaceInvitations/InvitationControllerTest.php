@@ -39,11 +39,13 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
     });
 
     it('returns error when user is not admin or owner', function (): void {
-        $this->user->workspaces()->updateExistingPivot($this->workspace->id, ['role' => Roles::Member->value]);
+        $otherUser = User::factory()->create();
+        $otherWorkspace = Workspace::factory()->withOwner($otherUser)->create();
+        $this->user->workspaces()->attach($otherWorkspace->id, ['role' => Roles::Member->value]);
 
         $response = $this->actingAs($this->user)
-            ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->withSession(['current_workspace_id' => $otherWorkspace->id])
+            ->postJson(route('workspaces.invitations.store', ['workspace' => $otherWorkspace->slug]), [
                 'email' => 'invitee@example.com',
             ]);
 
@@ -83,6 +85,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
     });
 
     it('allows re-invitation when previous invitation expired', function (): void {
+        Mail::fake();
         WorkspaceInvitation::factory()->expired()->create([
             'workspace_id' => $this->workspace->id,
             'email' => 'invitee@example.com',
@@ -200,6 +203,27 @@ describe('AcceptInvitationController', function (): void {
 
         $invitation->refresh();
         expect($invitation->accepted_at)->not->toBeNull();
+    });
+
+    it('accepts invitation for existing logged-in user', function (): void {
+        $existingUser = User::factory()->create(['email' => 'existing@example.com']);
+        $invitation = WorkspaceInvitation::factory()->create([
+            'workspace_id' => $this->workspace->id,
+            'email' => $existingUser->email,
+        ]);
+
+        $response = $this->actingAs($existingUser)
+            ->post(route('invitations.accept', ['token' => $invitation->token]));
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'Success')
+            ->assertJsonPath('message', 'Invitation accepted');
+
+        $this->assertDatabaseHas('workspace_users', [
+            'workspace_id' => $this->workspace->id,
+            'user_id' => $existingUser->id,
+            'role' => Roles::Member->value,
+        ]);
     });
 
     it('creates new user if email not registered', function (): void {
