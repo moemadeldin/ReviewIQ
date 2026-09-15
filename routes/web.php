@@ -16,13 +16,13 @@ require __DIR__.'/auth.php';
 
 Route::get('/', fn () => Inertia::render('welcome'))->name('home');
 
+// Invitations (public, token-gated so logged-in users can accept too)...
+Route::get('invitations/{token}/accept', ShowAcceptInvitationController::class)->name('invitations.accept.page');
+
+Route::post('invitations/{token}/accept', AcceptInvitationController::class)
+    ->name('invitations.accept');
+
 Route::middleware('guest')->group(function (): void {
-    // Invitations...
-    Route::get('invitations/{token}/accept', ShowAcceptInvitationController::class)->name('invitations.accept.page');
-
-    Route::post('invitations/{token}/accept', AcceptInvitationController::class)
-        ->name('invitations.accept');
-
     // GitHub OAuth...
     Route::controller(GitHubController::class)->group(function (): void {
         Route::get('auth/github', 'redirect')->name('auth.github');

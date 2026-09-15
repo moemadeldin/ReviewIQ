@@ -16,9 +16,11 @@ final readonly class AcceptInvitationController
 
     public function __invoke(AcceptInvitationRequest $request, AcceptInvitationAction $action, string $token): JsonResponse
     {
-        $data = $request->validated();
-
-        $user = $action->handle($data['name'], $data['password'], $token);
+        $user = $action->handle(
+            name: $request->string('name')->toString(),
+            password: $request->string('password')->toString(),
+            token: $token,
+        );
 
         Auth::login($user);
 

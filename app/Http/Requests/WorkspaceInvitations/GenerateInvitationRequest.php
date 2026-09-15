@@ -12,12 +12,12 @@ use Illuminate\Validation\Rules\Enum;
 final class GenerateInvitationRequest extends FormRequest
 {
     /**
-     * @return array<string, array<array<string>|string>>
+     * @return array<string, list<mixed>>
      */
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email:rfc,dns', 'lowercase', new ValidEmail],
+            'email' => ['required', 'string', 'email:rfc', 'lowercase', new ValidEmail],
             'role' => ['nullable', new Enum(Roles::class)],
         ];
     }
