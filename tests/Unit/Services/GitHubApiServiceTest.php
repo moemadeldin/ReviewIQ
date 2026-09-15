@@ -7,7 +7,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function (): void {
-    $this->github = new GitHubApiService();
+    $this->github = new GitHubApiService(baseUrl: config('services.github.base_url'));
 });
 
 it('gets user repositories', function (): void {

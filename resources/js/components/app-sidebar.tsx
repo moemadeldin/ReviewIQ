@@ -3,7 +3,6 @@ import { LayoutGrid, Building2, GitBranch } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import { NavWorkspace } from '@/components/nav-workspace';
 import {
     Sidebar,
     SidebarContent,
@@ -51,7 +50,6 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavWorkspace />
                 <SidebarSeparator />
                 <NavMain items={mainNavItems} />
             </SidebarContent>

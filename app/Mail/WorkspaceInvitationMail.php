@@ -34,7 +34,7 @@ final class WorkspaceInvitationMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.workspace-invitation',
+            markdown: 'mail.workspace-invitation',
             with: [
                 'workspace' => $this->workspace,
                 'invitedBy' => $this->invitedBy,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Contracts\WebhookProvider;
+use App\Enums\PullRequestAction;
 use App\Enums\PullRequestStatus;
 use App\Exceptions\WebhookException;
 use App\Jobs\ProcessPullRequestReview;
@@ -33,7 +34,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
             'github_repo_id' => $githubRepoId,
         ]);
 
-        if ($event !== 'pull_request' || ! in_array($action, ['opened', 'synchronize'], true)) {
+        if ($event !== 'pull_request' || ! in_array($action, [PullRequestAction::Opened->value, PullRequestAction::Synchronize->value], true)) {
             return;
         }
 
@@ -51,7 +52,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
             return;
         }
 
-        /** @var array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}} $prPayload */
+        /** @var array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}, body: string|null} $prPayload */
         $prPayload = $payload['pull_request'];
 
         $pr = PullRequest::query()->updateOrCreate(
@@ -63,6 +64,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
                 'author' => $prPayload['user']['login'],
                 'diff_url' => $prPayload['diff_url'],
                 'head_sha' => $prPayload['head']['sha'],
+                'description' => $prPayload['body'] ?? null,
             ]
         );
 

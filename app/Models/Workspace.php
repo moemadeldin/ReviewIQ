@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * @property-read string $id
@@ -94,22 +95,26 @@ final class Workspace extends Model
 
     public function roleOf(User $user): ?Roles
     {
-        $membership = $this->users()->where('user_id', $user->id)->first();
+        $cacheKey = sprintf('workspace:role:%s:%s', $this->id, $user->id);
 
-        if ($membership === null) {
-            return null;
-        }
+        return Cache::remember($cacheKey, 3600, function () use ($user): ?Roles {
+            $membership = $this->users()->where('user_id', $user->id)->first();
 
-        /** @var WorkspaceUser $pivot */
-        $pivot = $membership->pivot;
-        /** @var string|null $roleValue */
-        $roleValue = $pivot->role;
+            if ($membership === null) {
+                return null;
+            }
 
-        if ($roleValue === '' || $roleValue === null) {
-            return null;
-        }
+            /** @var WorkspaceUser $pivot */
+            $pivot = $membership->pivot;
+            /** @var string|null $roleValue */
+            $roleValue = $pivot->role;
 
-        return Roles::from($roleValue);
+            if ($roleValue === '' || $roleValue === null) {
+                return null;
+            }
+
+            return Roles::from($roleValue);
+        });
     }
 
     /**

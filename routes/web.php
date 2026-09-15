@@ -52,4 +52,11 @@ Route::middleware('guest')->group(function (): void {
         Route::get('login', 'create')->name('login');
         Route::post('login', 'store')->name('login.store');
     });
+
+});
+// GitHub OAuth...
+
+Route::controller(GitHubController::class)->group(function (): void {
+    Route::get('auth/github', 'redirect')->name('auth.github');
+    Route::get('auth/github/callback', 'callback')->name('auth.github.callback');
 });

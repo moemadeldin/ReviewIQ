@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-final class PromptBuilder
+final readonly class PromptBuilder
 {
     public function buildSystemPrompt(): string
     {
@@ -74,7 +74,13 @@ Respond with this exact JSON structure:
       "suggestion": "Concrete fix or improvement."
     }
   ],
-  "highlights": ["one thing done well"],
+  "highlights": [
+    {
+      "file": "path/to/file.php",
+      "line": <integer or null>,
+      "content": "What was done well"
+    }
+  ],
   "recommendation": "approve|request_changes|comment"
 }
 

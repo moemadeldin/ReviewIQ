@@ -6,17 +6,18 @@ namespace App\Jobs;
 
 use App\Contracts\AIReviewer;
 use App\Contracts\DiffProvider;
+use App\Contracts\GitHubAppAuth;
 use App\Enums\PullRequestStatus;
 use App\Events\ReviewCompleted;
 use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\Review;
-use App\Models\User;
 use App\Models\Workspace;
 use App\Services\PromptBuilder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -25,6 +26,7 @@ use RuntimeException;
 use Throwable;
 
 #[Tries(3)]
+#[Timeout(120)]
 final class ProcessPullRequestReview implements ShouldQueue
 {
     use Dispatchable;
@@ -36,9 +38,7 @@ final class ProcessPullRequestReview implements ShouldQueue
         public readonly PullRequest $pullRequest,
     ) {}
 
-    /**
-     * @return array<int, int>
-     */
+    /** @return array<int, int> */
     public function backoff(): array
     {
         return [30, 120, 300];
@@ -48,12 +48,20 @@ final class ProcessPullRequestReview implements ShouldQueue
         DiffProvider $diffService,
         PromptBuilder $promptBuilder,
         AIReviewer $aiReviewer,
+        GitHubAppAuth $githubApp,
     ): void {
-        if (in_array($this->pullRequest->status, [PullRequestStatus::Reviewing, PullRequestStatus::Reviewed], true)) {
-            Log::info('PR #'.$this->pullRequest->number.' already processed, skipping');
+        $updated = PullRequest::query()
+            ->where('id', $this->pullRequest->id)
+            ->whereIn('status', [PullRequestStatus::Pending, PullRequestStatus::Reviewing])
+            ->update(['status' => PullRequestStatus::Reviewing]);
+
+        if (! $updated) {
+            Log::info('PR #'.$this->pullRequest->number.' already processing or reviewed, skipping');
 
             return;
         }
+
+        $this->pullRequest->refresh();
 
         $repository = $this->pullRequest->repository;
         throw_unless($repository instanceof Repository, RuntimeException::class, 'Repository not found');
@@ -61,20 +69,14 @@ final class ProcessPullRequestReview implements ShouldQueue
         $workspace = $repository->workspace;
         throw_unless($workspace instanceof Workspace, RuntimeException::class, 'Workspace not found');
 
-        $owner = $workspace->owner;
-        throw_unless($owner instanceof User, RuntimeException::class, 'Workspace owner not found');
-
         $prNumber = $this->pullRequest->number;
         throw_unless(is_int($prNumber), RuntimeException::class, 'Invalid PR number');
+
         $repoFullName = $repository->full_name;
         throw_unless($repoFullName !== '', RuntimeException::class, 'Invalid repository full name');
 
-        $this->pullRequest->update(['status' => PullRequestStatus::Reviewing]);
-
-        /** @var string $token */
-        $token = $owner->github_token;
         $diff = $diffService->getDiff(
-            token: $token,
+            token: $githubApp->getInstallationToken(),
             repoFullName: $repoFullName,
             prNumber: $prNumber,
         );
@@ -84,55 +86,40 @@ final class ProcessPullRequestReview implements ShouldQueue
             'preview' => mb_substr($diff, 0, 120),
         ]);
 
+        /** @var array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, array{}>, highlights?: array<int, string>, recommendation?: string} $reviewResult */
         $reviewResult = $aiReviewer->review(
             systemPrompt: $promptBuilder->buildSystemPrompt(),
             userPrompt: $promptBuilder->buildUserPrompt(
                 diff: $diff,
                 prTitle: $this->pullRequest->title ?? '',
-                // prDescription: $this->pullRequest->description,
+                prDescription: $this->pullRequest->description,
                 repoLanguage: $repository->language,
                 customRules: $repository->custom_rules,
             ),
         );
 
-        /** @var array{content: string} $reviewResult */
-        $reviewContent = $reviewResult['content'];
-        /** @var array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, array{}>, highlights?: array<int, string>, recommendation?: string}|false $reviewData */
-        $reviewData = json_decode($reviewContent, true);
-
-        /** @var string $summary */
-        $summary = is_array($reviewData) ? ($reviewData['summary'] ?? '') : '';
-        /** @var int $score */
-        $score = is_array($reviewData) ? ($reviewData['score'] ?? 0) : 0;
-        /** @var string $scoreRationale */
-        $scoreRationale = is_array($reviewData) ? ($reviewData['score_rationale'] ?? '') : '';
-        /** @var array<int, array<string, mixed>> $issues */
-        $issues = is_array($reviewData) ? ($reviewData['issues'] ?? []) : [];
-        /** @var array<int, string> $highlights */
-        $highlights = is_array($reviewData) ? ($reviewData['highlights'] ?? []) : [];
-        /** @var string $recommendation */
-        $recommendation = is_array($reviewData) ? ($reviewData['recommendation'] ?? 'comment') : 'comment';
-
-        Review::query()->create([
-            'pull_request_id' => $this->pullRequest->id,
-            'summary' => $summary,
-            'score' => $score,
-            'score_rationale' => $scoreRationale,
-            'issues' => $issues,
-            'highlights' => $highlights,
-            'recommendation' => $recommendation,
-            'raw_response' => $reviewContent,
-        ]);
-
-        $this->pullRequest->update(['status' => PullRequestStatus::Reviewed]);
+        Review::query()->updateOrCreate(
+            ['pull_request_id' => $this->pullRequest->id],
+            [
+                'summary' => $reviewResult['summary'] ?? '',
+                'score' => $reviewResult['score'] ?? 0,
+                'score_rationale' => $reviewResult['score_rationale'] ?? '',
+                'issues' => $reviewResult['issues'] ?? [],
+                'highlights' => $reviewResult['highlights'] ?? [],
+                'recommendation' => $reviewResult['recommendation'] ?? 'comment',
+                'raw_response' => json_encode($reviewResult),
+            ],
+        );
 
         event(new ReviewCompleted(
             prId: $this->pullRequest->id,
             review: $reviewResult,
         ));
 
+        dispatch(new PostReviewComments($this->pullRequest));
+
         Log::info('Review stored for PR #'.$this->pullRequest->number, [
-            'score' => $reviewData['score'] ?? 0,
+            'score' => $reviewResult['score'] ?? 0,
         ]);
     }
 
@@ -140,8 +127,13 @@ final class ProcessPullRequestReview implements ShouldQueue
     {
         Log::error('Review job failed for PR #'.$this->pullRequest->number, [
             'error' => $e->getMessage(),
+            'attempts' => $this->attempts(),
         ]);
 
-        $this->pullRequest->update(['status' => PullRequestStatus::Failed]);
+        $status = $this->attempts() >= $this->job->maxTries()
+            ? PullRequestStatus::Failed
+            : PullRequestStatus::Pending;
+
+        $this->pullRequest->update(['status' => $status]);
     }
 }

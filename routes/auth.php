@@ -12,12 +12,12 @@ use App\Http\Controllers\Auth\UserTwoFactorAuthenticationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Repositories\GetConnectedRepositoriesController;
 use App\Http\Controllers\Repositories\RepositoryController;
+use App\Http\Controllers\Reviews\ReReviewController;
 use App\Http\Controllers\Reviews\ReviewController;
 use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
-use App\Http\Controllers\Workspaces\GetWorkspaceMembersController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
+use App\Http\Controllers\Workspaces\WorkspaceMemberController;
 use App\Http\Controllers\Workspaces\WorkspacePageController;
-use App\Http\Controllers\Workspaces\WorkspaceSwitchController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -27,8 +27,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     // Notifications...
     Route::controller(NotificationController::class)->group(function (): void {
         Route::get('notifications', 'index')->name('notifications.index');
-        Route::post('notifications/{id}/read', 'markAsRead')->name('notifications.mark-read');
-        Route::post('notifications/read-all', 'markAllAsRead')->name('notifications.mark-all-read');
+        Route::patch('notifications/{notification}/read', 'markAsRead')->name('notifications.mark-read');
+        Route::patch('notifications/read-all', 'markAllAsRead')->name('notifications.mark-all-read');
     });
 
     // Workspaces...
@@ -37,6 +37,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('workspaces/create', 'create')->name('workspaces.create');
         Route::post('workspaces', 'store')->name('workspaces.store');
         Route::get('workspaces/{workspace}', 'show')->name('workspaces.show');
+        Route::put('workspaces/{workspace}', 'update')->name('workspaces.update');
+        Route::delete('workspaces/{workspace}', 'destroy')->name('workspaces.destroy');
     });
 
     Route::controller(WorkspacePageController::class)->group(function (): void {
@@ -52,11 +54,13 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::delete('workspaces/{workspace}/invitations/{invitation}', 'destroy')->name('workspaces.invitations.destroy');
     });
 
-    // Workspace Switch ...
-    Route::post('workspaces/{workspace}/select', WorkspaceSwitchController::class)->name('workspaces.select');
-
     // Workspace Members API...
-    Route::get('workspaces/{workspace}/members/data', GetWorkspaceMembersController::class)->name('workspaces.members');
+
+    Route::controller(WorkspaceMemberController::class)->group(function (): void {
+        Route::get('workspaces/{workspace}/members/data', 'index')->name('workspaces.members');
+        Route::delete('workspaces/{workspace}/members/{member}', 'destroy')->name('workspaces.delete.member');
+
+    });
 
     // Workspace Repos API...
     Route::get('workspaces/{workspace}/repos/data', GetConnectedRepositoriesController::class)->name('workspaces.repos');
@@ -75,6 +79,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('workspaces/{workspace}/reviews/data', [ReviewController::class, 'index'])->name('reviews.index');
     Route::get('workspaces/{workspace}/reviews', [WorkspacePageController::class, 'reviews'])->name('reviews.page');
     Route::get('workspaces/{workspace}/reviews/{pullRequest}', [WorkspacePageController::class, 'review'])->name('reviews.show');
+    Route::post('workspaces/{workspace}/reviews/{pullRequest}/re-review', ReReviewController::class)->name('reviews.re-review');
 
     // Invitations...
 

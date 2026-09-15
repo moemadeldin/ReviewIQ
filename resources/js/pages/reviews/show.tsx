@@ -23,7 +23,9 @@ interface Review {
         file: string;
         line: number | null;
         severity: string;
-        message: string;
+        title: string | null;
+        description: string | null;
+        suggestion: string | null;
     }> | null;
     highlights: Array<{
         file: string;
@@ -129,7 +131,7 @@ export default function PullRequestShow() {
         }
     };
 
-    const score = pullRequest.review?.score ?? null;
+    const score = showReview?.score ?? null;
     const radius = 45;
     const circumference = 2 * Math.PI * radius;
     const progress = score !== null ? (score / 100) * circumference : 0;
@@ -146,17 +148,43 @@ export default function PullRequestShow() {
                         title={pullRequest.title || `#${pullRequest.number}`}
                         description={`Pull request in ${pullRequest.repository?.full_name || 'Unknown'}`}
                     />
-                    {pullRequest.diff_url && (
-                        <Button asChild>
-                            <a
-                                href={pullRequest.diff_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                    {pullRequest.repository?.full_name &&
+                        pullRequest.number && (
+                            <Button asChild>
+                                <a
+                                    href={`https://github.com/${pullRequest.repository.full_name}/pull/${pullRequest.number}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    View on GitHub
+                                </a>
+                            </Button>
+                        )}
+                    {showReview && (
+                        <form
+                            action={`/workspaces/${workspace.slug}/reviews/${pullRequest.id}/re-review`}
+                            method="POST"
+                        >
+                            <input
+                                type="hidden"
+                                name="_token"
+                                value={
+                                    (
+                                        document.querySelector(
+                                            'meta[name="csrf-token"]',
+                                        ) as HTMLMetaElement
+                                    )?.content ?? ''
+                                }
+                            />
+                            <Button
+                                variant="outline"
+                                type="submit"
+                                disabled={isReviewing}
                             >
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                View on GitHub
-                            </a>
-                        </Button>
+                                {isReviewing ? 'Reviewing...' : 'Re-review'}
+                            </Button>
+                        </form>
                     )}
                 </div>
 
@@ -273,14 +301,34 @@ export default function PullRequestShow() {
                                                         >
                                                             {issue.severity}
                                                         </Badge>
-                                                        <code className="font-mono text-sm">
-                                                            {issue.file}:
-                                                            {issue.line}
-                                                        </code>
+                                                        {issue.file && (
+                                                            <code className="font-mono text-sm">
+                                                                {issue.file}
+                                                                {issue.line !=
+                                                                null
+                                                                    ? `:${issue.line}`
+                                                                    : ''}
+                                                            </code>
+                                                        )}
                                                     </div>
-                                                    <p className="text-sm">
-                                                        {issue.message}
-                                                    </p>
+                                                    {issue.title && (
+                                                        <p className="mb-1 text-sm font-medium">
+                                                            {issue.title}
+                                                        </p>
+                                                    )}
+                                                    {issue.description && (
+                                                        <p className="mb-2 text-sm text-muted-foreground">
+                                                            {issue.description}
+                                                        </p>
+                                                    )}
+                                                    {issue.suggestion && (
+                                                        <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">
+                                                            <span className="font-medium">
+                                                                Suggestion:
+                                                            </span>{' '}
+                                                            {issue.suggestion}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             ),
                                         )}
@@ -289,41 +337,52 @@ export default function PullRequestShow() {
                             </Card>
                         )}
 
-                        {pullRequest.review?.highlights &&
-                            pullRequest.review.highlights.length > 0 && (
+                        {showReview?.highlights &&
+                            showReview.highlights.length > 0 && (
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>
                                             Highlights (
-                                            {
-                                                pullRequest.review.highlights
-                                                    .length
-                                            }
-                                            )
+                                            {showReview.highlights.length})
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-4">
-                                            {pullRequest.review.highlights.map(
+                                            {showReview.highlights.map(
                                                 (highlight, index) => (
                                                     <div
                                                         key={index}
                                                         className="rounded-lg border p-4"
                                                     >
-                                                        <div className="mb-2 flex items-center gap-2">
-                                                            <code className="font-mono text-sm">
-                                                                {highlight.file}
-                                                                :
-                                                                {highlight.line}
-                                                            </code>
-                                                        </div>
-                                                        <pre className="overflow-x-auto rounded-md bg-muted p-3 text-sm">
-                                                            <code>
-                                                                {
-                                                                    highlight.content
-                                                                }
-                                                            </code>
-                                                        </pre>
+                                                        {typeof highlight ===
+                                                        'string' ? (
+                                                            <p className="text-sm">
+                                                                {highlight}
+                                                            </p>
+                                                        ) : (
+                                                            <>
+                                                                <div className="mb-2 flex items-center gap-2">
+                                                                    <code className="font-mono text-sm">
+                                                                        {
+                                                                            highlight.file
+                                                                        }
+                                                                        {highlight.line !=
+                                                                        null
+                                                                            ? `:${highlight.line}`
+                                                                            : ''}
+                                                                    </code>
+                                                                </div>
+                                                                {highlight.content && (
+                                                                    <pre className="overflow-x-auto rounded-md bg-muted p-3 text-sm">
+                                                                        <code>
+                                                                            {
+                                                                                highlight.content
+                                                                            }
+                                                                        </code>
+                                                                    </pre>
+                                                                )}
+                                                            </>
+                                                        )}
                                                     </div>
                                                 ),
                                             )}
@@ -332,7 +391,7 @@ export default function PullRequestShow() {
                                 </Card>
                             )}
 
-                        {!pullRequest.review && (
+                        {!showReview && (
                             <Card>
                                 <CardContent className="py-12 text-center">
                                     <div className="text-lg font-medium text-muted-foreground">
@@ -393,13 +452,10 @@ export default function PullRequestShow() {
                                             </span>
                                         </div>
                                     </div>
-                                    {pullRequest.review?.recommendation && (
+                                    {showReview?.recommendation && (
                                         <div className="mt-4 text-center">
                                             <Badge variant="outline">
-                                                {
-                                                    pullRequest.review
-                                                        .recommendation
-                                                }
+                                                {showReview.recommendation}
                                             </Badge>
                                         </div>
                                     )}
@@ -432,15 +488,14 @@ export default function PullRequestShow() {
                                             ).toLocaleString()}
                                         </div>
                                     </div>
-                                    {pullRequest.review?.created_at && (
+                                    {showReview?.created_at && (
                                         <div>
                                             <div className="text-sm text-muted-foreground">
                                                 Reviewed
                                             </div>
                                             <div className="text-sm font-medium">
                                                 {new Date(
-                                                    pullRequest.review
-                                                        .created_at,
+                                                    showReview.created_at,
                                                 ).toLocaleString()}
                                             </div>
                                         </div>

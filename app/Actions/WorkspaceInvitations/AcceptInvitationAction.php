@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use SensitiveParameter;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -25,6 +26,9 @@ final readonly class AcceptInvitationAction
 
         $user = User::query()->whereEmail($invitation->email)->first();
 
+        $workspace = $invitation->workspace;
+        throw_unless($workspace instanceof Workspace, HttpException::class, Response::HTTP_INTERNAL_SERVER_ERROR, 'Workspace not found');
+
         if (! $user) {
             $user = User::query()->create([
                 'name' => $name,
@@ -32,16 +36,22 @@ final readonly class AcceptInvitationAction
                 'password' => $password,
                 'email_verified_at' => now(),
             ]);
+
+            return $this->addUserToWorkspace($workspace, $invitation, $user);
         }
 
-        $workspace = $invitation->workspace;
-        throw_unless($workspace instanceof Workspace, HttpException::class, Response::HTTP_INTERNAL_SERVER_ERROR, 'Workspace not found');
+        return $this->addUserToWorkspace($workspace, $invitation, $user);
+    }
 
+    private function addUserToWorkspace(Workspace $workspace, WorkspaceInvitation $invitation, User $user): User
+    {
         $workspace->addUser($user, $invitation->role);
+        Cache::forget(sprintf('workspace:role:%s:%s', $workspace->id, $user->id));
 
         $invitation->update(['accepted_at' => now()]);
 
         $updatedUser = $user->fresh('workspaces');
+
         throw_unless($updatedUser instanceof User, HttpException::class, Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to load user');
 
         return $updatedUser;

@@ -18,9 +18,10 @@ interface Notification {
     data: {
         title: string;
         message: string;
-        workspace_name: string;
-        workspace_slug: string;
-        accept_url: string;
+        workspace_name?: string;
+        workspace_slug?: string;
+        accept_url?: string;
+        review_url?: string;
     };
     read_at: string | null;
     created_at: string;
@@ -207,6 +208,14 @@ export function NotificationBell() {
                                             className="inline-flex h-7 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                                         >
                                             Accept
+                                        </Link>
+                                    )}
+                                    {notification.data.review_url && (
+                                        <Link
+                                            href={notification.data.review_url}
+                                            className="inline-flex h-7 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                                        >
+                                            View Review
                                         </Link>
                                     )}
                                 </div>

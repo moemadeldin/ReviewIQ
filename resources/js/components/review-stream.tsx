@@ -15,7 +15,9 @@ interface ReviewData {
         file: string;
         line: number | null;
         severity: string;
-        message: string;
+        title: string | null;
+        description: string | null;
+        suggestion: string | null;
     }>;
     highlights: Array<{
         file: string;
