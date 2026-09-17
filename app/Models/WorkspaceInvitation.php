@@ -9,7 +9,6 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Database\Factories\WorkspaceInvitationFactory;
 use DateTimeInterface;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,7 +31,15 @@ final class WorkspaceInvitation extends Model
     /** @use HasFactory<WorkspaceInvitationFactory> */
     use HasFactory;
 
-    use HasUuids;
+    public static function hashToken(string $token): string
+    {
+        return hash('sha256', $token);
+    }
+
+    public static function findByRawToken(string $token): ?self
+    {
+        return self::query()->where('token', self::hashToken($token))->first();
+    }
 
     /**
      * @return BelongsTo<Workspace, $this>

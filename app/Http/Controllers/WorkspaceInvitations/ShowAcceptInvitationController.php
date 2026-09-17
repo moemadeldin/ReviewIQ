@@ -6,31 +6,34 @@ namespace App\Http\Controllers\WorkspaceInvitations;
 
 use App\Models\User;
 use App\Models\WorkspaceInvitation;
+use App\Traits\APIResponder;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
-use Inertia\Inertia;
-use Inertia\Response as InertiaResponse;
 
 final readonly class ShowAcceptInvitationController
 {
-    public function __invoke(string $token): InertiaResponse|Response
-    {
-        $invitation = WorkspaceInvitation::query()->with('workspace')->whereToken($token)->first();
+    use APIResponder;
 
-        if (! $invitation) {
-            return response('Invalid invitation', Response::HTTP_NOT_FOUND);
+    public function __invoke(string $token): JsonResponse|View
+    {
+        $invitation = WorkspaceInvitation::findByRawToken($token);
+
+        if (! $invitation instanceof WorkspaceInvitation) {
+            return $this->fail('Invalid invitation', Response::HTTP_NOT_FOUND);
         }
 
         if ($invitation->isExpired()) {
-            return response('Invitation has expired', Response::HTTP_GONE);
+            return $this->fail('Invitation has expired', Response::HTTP_GONE);
         }
 
         if ($invitation->isAccepted()) {
-            return response('Invitation already used', Response::HTTP_CONFLICT);
+            return $this->fail('Invitation already used', Response::HTTP_CONFLICT);
         }
 
         $user = User::query()->whereEmail($invitation->email)->first();
 
-        return Inertia::render('invitations/accept', [
+        return view('invitations.accept', [
             'invitation' => $invitation,
             'isExistingUser' => $user !== null,
         ]);

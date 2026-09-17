@@ -16,7 +16,7 @@ final readonly class AcceptInvitationAction
 {
     public function handle(string $name, #[SensitiveParameter()] string $password, string $token): User
     {
-        $invitation = WorkspaceInvitation::query()->whereToken($token)->first();
+        $invitation = WorkspaceInvitation::findByRawToken($token);
 
         throw_unless($invitation, HttpException::class, Response::HTTP_NOT_FOUND, 'Invalid invitation');
 

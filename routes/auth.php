@@ -14,6 +14,7 @@ use App\Http\Controllers\Repositories\GetConnectedRepositoriesController;
 use App\Http\Controllers\Repositories\RepositoryController;
 use App\Http\Controllers\Reviews\ReReviewController;
 use App\Http\Controllers\Reviews\ReviewController;
+use App\Http\Controllers\WorkspaceInvitations\AcceptInvitationAsMemberController;
 use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
 use App\Http\Controllers\Workspaces\WorkspaceMemberController;
@@ -82,6 +83,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::post('workspaces/{workspace}/reviews/{pullRequest}/re-review', ReReviewController::class)->name('reviews.re-review');
 
     // Invitations...
+    Route::post('invitations/{token}/accept-as-member', AcceptInvitationAsMemberController::class)
+        ->name('invitations.accept-as-member');
 
     // User Settings...
     Route::delete('user', [UserController::class, 'destroy'])->name('user.destroy');

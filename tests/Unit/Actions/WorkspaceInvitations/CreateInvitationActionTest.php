@@ -108,6 +108,7 @@ it('notifies existing user when sending invitation', function (): void {
     Notification::assertSentTo(
         $existingUser,
         WorkspaceInvitationNotification::class,
+        fn (WorkspaceInvitationNotification $notification): bool => str_starts_with($notification->acceptUrl, 'http'),
     );
 });
 
@@ -149,4 +150,40 @@ it('creates invitation with default member role when using string role', functio
     );
 
     expect($invitation->role)->toBe(Roles::Member);
+});
+
+it('stores a hashed token that is resolvable from the raw token', function (): void {
+    Bus::fake();
+    Notification::fake();
+
+    $workspace = Workspace::factory()->create();
+    $invitedBy = User::factory()->create();
+    $invitedUser = User::factory()->create(['email' => 'invitee@example.com']);
+
+    $rawToken = null;
+
+    resolve(CreateInvitationAction::class)->handle(
+        workspace: $workspace,
+        invitedBy: $invitedBy,
+        email: 'invitee@example.com',
+        role: Roles::Member,
+    );
+
+    Notification::assertSentTo(
+        $invitedUser,
+        WorkspaceInvitationNotification::class,
+        function (WorkspaceInvitationNotification $notification) use (&$rawToken): bool {
+            $rawToken = $notification->token;
+
+            return true;
+        },
+    );
+
+    expect($rawToken)->toBeString()->not->toBeEmpty();
+
+    $invitation = WorkspaceInvitation::findByRawToken($rawToken);
+
+    expect($invitation)->not->toBeNull()
+        ->and($invitation->token)->not->toBe($rawToken)
+        ->and($invitation->token)->toBe(WorkspaceInvitation::hashToken($rawToken));
 });

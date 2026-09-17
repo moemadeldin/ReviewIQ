@@ -13,6 +13,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use RuntimeException;
+use SensitiveParameter;
 
 final class SendInvitationEmail implements ShouldQueue
 {
@@ -21,6 +22,7 @@ final class SendInvitationEmail implements ShouldQueue
     public function __construct(
         public WorkspaceInvitation $invitation,
         public User $invitedBy,
+        #[SensitiveParameter] public string $rawToken,
     ) {}
 
     public function handle(): void
@@ -29,7 +31,7 @@ final class SendInvitationEmail implements ShouldQueue
         throw_unless($workspace instanceof Workspace, RuntimeException::class, 'Workspace not found');
 
         $signedUrl = URL::signedRoute('invitations.accept.page', [
-            'token' => $this->invitation->token,
+            'token' => $this->rawToken,
         ]);
 
         Mail::to($this->invitation->email)->send(new WorkspaceInvitationMail(

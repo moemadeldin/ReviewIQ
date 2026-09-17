@@ -57,8 +57,8 @@ final readonly class WorkspaceInvitationController
                 $request->string('email')->toString(),
                 is_string($role) ? Roles::from($role) : Roles::Member,
             );
-        } catch (RuntimeException $exception) {
-            return $this->fail($exception->getMessage(), Response::HTTP_CONFLICT);
+        } catch (RuntimeException $runtimeException) {
+            return $this->fail($runtimeException->getMessage(), Response::HTTP_CONFLICT);
         }
 
         return $this->success([
