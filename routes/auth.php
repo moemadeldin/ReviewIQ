@@ -76,11 +76,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     });
 
     // Reviews...
-    Route::get('workspaces/{workspace}/reviews/{pullRequest}/data', [ReviewController::class, 'show'])->name('reviews.show.data');
+    Route::get('workspaces/{workspace}/reviews/{pullRequest}/data', [ReviewController::class, 'show'])->name('reviews.show.data')->scopeBindings();
     Route::get('workspaces/{workspace}/reviews/data', [ReviewController::class, 'index'])->name('reviews.index');
     Route::get('workspaces/{workspace}/reviews', [WorkspacePageController::class, 'reviews'])->name('reviews.page');
-    Route::get('workspaces/{workspace}/reviews/{pullRequest}', [WorkspacePageController::class, 'review'])->name('reviews.show');
-    Route::post('workspaces/{workspace}/reviews/{pullRequest}/re-review', ReReviewController::class)->name('reviews.re-review');
+    Route::get('workspaces/{workspace}/reviews/{pullRequest}', [WorkspacePageController::class, 'review'])->name('reviews.show')->scopeBindings();
+    Route::post('workspaces/{workspace}/reviews/{pullRequest}/re-review', ReReviewController::class)->name('reviews.re-review')->scopeBindings();
 
     // Invitations...
     Route::post('invitations/{token}/accept-as-member', AcceptInvitationAsMemberController::class)

@@ -162,3 +162,36 @@ it('filters pull requests by status', function (): void {
 
     $response->assertOk();
 });
+
+it('does not leak pull requests from another workspace', function (): void {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($user)->create();
+
+    $otherWorkspace = Workspace::factory()->create();
+    $otherRepo = Repository::factory()->create(['workspace_id' => $otherWorkspace->id]);
+    $otherPr = PullRequest::factory()->create(['repository_id' => $otherRepo->id]);
+
+    $this->actingAs($user)
+        ->withSession(['current_workspace_id' => $workspace->id])
+        ->getJson(route('reviews.show.data', [
+            'workspace' => $workspace->slug,
+            'pullRequest' => $otherPr->id,
+        ]))
+        ->assertNotFound();
+
+    $this->actingAs($user)
+        ->withSession(['current_workspace_id' => $workspace->id])
+        ->get(route('reviews.show', [
+            'workspace' => $workspace->slug,
+            'pullRequest' => $otherPr->id,
+        ]))
+        ->assertNotFound();
+
+    $this->actingAs($user)
+        ->withSession(['current_workspace_id' => $workspace->id])
+        ->post(route('reviews.re-review', [
+            'workspace' => $workspace->slug,
+            'pullRequest' => $otherPr->id,
+        ]))
+        ->assertNotFound();
+});
