@@ -74,7 +74,7 @@ export function NotificationBell() {
 
     const markAsRead = (id: string) => {
         fetch(`/notifications/${id}/read`, {
-            method: 'POST',
+            method: 'PATCH',
             headers: {
                 Accept: 'application/json',
                 'X-CSRF-TOKEN':
@@ -83,7 +83,13 @@ export function NotificationBell() {
                         ?.getAttribute('content') || '',
             },
         })
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error('Failed to mark notification as read');
+                }
+
+                return res.json();
+            })
             .then(() => {
                 setNotifications((prev) =>
                     prev.map((n) =>
@@ -99,7 +105,7 @@ export function NotificationBell() {
 
     const markAllAsRead = () => {
         fetch('/notifications/read-all', {
-            method: 'POST',
+            method: 'PATCH',
             headers: {
                 Accept: 'application/json',
                 'X-CSRF-TOKEN':
@@ -108,7 +114,13 @@ export function NotificationBell() {
                         ?.getAttribute('content') || '',
             },
         })
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error('Failed to mark notifications as read');
+                }
+
+                return res.json();
+            })
             .then(() => {
                 setNotifications((prev) =>
                     prev.map((n) => ({

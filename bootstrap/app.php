@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Exceptions\WebhookException;
+use App\Http\Middleware\EnsureWorkspaceAccess;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RequireWorkspace;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'current_workspace' => SetCurrentWorkspace::class,
             'require_workspace' => RequireWorkspace::class,
+            'workspace_access' => EnsureWorkspaceAccess::class,
         ]);
 
         $middleware->web(append: [
@@ -42,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->group('auth', [
             'current_workspace',
             'require_workspace',
+            'workspace_access',
         ]);
         // $middleware->preventRequestForgery(['/webhooks/github']);
     })

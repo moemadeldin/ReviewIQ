@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Resources\NotificationResource;
-use App\Models\Notification;
 use App\Models\User;
 use App\Queries\GetUserNotifications;
 use App\Traits\APIResponder;
@@ -37,9 +36,9 @@ final readonly class NotificationController
         ], 'ok');
     }
 
-    public function markAsRead(#[CurrentUser()] User $user, Notification $notification): JsonResponse
+    public function markAsRead(#[CurrentUser()] User $user, string $notification): JsonResponse
     {
-        $notification = $user->notifications()->find($notification->id);
+        $notification = $user->notifications()->find($notification);
 
         if (! $notification) {
             return $this->fail('Notification not found', Response::HTTP_NOT_FOUND);

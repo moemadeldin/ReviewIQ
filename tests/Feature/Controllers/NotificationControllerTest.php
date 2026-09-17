@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use App\Notifications\WorkspaceInvitationNotification;
+use Illuminate\Http\Response;
 use Illuminate\Notifications\DatabaseNotification;
 
 it('returns notifications for authenticated user', function (): void {
@@ -50,10 +51,12 @@ it('marks notification as read', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->postJson(route('notifications.mark-read', ['id' => 'read-test-notification']));
+        ->patchJson(route('notifications.mark-read', ['notification' => 'read-test-notification']));
 
     $response->assertOk()
         ->assertJsonPath('data.message', 'Notification marked as read');
+
+    expect($notification->refresh()->read_at)->not->toBeNull();
 });
 
 it('returns 404 for non-existent notification', function (): void {
@@ -62,9 +65,9 @@ it('returns 404 for non-existent notification', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->postJson(route('notifications.mark-read', ['id' => 'non-existent-notification']));
+        ->patchJson(route('notifications.mark-read', ['notification' => 'non-existent-notification']));
 
-    $response->assertStatus(404)
+    $response->assertStatus(Response::HTTP_NOT_FOUND)
         ->assertJsonPath('message', 'Notification not found');
 });
 
@@ -84,7 +87,7 @@ it('marks all notifications as read', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->postJson(route('notifications.mark-all-read'));
+        ->patchJson(route('notifications.mark-all-read'));
 
     $response->assertOk()
         ->assertJsonPath('data.message', 'All notifications marked as read');
