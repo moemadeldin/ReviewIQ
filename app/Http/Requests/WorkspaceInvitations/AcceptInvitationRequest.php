@@ -16,9 +16,7 @@ final class AcceptInvitationRequest extends FormRequest
      */
     public function rules(): array
     {
-        $invitation = WorkspaceInvitation::query()
-            ->whereToken((string) $this->route('token'))
-            ->first();
+        $invitation = WorkspaceInvitation::findByRawToken((string) $this->route('token'));
 
         $requiresCredentials = $invitation instanceof WorkspaceInvitation
             && ! $invitation->isExpired()

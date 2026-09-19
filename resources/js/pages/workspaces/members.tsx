@@ -1,5 +1,5 @@
 import { Form, Head, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -70,6 +70,12 @@ export default function Members() {
 
     const canInvite = role === 'owner';
     const isOwner = role === 'owner';
+
+    useEffect(() => {
+        setMembers(initialMembers || []);
+        setPage(membersCurrentPage || 1);
+        setHasMore(membersHasMore || false);
+    }, [initialMembers, membersCurrentPage, membersHasMore]);
 
     const fetchMembers = async (pageNum: number) => {
         setLoading(true);

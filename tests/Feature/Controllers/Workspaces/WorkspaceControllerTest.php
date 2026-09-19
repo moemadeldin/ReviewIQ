@@ -188,6 +188,33 @@ it('renders workspace show page', function (): void {
             ->has('workspace'));
 });
 
+it('redirects non-members away from a workspace', function (): void {
+    $owner = User::factory()->create();
+    $nonMember = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($owner)->create();
+    Workspace::factory()->withOwner($nonMember)->create();
+
+    $response = $this->actingAs($nonMember)
+        ->get(route('workspaces.show', $workspace));
+
+    $response->assertRedirect(route('dashboard'));
+});
+
+it('allows workspace members to view a workspace', function (): void {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($owner)->create();
+    $workspace->addUser($member, Roles::Member);
+
+    $response = $this->actingAs($member)
+        ->get(route('workspaces.show', $workspace));
+
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('workspaces/show')
+            ->has('workspace'));
+});
+
 it('auto-generates slug from workspace name', function (): void {
     $user = User::factory()->create();
 

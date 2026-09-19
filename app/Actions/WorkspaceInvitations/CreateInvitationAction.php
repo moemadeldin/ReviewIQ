@@ -40,25 +40,26 @@ final readonly class CreateInvitationAction
         $invitation = WorkspaceInvitation::query()->create([
             'workspace_id' => $workspace->id,
             'email' => $email,
-            'token' => $token,
-            'role' => $role instanceof Roles ? $role->value : Roles::Member->value,
+            'token' => WorkspaceInvitation::hashToken($token),
+            'role' => ($role instanceof Roles ? $role : Roles::from($role))->value,
             'expires_at' => now()->addHours(self::TOKEN_EXPIRY_HOURS),
             'created_at' => now(),
         ]);
 
         try {
-            $acceptUrl = route('invitations.accept.page', ['token' => $token], absolute: false);
+            $acceptUrl = route('invitations.accept.page', ['token' => $token]);
         } catch (RouteNotFoundException) {
             $acceptUrl = url('/invitations/'.$token.'/accept');
         }
 
-        dispatch(new SendInvitationEmail($invitation, $invitedBy));
+        dispatch(new SendInvitationEmail($invitation, $invitedBy, $token));
 
         if ($existingUser instanceof User) {
             $existingUser->notify(new WorkspaceInvitationNotification(
                 $workspace,
                 $invitedBy,
                 $acceptUrl,
+                $token,
             ));
         }
 

@@ -14,6 +14,7 @@ use App\Http\Controllers\Repositories\GetConnectedRepositoriesController;
 use App\Http\Controllers\Repositories\RepositoryController;
 use App\Http\Controllers\Reviews\ReReviewController;
 use App\Http\Controllers\Reviews\ReviewController;
+use App\Http\Controllers\WorkspaceInvitations\AcceptInvitationAsMemberController;
 use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
 use App\Http\Controllers\Workspaces\WorkspaceMemberController;
@@ -75,13 +76,15 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     });
 
     // Reviews...
-    Route::get('workspaces/{workspace}/reviews/{pullRequest}/data', [ReviewController::class, 'show'])->name('reviews.show.data');
+    Route::get('workspaces/{workspace}/reviews/{pullRequest}/data', [ReviewController::class, 'show'])->name('reviews.show.data')->scopeBindings();
     Route::get('workspaces/{workspace}/reviews/data', [ReviewController::class, 'index'])->name('reviews.index');
     Route::get('workspaces/{workspace}/reviews', [WorkspacePageController::class, 'reviews'])->name('reviews.page');
-    Route::get('workspaces/{workspace}/reviews/{pullRequest}', [WorkspacePageController::class, 'review'])->name('reviews.show');
-    Route::post('workspaces/{workspace}/reviews/{pullRequest}/re-review', ReReviewController::class)->name('reviews.re-review');
+    Route::get('workspaces/{workspace}/reviews/{pullRequest}', [WorkspacePageController::class, 'review'])->name('reviews.show')->scopeBindings();
+    Route::post('workspaces/{workspace}/reviews/{pullRequest}/re-review', ReReviewController::class)->name('reviews.re-review')->scopeBindings();
 
     // Invitations...
+    Route::post('invitations/{token}/accept-as-member', AcceptInvitationAsMemberController::class)
+        ->name('invitations.accept-as-member');
 
     // User Settings...
     Route::delete('user', [UserController::class, 'destroy'])->name('user.destroy');

@@ -130,6 +130,24 @@ it('renders review detail page', function (): void {
             ->has('pullRequest'));
 });
 
+it('redirects non-members away from workspace pages', function (string $routeName): void {
+    $nonMember = User::factory()->create();
+    Workspace::factory()->withOwner($nonMember)->create();
+
+    $response = $this->actingAs($nonMember)
+        ->get(route($routeName, ['workspace' => $this->workspace->slug]));
+
+    $response->assertRedirect(route('dashboard'));
+})->with([
+    'members page' => 'workspaces.members.page',
+    'invitations page' => 'workspaces.invitations.page',
+    'repos page' => 'workspaces.repos.page',
+    'reviews page' => 'reviews.page',
+    'members data' => 'workspaces.members',
+    'invitations data' => 'workspaces.invitations',
+    'repos data' => 'workspaces.repos',
+]);
+
 it('includes user role in all pages', function (): void {
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])

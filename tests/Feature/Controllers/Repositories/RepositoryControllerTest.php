@@ -74,8 +74,8 @@ it('returns connected repos from all workspaces when no workspace selected', fun
         ->get(route('repos.data'));
 
     $response->assertOk()
-        ->assertJsonPath('data.connected_repos.owner/repo1.id', fn (mixed $id) => is_string($id))
-        ->assertJsonPath('data.connected_repos.owner/repo2.id', fn (mixed $id) => is_string($id));
+        ->assertJsonPath('data.connected_repos.owner/repo1.id', fn (mixed $id): bool => is_string($id))
+        ->assertJsonPath('data.connected_repos.owner/repo2.id', fn (mixed $id): bool => is_string($id));
 });
 
 it('stores a repository successfully', function (): void {

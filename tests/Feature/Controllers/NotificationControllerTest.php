@@ -2,27 +2,24 @@
 
 declare(strict_types=1);
 
-use App\Models\Notification;
 use App\Models\User;
 use App\Models\Workspace;
-use Illuminate\Support\Str;
-
-function createNotification(User $user): Notification
-{
-    return Notification::query()->create([
-        'id' => (string) Str::uuid7(),
-        'type' => 'App\\Notifications\\TestNotification',
-        'notifiable_type' => User::class,
-        'notifiable_id' => $user->id,
-        'data' => ['message' => 'Test notification'],
-    ]);
-}
+use App\Models\WorkspaceInvitation;
+use App\Notifications\WorkspaceInvitationNotification;
+use Illuminate\Http\Response;
+use Illuminate\Notifications\DatabaseNotification;
 
 it('returns notifications for authenticated user', function (): void {
     $user = User::factory()->create();
     $workspace = Workspace::factory()->withOwner($user)->create();
 
-    createNotification($user);
+    DatabaseNotification::query()->create([
+        'id' => 'test-notification-id',
+        'type' => 'App\\Notifications\\TestNotification',
+        'notifiable_type' => User::class,
+        'notifiable_id' => $user->id,
+        'data' => ['message' => 'Test notification'],
+    ]);
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
@@ -44,14 +41,22 @@ it('marks notification as read', function (): void {
     $user = User::factory()->create();
     $workspace = Workspace::factory()->withOwner($user)->create();
 
-    $notification = createNotification($user);
+    $notification = DatabaseNotification::query()->create([
+        'id' => 'read-test-notification',
+        'type' => 'App\\Notifications\\TestNotification',
+        'notifiable_type' => User::class,
+        'notifiable_id' => $user->id,
+        'data' => ['message' => 'Test notification'],
+    ]);
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->patchJson(route('notifications.mark-read', ['notification' => $notification->id]));
+        ->patchJson(route('notifications.mark-read', ['notification' => 'read-test-notification']));
 
     $response->assertOk()
         ->assertJsonPath('data.message', 'Notification marked as read');
+
+    expect($notification->refresh()->read_at)->not->toBeNull();
 });
 
 it('returns 404 for non-existent notification', function (): void {
@@ -60,9 +65,10 @@ it('returns 404 for non-existent notification', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->patchJson(route('notifications.mark-read', ['notification' => '00000000-0000-7000-8000-000000000000']));
+        ->patchJson(route('notifications.mark-read', ['notification' => 'non-existent-notification']));
 
-    $response->assertStatus(404);
+    $response->assertStatus(Response::HTTP_NOT_FOUND)
+        ->assertJsonPath('message', 'Notification not found');
 });
 
 it('marks all notifications as read', function (): void {
@@ -70,7 +76,13 @@ it('marks all notifications as read', function (): void {
     $workspace = Workspace::factory()->withOwner($user)->create();
 
     for ($i = 0; $i < 3; $i++) {
-        createNotification($user);
+        DatabaseNotification::query()->create([
+            'id' => 'all-read-test-'.$i,
+            'type' => 'App\\Notifications\\TestNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => ['message' => 'Test notification'],
+        ]);
     }
 
     $response = $this->actingAs($user)
@@ -79,4 +91,55 @@ it('marks all notifications as read', function (): void {
 
     $response->assertOk()
         ->assertJsonPath('data.message', 'All notifications marked as read');
+});
+
+it('hides the invitation token once the invitation is accepted', function (): void {
+    $user = User::factory()->create(['email' => 'invitee@example.com']);
+    $workspace = Workspace::factory()->withOwner($user)->create();
+
+    WorkspaceInvitation::factory()->withToken('used-token')->accepted()->create([
+        'workspace_id' => $workspace->id,
+        'email' => 'invitee@example.com',
+    ]);
+
+    DatabaseNotification::query()->create([
+        'id' => 'accepted-invitation-notification',
+        'type' => WorkspaceInvitationNotification::class,
+        'notifiable_type' => User::class,
+        'notifiable_id' => $user->id,
+        'data' => ['title' => 'Workspace Invitation', 'token' => 'used-token'],
+    ]);
+
+    $response = $this->actingAs($user)
+        ->withSession(['current_workspace_id' => $workspace->id])
+        ->getJson(route('notifications.index'));
+
+    $response->assertOk();
+
+    expect($response->json('data.notifications.0.data'))->not->toHaveKey('token');
+});
+
+it('keeps the invitation token while the invitation is pending', function (): void {
+    $user = User::factory()->create(['email' => 'invitee@example.com']);
+    $workspace = Workspace::factory()->withOwner($user)->create();
+
+    WorkspaceInvitation::factory()->withToken('pending-token')->create([
+        'workspace_id' => $workspace->id,
+        'email' => 'invitee@example.com',
+    ]);
+
+    DatabaseNotification::query()->create([
+        'id' => 'pending-invitation-notification',
+        'type' => WorkspaceInvitationNotification::class,
+        'notifiable_type' => User::class,
+        'notifiable_id' => $user->id,
+        'data' => ['title' => 'Workspace Invitation', 'token' => 'pending-token'],
+    ]);
+
+    $response = $this->actingAs($user)
+        ->withSession(['current_workspace_id' => $workspace->id])
+        ->getJson(route('notifications.index'));
+
+    $response->assertOk()
+        ->assertJsonPath('data.notifications.0.data.token', 'pending-token');
 });
