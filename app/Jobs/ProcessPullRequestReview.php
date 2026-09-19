@@ -26,7 +26,7 @@ use RuntimeException;
 use Throwable;
 
 #[Tries(3)]
-#[Timeout(120)]
+#[Timeout(600)]
 final class ProcessPullRequestReview implements ShouldQueue
 {
     use Dispatchable;

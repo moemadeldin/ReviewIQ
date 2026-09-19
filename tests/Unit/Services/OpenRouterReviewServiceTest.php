@@ -15,13 +15,13 @@ use Psr\Http\Message\StreamInterface;
 beforeEach(function (): void {
     Config::set('services.openrouter.base_url', 'https://openrouter.ai/api/v1/');
     Config::set('services.openrouter.api_key', 'test-api-key');
-    Config::set('services.openrouter.model', 'deepseek/deepseek-v4-flash:free');
+    Config::set('services.openrouter.model', 'deepseek/deepseek-v4-flash-0731:free');
     Config::set('services.openrouter.temperature', 0.2);
     Config::set('services.openrouter.max_tokens', 2000);
     Log::spy();
 });
 
-function createOpenRouterService(Client $client): OpenRouterReviewService
+function createOpenRouterService(Client $client, array $fallbackModels = []): OpenRouterReviewService
 {
     return new OpenRouterReviewService(
         $client,
@@ -31,6 +31,7 @@ function createOpenRouterService(Client $client): OpenRouterReviewService
         (float) config('services.openrouter.temperature'),
         (int) config('services.openrouter.max_tokens'),
         (int) config('services.openrouter.timeout', 60),
+        $fallbackModels,
     );
 }
 
@@ -141,6 +142,32 @@ it('throws on invalid json response', function (): void {
 
     expect(fn (): array => $service->review('system', 'user'))
         ->toThrow(ReviewParseException::class);
+});
+
+it('throws with max tokens hint and logs details when content is truncated empty', function (): void {
+    $response = new Response(200, [], json_encode([
+        'choices' => [
+            [
+                'message' => ['content' => null],
+                'finish_reason' => 'length',
+            ],
+        ],
+    ]));
+
+    $client = $this->createMock(Client::class);
+    $client->expects($this->once())
+        ->method('post')
+        ->willReturn($response);
+
+    $service = createOpenRouterService($client);
+
+    expect(fn (): array => $service->review('system', 'user'))
+        ->toThrow(ReviewParseException::class, 'finish_reason: length - increase OPENROUTER_MAX_TOKENS');
+
+    Log::assertLogged('error', function (string $message, array $context): bool {
+        return $message === 'OpenRouter returned empty response'
+            && ($context['finish_reason'] ?? null) === 'length';
+    });
 });
 
 it('throws on missing required fields', function (): void {
@@ -436,4 +463,97 @@ it('repairs common json malformations', function (): void {
         ->and($result['score_rationale'])->toBe('The score is 70')
         ->and($result['issues'][0]['severity'])->toBe('medium')
         ->and($result['recommendation'])->toBe('request_changes');
+});
+
+it('parses valid json without corrupting string bodies', function (): void {
+    $raw = mb_trim(json_encode([
+        'summary' => 'Added coverage: filtering, pagination support',
+        'score' => 72,
+        'score_rationale' => 'Solid: build, fine edge: cases',
+        'issues' => [
+            ['severity' => 'medium', 'line' => null, 'message' => 'The triggers: pagination here'],
+        ],
+        'highlights' => ['clean: code, section'],
+        'recommendation' => 'request_changes',
+    ], flags: JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+    $response = new Response(200, [], json_encode([
+        'choices' => [
+            ['message' => ['content' => $raw]],
+        ],
+    ]));
+
+    $client = $this->createMock(Client::class);
+    $client->expects($this->once())
+        ->method('post')
+        ->willReturn($response);
+
+    $service = createOpenRouterService($client);
+    $result = $service->review('system', 'user');
+
+    expect($result['summary'])->toBe('Added coverage: filtering, pagination support')
+        ->and($result['score'])->toBe(72)
+        ->and($result['score_rationale'])->toBe('Solid: build, fine edge: cases')
+        ->and($result['issues'][0]['message'])->toBe('The triggers: pagination here')
+        ->and($result['highlights'][0]['content'])->toBe('clean: code, section');
+});
+
+it('falls back to the next model when parsing fails', function (): void {
+    $invalid = new Response(200, [], json_encode([
+        'choices' => [
+            ['message' => ['content' => 'User Safety: safe']],
+        ],
+    ]));
+
+    $valid = new Response(200, [], json_encode([
+        'choices' => [
+            ['message' => ['content' => openRouterValidJsonResponse()]],
+        ],
+    ]));
+
+    $client = $this->createMock(Client::class);
+    $client->expects($this->exactly(2))
+        ->method('post')
+        ->willReturnOnConsecutiveCalls($invalid, $valid);
+
+    $service = createOpenRouterService($client, ['qwen/qwen3.8-27b:free']);
+    $result = $service->review('system', 'user');
+
+    expect($result['summary'])->toBe('Good code');
+});
+
+it('throws the last error when every fallback model fails', function (): void {
+    $invalid = new Response(200, [], json_encode([
+        'choices' => [
+            ['message' => ['content' => 'not valid json']],
+        ],
+    ]));
+
+    $client = $this->createMock(Client::class);
+    $client->expects($this->exactly(2))
+        ->method('post')
+        ->willReturn($invalid);
+
+    $service = createOpenRouterService($client, ['qwen/qwen3.8-27b:free']);
+
+    expect(fn (): array => $service->review('system', 'user'))
+        ->toThrow(ReviewParseException::class, 'Invalid JSON from OpenRouter');
+});
+
+it('reports the decoding error truthfully when json is invalid', function (): void {
+    $response = new Response(200, [], json_encode([
+        'choices' => [
+            ['message' => ['content' => '{ this is not json "']],
+        ],
+    ]));
+
+    $client = $this->createMock(Client::class);
+    $client->expects($this->once())
+        ->method('post')
+        ->willReturn($response);
+
+    $service = createOpenRouterService($client);
+
+    expect(fn (): array => $service->review('system', 'user'))
+        ->toThrow(ReviewParseException::class, 'Invalid JSON from OpenRouter: Syntax error');
 });
