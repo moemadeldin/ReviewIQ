@@ -26,7 +26,7 @@ use RuntimeException;
 use Throwable;
 
 #[Tries(3)]
-#[Timeout(120)]
+#[Timeout(600)]
 final class ProcessPullRequestReview implements ShouldQueue
 {
     use Dispatchable;
@@ -52,17 +52,48 @@ final class ProcessPullRequestReview implements ShouldQueue
     ): void {
         $updated = PullRequest::query()
             ->where('id', $this->pullRequest->id)
-            ->whereIn('status', [PullRequestStatus::Pending, PullRequestStatus::Reviewing])
+            ->where('status', PullRequestStatus::Pending)
             ->update(['status' => PullRequestStatus::Reviewing]);
 
         if (! $updated) {
-            Log::info('PR #'.$this->pullRequest->number.' already processing or reviewed, skipping');
+            Log::info('PR #'.$this->pullRequest->number.' not pending, skipping');
 
             return;
         }
 
         $this->pullRequest->refresh();
 
+        try {
+            $this->review($diffService, $promptBuilder, $aiReviewer, $githubApp);
+        } catch (Throwable $e) {
+            $this->pullRequest->update(['status' => PullRequestStatus::Pending]);
+
+            throw $e;
+        }
+    }
+
+    public function failed(Throwable $e): void
+    {
+        Log::error('Review job failed for PR #'.$this->pullRequest->number, [
+            'error' => $e->getMessage(),
+            'attempts' => $this->attempts(),
+        ]);
+
+        $maxTries = $this->job?->maxTries() ?? 3;
+
+        $status = $this->attempts() >= $maxTries
+            ? PullRequestStatus::Failed
+            : PullRequestStatus::Pending;
+
+        $this->pullRequest->update(['status' => $status]);
+    }
+
+    private function review(
+        DiffProvider $diffService,
+        PromptBuilder $promptBuilder,
+        AIReviewer $aiReviewer,
+        GitHubAppAuth $githubApp,
+    ): void {
         $repository = $this->pullRequest->repository;
         throw_unless($repository instanceof Repository, RuntimeException::class, 'Repository not found');
 
@@ -118,22 +149,10 @@ final class ProcessPullRequestReview implements ShouldQueue
 
         dispatch(new PostReviewComments($this->pullRequest));
 
+        $this->pullRequest->update(['status' => PullRequestStatus::Reviewed]);
+
         Log::info('Review stored for PR #'.$this->pullRequest->number, [
             'score' => $reviewResult['score'] ?? 0,
         ]);
-    }
-
-    public function failed(Throwable $e): void
-    {
-        Log::error('Review job failed for PR #'.$this->pullRequest->number, [
-            'error' => $e->getMessage(),
-            'attempts' => $this->attempts(),
-        ]);
-
-        $status = $this->attempts() >= $this->job->maxTries()
-            ? PullRequestStatus::Failed
-            : PullRequestStatus::Pending;
-
-        $this->pullRequest->update(['status' => $status]);
     }
 }

@@ -131,7 +131,8 @@ REDIS_PASSWORD=
 # OpenRouter AI (DeepSeek V4 Flash)
 OPENROUTER_API_KEY=your_openrouter_api_key
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1/
-OPENROUTER_MODEL=deepseek/deepseek-v4-flash:free
+OPENROUTER_MODEL=deepseek/deepseek-v4-flash-0731:free
+OPENROUTER_FALLBACK_MODELS=qwen/qwen3.8-27b:free,nvidia/nemotron-3-super-120b-a12b:free
 
 # GitHub OAuth
 GITHUB_CLIENT_ID=
@@ -139,7 +140,7 @@ GITHUB_CLIENT_SECRET=
 GITHUB_WEBHOOK_SECRET=
 
 # GitHub App (for PR review bot authentication)
-GITHUB_APP_ID=3912217
+GITHUB_APP_ID=
 GITHUB_APP_INSTALLATION_ID=
 GITHUB_APP_PRIVATE_KEY_PATH=storage/oauth/reviewiq-pr-reviewer.pem
 

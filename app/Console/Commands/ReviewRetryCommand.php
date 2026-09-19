@@ -34,6 +34,10 @@ final class ReviewRetryCommand extends Command
                 $pr->update(['status' => PullRequestStatus::Pending]);
             }
 
+            if ($pr->status === PullRequestStatus::Failed) {
+                $pr->update(['status' => PullRequestStatus::Pending]);
+            }
+
             $this->info(sprintf('Dispatching review for PR #%s (%s)', $pr->number, $pr->id));
             dispatch(new ProcessPullRequestReview($pr));
         }
