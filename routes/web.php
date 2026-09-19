@@ -23,12 +23,6 @@ Route::post('invitations/{token}/accept', AcceptInvitationController::class)
     ->name('invitations.accept');
 
 Route::middleware('guest')->group(function (): void {
-    // GitHub OAuth...
-    Route::controller(GitHubController::class)->group(function (): void {
-        Route::get('auth/github', 'redirect')->name('auth.github');
-        Route::get('auth/github/callback', 'callback')->name('auth.github.callback');
-    });
-
     // Registration...
     Route::controller(UserController::class)->group(function (): void {
         Route::get('register', 'create')->name('register');
@@ -54,7 +48,7 @@ Route::middleware('guest')->group(function (): void {
     });
 
 });
-// GitHub OAuth...
+// GitHub OAuth (guests login; authenticated users connect their GitHub account)...
 
 Route::controller(GitHubController::class)->group(function (): void {
     Route::get('auth/github', 'redirect')->name('auth.github');

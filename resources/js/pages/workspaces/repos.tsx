@@ -242,6 +242,7 @@ export default function Repos() {
                                                                         ? 'destructive'
                                                                         : 'default'
                                                                 }
+                                                                className="cursor-pointer"
                                                                 onClick={() =>
                                                                     handleToggle(
                                                                         repo.full_name,
@@ -259,7 +260,9 @@ export default function Repos() {
                                                                     repo
                                                                         .full_name
                                                                 ]
-                                                                    ? '...'
+                                                                    ? repo.is_active
+                                                                      ? 'Disabling..'
+                                                                      : 'Enabling..'
                                                                     : repo.is_active
                                                                       ? 'Disable'
                                                                       : 'Enable'}
