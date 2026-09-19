@@ -1,13 +1,24 @@
 import { Head, usePage } from '@inertiajs/react';
-import { ExternalLink, FileCode2, GitBranch, User } from 'lucide-react';
+import {
+    ExternalLink,
+    FileCode2,
+    FileSearch,
+    GitBranch,
+    Lightbulb,
+    User,
+} from 'lucide-react';
 import { useState } from 'react';
+import { CodeBlock } from '@/components/code-block';
+import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
+import { PrStatusBadge } from '@/components/pr-status-badge';
 import { ReviewStream } from '@/components/review-stream';
+import { ScoreGauge } from '@/components/score-gauge';
+import { SeverityBadge } from '@/components/severity-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
-import { cn } from '@/lib/utils';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
 interface Repository {
@@ -84,57 +95,7 @@ export default function PullRequestShow() {
 
     const isReviewing = pullRequest.status === 'reviewing';
     const showReview = pullRequest.review || liveReview;
-
-    const getScoreColor = (score: number | null): string => {
-        if (score === null) return 'text-gray-500';
-        if (score >= 80) return 'text-green-500';
-        if (score >= 50) return 'text-amber-500';
-        return 'text-red-500';
-    };
-
-    const getScoreRingColor = (score: number | null): string => {
-        if (score === null) return 'stroke-gray-500';
-        if (score >= 80) return 'stroke-green-500';
-        if (score >= 50) return 'stroke-amber-500';
-        return 'stroke-red-500';
-    };
-
-    const getSeverityVariant = (
-        severity: string,
-    ): 'default' | 'secondary' | 'outline' | 'destructive' => {
-        switch (severity.toLowerCase()) {
-            case 'error':
-            case 'critical':
-                return 'destructive';
-            case 'warning':
-                return 'secondary';
-            case 'info':
-                return 'outline';
-            default:
-                return 'default';
-        }
-    };
-
-    const getStatusBadgeVariant = (
-        status: string,
-    ): 'default' | 'secondary' | 'outline' | 'destructive' => {
-        switch (status) {
-            case 'reviewed':
-                return 'default';
-            case 'pending':
-            case 'reviewing':
-                return 'outline';
-            case 'failed':
-                return 'destructive';
-            default:
-                return 'secondary';
-        }
-    };
-
     const score = showReview?.score ?? null;
-    const radius = 45;
-    const circumference = 2 * Math.PI * radius;
-    const progress = score !== null ? (score / 100) * circumference : 0;
 
     return (
         <AppLayout breadcrumbs={currentBreadcrumbs}>
@@ -143,63 +104,65 @@ export default function PullRequestShow() {
             />
 
             <div className="space-y-6 px-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                     <Heading
                         title={pullRequest.title || `#${pullRequest.number}`}
                         description={`Pull request in ${pullRequest.repository?.full_name || 'Unknown'}`}
                     />
-                    {pullRequest.repository?.full_name &&
-                        pullRequest.number && (
-                            <Button asChild>
-                                <a
-                                    href={`https://github.com/${pullRequest.repository.full_name}/pull/${pullRequest.number}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    <ExternalLink className="mr-2 h-4 w-4" />
-                                    View on GitHub
-                                </a>
-                            </Button>
-                        )}
-                    {showReview && (
-                        <form
-                            action={`/workspaces/${workspace.slug}/reviews/${pullRequest.id}/re-review`}
-                            method="POST"
-                        >
-                            <input
-                                type="hidden"
-                                name="_token"
-                                value={
-                                    (
-                                        document.querySelector(
-                                            'meta[name="csrf-token"]',
-                                        ) as HTMLMetaElement
-                                    )?.content ?? ''
-                                }
-                            />
-                            <Button
-                                variant="outline"
-                                type="submit"
-                                disabled={isReviewing}
+                    <div className="flex shrink-0 items-center gap-2">
+                        {pullRequest.repository?.full_name &&
+                            pullRequest.number && (
+                                <Button asChild>
+                                    <a
+                                        href={`https://github.com/${pullRequest.repository.full_name}/pull/${pullRequest.number}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        <ExternalLink />
+                                        View on GitHub
+                                    </a>
+                                </Button>
+                            )}
+                        {showReview && (
+                            <form
+                                action={`/workspaces/${workspace.slug}/reviews/${pullRequest.id}/re-review`}
+                                method="POST"
                             >
-                                {isReviewing ? 'Reviewing...' : 'Re-review'}
-                            </Button>
-                        </form>
-                    )}
+                                <input
+                                    type="hidden"
+                                    name="_token"
+                                    value={
+                                        (
+                                            document.querySelector(
+                                                'meta[name="csrf-token"]',
+                                            ) as HTMLMetaElement
+                                        )?.content ?? ''
+                                    }
+                                />
+                                <Button
+                                    variant="outline"
+                                    type="submit"
+                                    disabled={isReviewing}
+                                >
+                                    {isReviewing ? 'Reviewing...' : 'Re-review'}
+                                </Button>
+                            </form>
+                        )}
+                    </div>
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="space-y-6 lg:col-span-2">
-                        <Card>
+                        <Card className="bg-card/60">
                             <CardHeader>
                                 <CardTitle>PR Details</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="flex items-center gap-2">
-                                        <GitBranch className="h-4 w-4 text-muted-foreground" />
+                                        <GitBranch className="size-4 text-muted-foreground" />
                                         <span className="text-sm text-muted-foreground">
-                                            Branch:
+                                            Sha:
                                         </span>
                                         <code className="font-mono text-sm">
                                             {pullRequest.head_sha?.substring(
@@ -209,7 +172,7 @@ export default function PullRequestShow() {
                                         </code>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <User className="h-4 w-4 text-muted-foreground" />
+                                        <User className="size-4 text-muted-foreground" />
                                         <span className="text-sm text-muted-foreground">
                                             Author:
                                         </span>
@@ -218,7 +181,7 @@ export default function PullRequestShow() {
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <FileCode2 className="h-4 w-4 text-muted-foreground" />
+                                        <FileCode2 className="size-4 text-muted-foreground" />
                                         <span className="text-sm text-muted-foreground">
                                             Number:
                                         </span>
@@ -230,16 +193,9 @@ export default function PullRequestShow() {
                                         <span className="text-sm text-muted-foreground">
                                             Status:
                                         </span>
-                                        <Badge
-                                            variant={getStatusBadgeVariant(
-                                                pullRequest.status,
-                                            )}
-                                        >
-                                            {pullRequest.status
-                                                .charAt(0)
-                                                .toUpperCase() +
-                                                pullRequest.status.slice(1)}
-                                        </Badge>
+                                        <PrStatusBadge
+                                            status={pullRequest.status}
+                                        />
                                     </div>
                                 </div>
                             </CardContent>
@@ -253,12 +209,12 @@ export default function PullRequestShow() {
                         )}
 
                         {showReview?.summary && (
-                            <Card>
+                            <Card className="bg-card/60">
                                 <CardHeader>
                                     <CardTitle>Summary</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-sm leading-relaxed">
+                                    <p className="text-sm leading-relaxed text-foreground/90">
                                         {showReview.summary}
                                     </p>
                                 </CardContent>
@@ -266,12 +222,12 @@ export default function PullRequestShow() {
                         )}
 
                         {showReview?.score_rationale && (
-                            <Card>
+                            <Card className="bg-card/60">
                                 <CardHeader>
                                     <CardTitle>Score Rationale</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-sm leading-relaxed">
+                                    <p className="text-sm leading-relaxed text-foreground/90">
                                         {showReview.score_rationale}
                                     </p>
                                 </CardContent>
@@ -279,30 +235,28 @@ export default function PullRequestShow() {
                         )}
 
                         {showReview?.issues && showReview.issues.length > 0 && (
-                            <Card>
+                            <Card className="bg-card/60">
                                 <CardHeader>
                                     <CardTitle>
                                         Issues ({showReview.issues.length})
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-4">
+                                    <div className="space-y-3">
                                         {showReview.issues.map(
                                             (issue, index) => (
                                                 <div
                                                     key={index}
-                                                    className="rounded-lg border p-4"
+                                                    className="rounded-lg border border-border/70 bg-card/60 p-4"
                                                 >
                                                     <div className="mb-2 flex items-center gap-2">
-                                                        <Badge
-                                                            variant={getSeverityVariant(
-                                                                issue.severity,
-                                                            )}
-                                                        >
-                                                            {issue.severity}
-                                                        </Badge>
+                                                        <SeverityBadge
+                                                            severity={
+                                                                issue.severity
+                                                            }
+                                                        />
                                                         {issue.file && (
-                                                            <code className="font-mono text-sm">
+                                                            <code className="font-mono text-xs text-muted-foreground">
                                                                 {issue.file}
                                                                 {issue.line !=
                                                                 null
@@ -322,10 +276,8 @@ export default function PullRequestShow() {
                                                         </p>
                                                     )}
                                                     {issue.suggestion && (
-                                                        <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">
-                                                            <span className="font-medium">
-                                                                Suggestion:
-                                                            </span>{' '}
+                                                        <p className="flex gap-2 rounded-md border border-border/70 bg-muted/40 p-2.5 text-xs text-muted-foreground">
+                                                            <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
                                                             {issue.suggestion}
                                                         </p>
                                                     )}
@@ -339,7 +291,7 @@ export default function PullRequestShow() {
 
                         {showReview?.highlights &&
                             showReview.highlights.length > 0 && (
-                                <Card>
+                                <Card className="bg-card/60">
                                     <CardHeader>
                                         <CardTitle>
                                             Highlights (
@@ -347,41 +299,22 @@ export default function PullRequestShow() {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="space-y-4">
+                                        <div className="space-y-3">
                                             {showReview.highlights.map(
                                                 (highlight, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="rounded-lg border p-4"
-                                                    >
+                                                    <div key={index}>
                                                         {typeof highlight ===
                                                         'string' ? (
-                                                            <p className="text-sm">
+                                                            <p className="text-sm text-foreground/90">
                                                                 {highlight}
                                                             </p>
                                                         ) : (
-                                                            <>
-                                                                <div className="mb-2 flex items-center gap-2">
-                                                                    <code className="font-mono text-sm">
-                                                                        {
-                                                                            highlight.file
-                                                                        }
-                                                                        {highlight.line !=
-                                                                        null
-                                                                            ? `:${highlight.line}`
-                                                                            : ''}
-                                                                    </code>
-                                                                </div>
-                                                                {highlight.content && (
-                                                                    <pre className="overflow-x-auto rounded-md bg-muted p-3 text-sm">
-                                                                        <code>
-                                                                            {
-                                                                                highlight.content
-                                                                            }
-                                                                        </code>
-                                                                    </pre>
-                                                                )}
-                                                            </>
+                                                            <CodeBlock
+                                                                code={
+                                                                    highlight.content
+                                                                }
+                                                                filename={`${highlight.file}${highlight.line != null ? `:${highlight.line}` : ''}`}
+                                                            />
                                                         )}
                                                     </div>
                                                 ),
@@ -392,69 +325,37 @@ export default function PullRequestShow() {
                             )}
 
                         {!showReview && (
-                            <Card>
-                                <CardContent className="py-12 text-center">
-                                    <div className="text-lg font-medium text-muted-foreground">
-                                        No review available
-                                    </div>
-                                    <div className="mt-2 text-sm text-muted-foreground">
-                                        This pull request has not been reviewed
-                                        yet
-                                    </div>
+                            <Card className="bg-card/60">
+                                <CardContent>
+                                    <EmptyState
+                                        icon={FileSearch}
+                                        title="No review available"
+                                        description="This pull request has not been reviewed yet"
+                                    />
                                 </CardContent>
                             </Card>
                         )}
                     </div>
 
                     <div className="space-y-6">
-                        <Card>
+                        <Card className="bg-card/60">
                             <CardHeader>
                                 <CardTitle>Review Score</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-col items-center">
-                                    <div className="relative h-32 w-32">
-                                        <svg className="h-full w-full -rotate-90">
-                                            <circle
-                                                cx="64"
-                                                cy="64"
-                                                r={radius}
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="8"
-                                                className="text-muted"
-                                            />
-                                            <circle
-                                                cx="64"
-                                                cy="64"
-                                                r={radius}
-                                                fill="none"
-                                                strokeWidth="8"
-                                                strokeLinecap="round"
-                                                className={cn(
-                                                    'transition-all',
-                                                    getScoreRingColor(score),
-                                                )}
-                                                strokeDasharray={circumference}
-                                                strokeDashoffset={
-                                                    circumference - progress
-                                                }
-                                            />
-                                        </svg>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <span
-                                                className={cn(
-                                                    'text-3xl font-bold',
-                                                    getScoreColor(score),
-                                                )}
-                                            >
-                                                {score ?? '-'}
-                                            </span>
-                                        </div>
-                                    </div>
+                                    <ScoreGauge
+                                        score={score}
+                                        size={144}
+                                        strokeWidth={9}
+                                        labelClassName="text-3xl font-bold"
+                                    />
                                     {showReview?.recommendation && (
-                                        <div className="mt-4 text-center">
-                                            <Badge variant="outline">
+                                        <div className="mt-5 text-center">
+                                            <Badge
+                                                variant="outline"
+                                                className="rounded-full px-3"
+                                            >
                                                 {showReview.recommendation}
                                             </Badge>
                                         </div>
@@ -463,7 +364,7 @@ export default function PullRequestShow() {
                             </CardContent>
                         </Card>
 
-                        <Card>
+                        <Card className="bg-card/60">
                             <CardHeader>
                                 <CardTitle>Metadata</CardTitle>
                             </CardHeader>

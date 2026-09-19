@@ -1,8 +1,9 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { FileCode2 } from 'lucide-react';
+import { FileCode2, Inbox } from 'lucide-react';
 import { useState } from 'react';
+import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { PrStatusBadge } from '@/components/pr-status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -146,27 +147,13 @@ export default function Reviews() {
         },
     ];
 
-    const getScoreColor = (score: number | null): string => {
-        if (score === null) return 'bg-gray-500';
-        if (score >= 80) return 'bg-green-500';
-        if (score >= 50) return 'bg-amber-500';
-        return 'bg-red-500';
-    };
-
-    const getStatusBadgeVariant = (
-        status: string,
-    ): 'default' | 'secondary' | 'outline' | 'destructive' => {
-        switch (status) {
-            case 'reviewed':
-                return 'default';
-            case 'pending':
-            case 'reviewing':
-                return 'outline';
-            case 'failed':
-                return 'destructive';
-            default:
-                return 'secondary';
-        }
+    const getScoreChip = (score: number | null): string => {
+        if (score === null) return 'bg-muted text-muted-foreground';
+        if (score >= 80)
+            return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
+        if (score >= 50)
+            return 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
+        return 'bg-rose-500/15 text-rose-600 dark:text-rose-400';
     };
 
     const tabs = [
@@ -232,44 +219,40 @@ export default function Reviews() {
                     </div>
                 </div>
 
-                <Card>
+                <Card className="bg-card/60">
                     <CardContent className="pt-6">
                         {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
+                            <div className="flex items-center justify-center py-10">
+                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
                             </div>
                         ) : pullRequests.length === 0 ? (
-                            <div className="py-12 text-center">
-                                <div className="mb-2 text-lg font-medium text-muted-foreground">
-                                    No pull requests found
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                    Pull requests will appear here once they are
-                                    tracked in connected repositories
-                                </div>
-                            </div>
+                            <EmptyState
+                                icon={Inbox}
+                                title="No pull requests found"
+                                description="Pull requests will appear here once they are tracked in connected repositories"
+                            />
                         ) : (
                             <>
-                                <div className="rounded-md border">
+                                <div className="overflow-hidden rounded-lg border border-border/60">
                                     <table className="w-full">
                                         <thead>
-                                            <tr className="border-b bg-muted/50 text-left">
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                            <tr className="border-b border-border/60 bg-muted/40 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                <th className="px-4 py-3">
                                                     Repository
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     PR Title
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     Author
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     Score
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     Status
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     Date
                                                 </th>
                                             </tr>
@@ -278,11 +261,11 @@ export default function Reviews() {
                                             {pullRequests.map((pr) => (
                                                 <tr
                                                     key={pr.id}
-                                                    className="border-b"
+                                                    className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/30"
                                                 >
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center gap-2">
-                                                            <FileCode2 className="h-4 w-4 text-muted-foreground" />
+                                                            <FileCode2 className="size-4 text-muted-foreground" />
                                                             <span className="text-sm">
                                                                 {pr.repository
                                                                     ?.full_name ||
@@ -293,7 +276,7 @@ export default function Reviews() {
                                                     <td className="px-4 py-3">
                                                         <Link
                                                             href={`/workspaces/${workspace.slug}/reviews/${pr.id}`}
-                                                            className="hover:underline"
+                                                            className="text-sm font-medium text-foreground hover:text-primary"
                                                         >
                                                             {pr.title ||
                                                                 `#${pr.number}`}
@@ -305,25 +288,22 @@ export default function Reviews() {
                                                     <td className="px-4 py-3">
                                                         {pr.review?.score !==
                                                         null ? (
-                                                            <div className="flex items-center gap-2">
-                                                                <div
-                                                                    className={cn(
-                                                                        'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white',
-                                                                        getScoreColor(
-                                                                            pr
-                                                                                .review
-                                                                                ?.score ??
-                                                                                null,
-                                                                        ),
-                                                                    )}
-                                                                >
-                                                                    {
+                                                            <span
+                                                                className={cn(
+                                                                    'inline-flex size-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums',
+                                                                    getScoreChip(
                                                                         pr
                                                                             .review
-                                                                            ?.score
-                                                                    }
-                                                                </div>
-                                                            </div>
+                                                                            ?.score ??
+                                                                            null,
+                                                                    ),
+                                                                )}
+                                                            >
+                                                                {
+                                                                    pr.review
+                                                                        ?.score
+                                                                }
+                                                            </span>
                                                         ) : (
                                                             <span className="text-muted-foreground">
                                                                 -
@@ -331,18 +311,9 @@ export default function Reviews() {
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <Badge
-                                                            variant={getStatusBadgeVariant(
-                                                                pr.status,
-                                                            )}
-                                                        >
-                                                            {pr.status
-                                                                .charAt(0)
-                                                                .toUpperCase() +
-                                                                pr.status.slice(
-                                                                    1,
-                                                                )}
-                                                        </Badge>
+                                                        <PrStatusBadge
+                                                            status={pr.status}
+                                                        />
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-muted-foreground">
                                                         {new Date(

@@ -1,5 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
+import { GitBranch } from 'lucide-react';
 import { useState } from 'react';
+import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -148,46 +150,42 @@ export default function Repos() {
                 <div className="flex items-center justify-between">
                     <Heading
                         title="Connected Repositories"
-                        description={`${repos.length} repositor${repos.length !== 1 ? 'y' : 'ies'} connected to ${workspace.name}`}
+                        description={`${repos.length} repository${repos.length !== 1 ? 'ies' : ''} connected to ${workspace.name}`}
                     />
                 </div>
 
                 <Card>
                     <CardContent className="pt-6">
                         {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
+                            <div className="flex items-center justify-center py-10">
+                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
                             </div>
                         ) : repos.length === 0 ? (
-                            <div className="py-12 text-center">
-                                <div className="mb-2 text-lg font-medium text-muted-foreground">
-                                    No repositories connected
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                    Connect repositories from the Repositories
-                                    page to start tracking PRs
-                                </div>
-                            </div>
+                            <EmptyState
+                                icon={GitBranch}
+                                title="No repositories connected"
+                                description="Connect repositories from the Repositories page to start tracking PRs"
+                            />
                         ) : (
                             <>
                                 <div className="rounded-md border">
                                     <table className="w-full">
                                         <thead>
-                                            <tr className="border-b bg-muted/50 text-left">
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                            <tr className="border-b border-border/60 bg-muted/40 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                <th className="px-4 py-3">
                                                     Repository
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     Language
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     Status
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     Connected
                                                 </th>
                                                 {isOwner && (
-                                                    <th className="px-4 py-3 text-sm font-medium">
+                                                    <th className="px-4 py-3">
                                                         Toggle
                                                     </th>
                                                 )}
@@ -198,9 +196,7 @@ export default function Repos() {
                                                 <tr
                                                     key={repo.id}
                                                     className={cn(
-                                                        'border-b',
-                                                        repo.is_active &&
-                                                            'bg-green-50/50',
+                                                        'border-b border-border/60 transition-colors last:border-0 hover:bg-muted/30',
                                                     )}
                                                 >
                                                     <td className="px-4 py-3">
@@ -221,10 +217,10 @@ export default function Repos() {
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <Badge
-                                                            variant={
+                                                            className={
                                                                 repo.is_active
-                                                                    ? 'default'
-                                                                    : 'secondary'
+                                                                    ? 'border-transparent bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                                                    : 'border-border bg-muted text-muted-foreground'
                                                             }
                                                         >
                                                             {repo.is_active

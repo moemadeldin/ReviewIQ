@@ -26,3 +26,4 @@ Homestead.yaml
 /.vscode
 /.zed
 /tmp/
+/storage/oauth

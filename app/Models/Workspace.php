@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -72,6 +73,14 @@ final class Workspace extends Model
     public function repositories(): HasMany
     {
         return $this->hasMany(Repository::class);
+    }
+
+    /**
+     * @return HasManyThrough<PullRequest, Repository, $this>
+     */
+    public function pullRequests(): HasManyThrough
+    {
+        return $this->hasManyThrough(PullRequest::class, Repository::class);
     }
 
     public function addUser(User $user, Roles $role): void

@@ -34,6 +34,16 @@ final class WorkspaceInvitation extends Model
 
     use HasUuids;
 
+    public static function hashToken(string $token): string
+    {
+        return hash('sha256', $token);
+    }
+
+    public static function findByRawToken(string $token): ?self
+    {
+        return self::query()->where('token', self::hashToken($token))->first();
+    }
+
     /**
      * @return BelongsTo<Workspace, $this>
      */

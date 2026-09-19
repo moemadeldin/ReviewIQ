@@ -1,6 +1,6 @@
-import { Link } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { Bell, Check } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -18,10 +18,10 @@ interface Notification {
     data: {
         title: string;
         message: string;
-        workspace_name?: string;
-        workspace_slug?: string;
-        accept_url?: string;
-        review_url?: string;
+        workspace_name: string;
+        workspace_slug: string;
+        accept_url: string;
+        token: string;
     };
     read_at: string | null;
     created_at: string;
@@ -32,8 +32,24 @@ export function NotificationBell() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [open, setOpen] = useState(false);
+    const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
-    const fetchNotifications = () => {
+    const acceptInvitation = (notification: Notification) => {
+        setAcceptingId(notification.id);
+        router.post(
+            `/invitations/${notification.data.token}/accept-as-member`,
+            {},
+            {
+                onFinish: () => setAcceptingId(null),
+                onSuccess: () => {
+                    markAsRead(notification.id);
+                    fetchNotifications();
+                },
+            },
+        );
+    };
+
+    const fetchNotifications = useCallback(() => {
         fetch('/notifications', {
             headers: {
                 Accept: 'application/json',
@@ -48,13 +64,13 @@ export function NotificationBell() {
             })
             .catch(() => {})
             .finally(() => setLoading(false));
-    };
+    }, []);
 
     useEffect(() => {
-        if (open) {
-            fetchNotifications();
-        }
-    }, [open]);
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, [fetchNotifications]);
 
     const markAsRead = (id: string) => {
         fetch(`/notifications/${id}/read`, {
@@ -67,7 +83,13 @@ export function NotificationBell() {
                         ?.getAttribute('content') || '',
             },
         })
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error('Failed to mark notification as read');
+                }
+
+                return res.json();
+            })
             .then(() => {
                 setNotifications((prev) =>
                     prev.map((n) =>
@@ -92,7 +114,13 @@ export function NotificationBell() {
                         ?.getAttribute('content') || '',
             },
         })
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error('Failed to mark notifications as read');
+                }
+
+                return res.json();
+            })
             .then(() => {
                 setNotifications((prev) =>
                     prev.map((n) => ({
@@ -202,21 +230,21 @@ export function NotificationBell() {
                                         <Check className="mr-1 size-3" />
                                         Mark read
                                     </Button>
-                                    {notification.data.accept_url && (
-                                        <Link
-                                            href={notification.data.accept_url}
-                                            className="inline-flex h-7 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                                    {notification.data.token && (
+                                        <Button
+                                            size="sm"
+                                            className="h-7"
+                                            disabled={
+                                                acceptingId === notification.id
+                                            }
+                                            onClick={() =>
+                                                acceptInvitation(notification)
+                                            }
                                         >
-                                            Accept
-                                        </Link>
-                                    )}
-                                    {notification.data.review_url && (
-                                        <Link
-                                            href={notification.data.review_url}
-                                            className="inline-flex h-7 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                                        >
-                                            View Review
-                                        </Link>
+                                            {acceptingId === notification.id
+                                                ? 'Accepting...'
+                                                : 'Accept'}
+                                        </Button>
                                     )}
                                 </div>
                             </DropdownMenuItem>

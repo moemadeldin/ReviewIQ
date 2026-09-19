@@ -29,6 +29,55 @@ it('returns empty data when user has workspace but none selected in session', fu
         ->assertJsonPath('data.has_more', false);
 });
 
+it('returns connected repos for a selected workspace via workspace_id query', function (): void {
+    $repo = Repository::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'full_name' => 'owner/repo',
+        'is_active' => true,
+    ]);
+
+    Http::fake([
+        'https://api.github.com/*' => Http::response([
+            ['id' => 123, 'full_name' => 'owner/repo', 'language' => 'PHP'],
+        ], 200),
+    ]);
+
+    $response = $this->actingAs($this->user)
+        ->get(route('repos.data', ['workspace_id' => $this->workspace->id]));
+
+    $response->assertOk()
+        ->assertJsonPath('data.connected_repos.owner/repo.id', $repo->id)
+        ->assertJsonPath('data.connected_repos.owner/repo.is_active', true);
+});
+
+it('returns connected repos from all workspaces when no workspace selected', function (): void {
+    $workspace2 = Workspace::factory()->create(['owner_id' => $this->user->id]);
+    Repository::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'full_name' => 'owner/repo1',
+        'is_active' => true,
+    ]);
+    Repository::factory()->create([
+        'workspace_id' => $workspace2->id,
+        'full_name' => 'owner/repo2',
+        'is_active' => true,
+    ]);
+
+    Http::fake([
+        'https://api.github.com/*' => Http::response([
+            ['id' => 1, 'full_name' => 'owner/repo1', 'language' => 'PHP'],
+            ['id' => 2, 'full_name' => 'owner/repo2', 'language' => 'PHP'],
+        ], 200),
+    ]);
+
+    $response = $this->actingAs($this->user)
+        ->get(route('repos.data'));
+
+    $response->assertOk()
+        ->assertJsonPath('data.connected_repos.owner/repo1.id', fn (mixed $id): bool => is_string($id))
+        ->assertJsonPath('data.connected_repos.owner/repo2.id', fn (mixed $id): bool => is_string($id));
+});
+
 it('stores a repository successfully', function (): void {
     Http::fake([
         'https://api.github.com/user/repos*' => Http::response([

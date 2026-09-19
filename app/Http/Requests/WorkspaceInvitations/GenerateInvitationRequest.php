@@ -12,7 +12,7 @@ use Illuminate\Validation\Rules\Enum;
 final class GenerateInvitationRequest extends FormRequest
 {
     /**
-     * @return array<string, array<array<string>|string>>
+     * @return array<string, list<mixed>>
      */
     public function rules(): array
     {

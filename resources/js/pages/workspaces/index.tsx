@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowRight } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -60,17 +61,32 @@ function WorkspaceCard({
     workspace: Workspace;
     isCurrent: boolean;
 }) {
+    const href = `/workspaces/${workspace.slug}`;
+
     return (
         <Card
-            className={`transition-colors hover:bg-muted/50 ${
-                isCurrent ? 'ring-2 ring-primary' : ''
-            }`}
+            role="link"
+            tabIndex={0}
+            onClick={() => router.visit(href)}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    router.visit(href);
+                }
+            }}
+            className={cn(
+                'cursor-pointer border-border/70 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                isCurrent &&
+                    'border-primary/40 shadow-lg ring-1 shadow-primary/10 ring-primary/50',
+            )}
         >
             <CardHeader>
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{workspace.name}</CardTitle>
+                    <CardTitle className="text-lg tracking-tight">
+                        {workspace.name}
+                    </CardTitle>
                     {isCurrent && (
-                        <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+                        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
                             Current
                         </span>
                     )}
@@ -84,7 +100,8 @@ function WorkspaceCard({
                 </CardDescription>
                 <div className="mt-2 flex gap-2">
                     <Link
-                        href={`/workspaces/${workspace.slug}`}
+                        href={href}
+                        onClick={(e) => e.stopPropagation()}
                         className="flex-1"
                     >
                         <Button

@@ -20,7 +20,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'invitee@example.com',
                 'role' => Roles::Member->value,
             ]);
@@ -39,11 +39,13 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
     });
 
     it('returns error when user is not admin or owner', function (): void {
-        $this->user->workspaces()->updateExistingPivot($this->workspace->id, ['role' => Roles::Member->value]);
+        $otherUser = User::factory()->create();
+        $otherWorkspace = Workspace::factory()->withOwner($otherUser)->create();
+        $this->user->workspaces()->attach($otherWorkspace->id, ['role' => Roles::Member->value]);
 
         $response = $this->actingAs($this->user)
-            ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->withSession(['current_workspace_id' => $otherWorkspace->id])
+            ->postJson(route('workspaces.invitations.store', ['workspace' => $otherWorkspace->slug]), [
                 'email' => 'invitee@example.com',
             ]);
 
@@ -63,6 +65,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
             ]);
 
         $response->assertStatus(409)
+            ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'User is already a member of this workspace');
     });
 
@@ -74,15 +77,17 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'invitee@example.com',
             ]);
 
         $response->assertStatus(409)
+            ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invitation already sent to this email');
     });
 
     it('allows re-invitation when previous invitation expired', function (): void {
+        Mail::fake();
         WorkspaceInvitation::factory()->expired()->create([
             'workspace_id' => $this->workspace->id,
             'email' => 'invitee@example.com',
@@ -90,7 +95,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
                 'email' => 'invitee@example.com',
             ]);
 
@@ -134,63 +139,67 @@ describe('WorkspaceInvitationController', function (): void {
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->delete(route('workspaces.invitations.destroy', [
+            ->deleteJson(route('workspaces.invitations.destroy', [
                 'workspace' => $this->workspace->slug,
                 'invitation' => $invitation->id,
             ]), [
                 'password' => 'password',
             ]);
 
-        $response->assertRedirect();
+        $response->assertOk()
+            ->assertJsonPath('data.message', 'Invitation cancelled');
 
         expect(WorkspaceInvitation::query()->find($invitation->id))->toBeNull();
     });
 
-    it('redirects when invitation belongs to different workspace', function (): void {
+    it('returns 403 when invitation belongs to different workspace', function (): void {
         $otherUser = User::factory()->create();
         $otherWorkspace = Workspace::factory()->withOwner($otherUser)->create();
         $invitation = WorkspaceInvitation::factory()->forWorkspace($otherWorkspace)->create();
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->delete(route('workspaces.invitations.destroy', [
+            ->deleteJson(route('workspaces.invitations.destroy', [
                 'workspace' => $this->workspace->slug,
                 'invitation' => $invitation->id,
             ]), [
                 'password' => 'password',
             ]);
 
-        $response->assertRedirect();
+        $response->assertStatus(403);
     });
 
-    it('redirects when trying to delete accepted invitation', function (): void {
+    it('returns 409 when trying to delete accepted invitation', function (): void {
         $invitation = WorkspaceInvitation::factory()->forWorkspace($this->workspace)->accepted()->create();
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->delete(route('workspaces.invitations.destroy', [
+            ->deleteJson(route('workspaces.invitations.destroy', [
                 'workspace' => $this->workspace->slug,
                 'invitation' => $invitation->id,
             ]), [
                 'password' => 'password',
             ]);
 
-        $response->assertRedirect();
+        $response->assertStatus(409)
+            ->assertJsonPath('message', 'Cannot cancel accepted invitation');
     });
 });
 
 describe('AcceptInvitationController', function (): void {
     it('accepts invitation for existing user', function (): void {
-        $invitation = WorkspaceInvitation::factory()->create([
+        $invitation = WorkspaceInvitation::factory()->withToken('existing-accept-token')->create([
             'workspace_id' => $this->workspace->id,
             'email' => 'existing@example.com',
         ]);
 
         $existingUser = User::factory()->create(['email' => 'existing@example.com']);
 
-        $response = $this->post(route('invitations.accept', ['token' => $invitation->token]));
+        $response = $this->postJson(route('invitations.accept', ['token' => 'existing-accept-token']));
 
-        $response->assertRedirect();
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'Success')
+            ->assertJsonPath('message', 'Invitation accepted');
 
         $this->assertDatabaseHas('workspace_users', [
             'workspace_id' => $this->workspace->id,
@@ -202,20 +211,42 @@ describe('AcceptInvitationController', function (): void {
         expect($invitation->accepted_at)->not->toBeNull();
     });
 
+    it('accepts invitation for existing logged-in user', function (): void {
+        $existingUser = User::factory()->create(['email' => 'existing@example.com']);
+        WorkspaceInvitation::factory()->withToken('logged-in-accept-token')->create([
+            'workspace_id' => $this->workspace->id,
+            'email' => $existingUser->email,
+        ]);
+
+        $response = $this->actingAs($existingUser)
+            ->post(route('invitations.accept', ['token' => 'logged-in-accept-token']));
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'Success')
+            ->assertJsonPath('message', 'Invitation accepted');
+
+        $this->assertDatabaseHas('workspace_users', [
+            'workspace_id' => $this->workspace->id,
+            'user_id' => $existingUser->id,
+            'role' => Roles::Member->value,
+        ]);
+    });
+
     it('creates new user if email not registered', function (): void {
-        $invitation = WorkspaceInvitation::factory()->create([
+        WorkspaceInvitation::factory()->withToken('new-user-accept-token')->create([
             'workspace_id' => $this->workspace->id,
             'email' => 'newuser@example.com',
             'role' => Roles::Admin->value,
         ]);
 
-        $response = $this->post(route('invitations.accept', ['token' => $invitation->token]), [
+        $response = $this->postJson(route('invitations.accept', ['token' => 'new-user-accept-token']), [
             'name' => 'New User',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ]);
 
-        $response->assertRedirect();
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'Success');
 
         $newUser = User::query()->whereEmail('newuser@example.com')->first();
         expect($newUser)->not->toBeNull();
@@ -231,30 +262,33 @@ describe('AcceptInvitationController', function (): void {
         $response = $this->postJson(route('invitations.accept', ['token' => 'invalid-token']));
 
         $response->assertStatus(404)
+            ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invalid invitation');
     });
 
     it('returns error for expired invitation', function (): void {
-        $invitation = WorkspaceInvitation::factory()->expired()->create([
+        WorkspaceInvitation::factory()->expired()->withToken('expired-accept-token')->create([
             'workspace_id' => $this->workspace->id,
             'email' => 'test@example.com',
         ]);
 
-        $response = $this->postJson(route('invitations.accept', ['token' => $invitation->token]));
+        $response = $this->postJson(route('invitations.accept', ['token' => 'expired-accept-token']));
 
         $response->assertStatus(410)
+            ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invitation has expired');
     });
 
     it('returns error for already accepted invitation', function (): void {
-        $invitation = WorkspaceInvitation::factory()->accepted()->create([
+        WorkspaceInvitation::factory()->accepted()->withToken('accepted-accept-token')->create([
             'workspace_id' => $this->workspace->id,
             'email' => 'test@example.com',
         ]);
 
-        $response = $this->postJson(route('invitations.accept', ['token' => $invitation->token]));
+        $response = $this->postJson(route('invitations.accept', ['token' => 'accepted-accept-token']));
 
         $response->assertStatus(409)
+            ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invitation already used');
     });
 });

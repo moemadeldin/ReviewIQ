@@ -10,6 +10,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use SensitiveParameter;
 
 final class WorkspaceInvitationNotification extends Notification implements ShouldQueue
 {
@@ -19,6 +20,7 @@ final class WorkspaceInvitationNotification extends Notification implements Shou
         public Workspace $workspace,
         public User $invitedBy,
         public string $acceptUrl,
+        #[SensitiveParameter()] public string $token,
     ) {}
 
     /**
@@ -53,6 +55,7 @@ final class WorkspaceInvitationNotification extends Notification implements Shou
             'workspace_name' => $this->workspace->name,
             'invited_by' => $this->invitedBy->name,
             'accept_url' => $this->acceptUrl,
+            'token' => $this->token,
         ];
     }
 }
