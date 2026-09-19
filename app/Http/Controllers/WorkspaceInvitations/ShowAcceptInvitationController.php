@@ -7,15 +7,16 @@ namespace App\Http\Controllers\WorkspaceInvitations;
 use App\Models\User;
 use App\Models\WorkspaceInvitation;
 use App\Traits\APIResponder;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 final readonly class ShowAcceptInvitationController
 {
     use APIResponder;
 
-    public function __invoke(string $token): JsonResponse|View
+    public function __invoke(string $token): JsonResponse|InertiaResponse
     {
         $invitation = WorkspaceInvitation::findByRawToken($token);
 
@@ -33,8 +34,16 @@ final readonly class ShowAcceptInvitationController
 
         $user = User::query()->whereEmail($invitation->email)->first();
 
-        return view('invitations.accept', [
-            'invitation' => $invitation,
+        return Inertia::render('invitations/accept', [
+            'invitation' => [
+                'token' => $token,
+                'email' => $invitation->email,
+                'role' => $invitation->role->value,
+                'workspace' => [
+                    'name' => $invitation->workspace->name,
+                    'description' => null,
+                ],
+            ],
             'isExistingUser' => $user !== null,
         ]);
     }

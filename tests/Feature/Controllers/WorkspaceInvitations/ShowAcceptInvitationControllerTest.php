@@ -15,7 +15,12 @@ it('shows accept invitation page for valid token', function (): void {
     $response = $this->get(route('invitations.accept.page', ['token' => 'valid-token']));
 
     $response->assertOk()
-        ->assertViewIs('invitations.accept');
+        ->assertInertia(fn ($page) => $page
+            ->component('invitations/accept')
+            ->where('invitation.token', 'valid-token')
+            ->where('invitation.email', 'newuser@example.com')
+            ->where('invitation.workspace.name', $workspace->name)
+            ->where('isExistingUser', false));
 });
 
 it('shows accept invitation page for existing user email', function (): void {
@@ -28,7 +33,11 @@ it('shows accept invitation page for existing user email', function (): void {
     $response = $this->get(route('invitations.accept.page', ['token' => 'existing-token']));
 
     $response->assertOk()
-        ->assertViewIs('invitations.accept');
+        ->assertInertia(fn ($page) => $page
+            ->component('invitations/accept')
+            ->where('invitation.token', 'existing-token')
+            ->where('invitation.email', 'existing@example.com')
+            ->where('isExistingUser', true));
 });
 
 it('returns 404 for invalid token', function (): void {
