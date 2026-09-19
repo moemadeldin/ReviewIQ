@@ -1,6 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import { FolderGit2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import AlertError from '@/components/alert-error';
 import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
 import { Spinner } from '@/components/ui/spinner';
@@ -47,7 +48,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index() {
-    const { auth } = usePage<{ auth: Auth }>().props;
+    const { auth, errors } = usePage<{
+        auth: Auth;
+        errors?: { github?: string };
+    }>().props;
     const currentWorkspace = auth.currentWorkspace;
     const workspaces = auth.workspaces || [];
     const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<
@@ -204,6 +208,8 @@ export default function Index() {
                         </select>
                     </div>
                 </div>
+
+                {errors?.github && <AlertError errors={[errors.github]} title="Could not connect GitHub" />}
 
                 {!isGitHubConnected ? (
                     <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">

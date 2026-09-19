@@ -138,3 +138,117 @@ it('logs in existing user without github info', function (): void {
     expect($user->github_id)->toBe('11111');
     expect(Auth::check())->toBeTrue();
 });
+
+it('logs in the user already linked to the github account', function (): void {
+    $user = User::factory()->create([
+        'email' => 'linked@example.com',
+        'github_id' => '99999',
+        'github_token' => 'previous-token',
+    ]);
+
+    Http::preventStrayRequests();
+
+    $mockUser = createMockSocialiteUser(
+        id: '99999',
+        name: 'Linked User',
+        nickname: 'linkeduser',
+        email: 'linked@example.com',
+        avatar: 'https://example.com/updated-avatar.jpg',
+        token: 'new-token'
+    );
+
+    $mockDriver = createMockGitHubDriver($mockUser);
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn($mockDriver);
+
+    $response = $this->get(route('auth.github.callback'));
+
+    $response->assertRedirectToRoute('dashboard');
+
+    $user->refresh();
+
+    expect($user->github_token)->toBe('new-token');
+    expect(Auth::id())->toBe($user->id);
+});
+
+it('connects github to the authenticated user when account is unused', function (): void {
+    $user = User::factory()->create([
+        'email' => 'connect@example.com',
+        'github_id' => null,
+    ]);
+
+    $this->actingAs($user);
+
+    Http::preventStrayRequests();
+
+    $mockUser = createMockSocialiteUser(
+        id: '55555',
+        name: 'Connect User',
+        nickname: 'connectuser',
+        email: 'other@example.com',
+        avatar: 'https://example.com/avatar.jpg',
+        token: 'connect-token'
+    );
+
+    $mockDriver = createMockGitHubDriver($mockUser);
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn($mockDriver);
+
+    $response = $this->get(route('auth.github.callback'));
+
+    $response->assertRedirectToRoute('repos.index');
+
+    $user->refresh();
+
+    expect($user->github_id)->toBe('55555');
+    expect($user->github_token)->toBe('connect-token');
+    expect(Auth::id())->toBe($user->id);
+});
+
+it('rejects connecting a github account already linked to another user', function (): void {
+    $userA = User::factory()->create([
+        'email' => 'owner@example.com',
+        'github_id' => '424242',
+        'github_token' => 'owner-token',
+    ]);
+
+    $userB = User::factory()->create([
+        'email' => 'intruder@example.com',
+        'github_id' => null,
+    ]);
+
+    $this->actingAs($userB);
+
+    Http::preventStrayRequests();
+
+    $mockUser = createMockSocialiteUser(
+        id: '424242',
+        name: 'Owner',
+        nickname: 'owner',
+        email: 'owner@example.com',
+        avatar: 'https://example.com/avatar.jpg',
+        token: 'intruder-token'
+    );
+
+    $mockDriver = createMockGitHubDriver($mockUser);
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn($mockDriver);
+
+    $response = $this->get(route('auth.github.callback'));
+
+    $response->assertRedirectToRoute('repos.index');
+    $response->assertSessionHasErrors(['github' => 'A user has already authenticated with this GitHub account.']);
+
+    $userA->refresh();
+    $userB->refresh();
+
+    expect($userA->github_token)->toBe('owner-token');
+    expect($userB->github_id)->toBeNull();
+    expect(Auth::id())->toBe($userB->id);
+});
