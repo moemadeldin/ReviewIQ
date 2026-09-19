@@ -150,7 +150,7 @@ export default function Repos() {
                 <div className="flex items-center justify-between">
                     <Heading
                         title="Connected Repositories"
-                        description={`${repos.length} repository${repos.length !== 1 ? 'ies' : ''} connected to ${workspace.name}`}
+                        description={`${repos.length} ${repos.length === 1 ? 'repository' : 'repositories'} connected to ${workspace.name}`}
                     />
                 </div>
 
