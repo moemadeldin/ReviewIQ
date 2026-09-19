@@ -7,7 +7,7 @@ namespace App\Contracts;
 interface GitHubApi
 {
     /**
-     * @return array<int, array{id: int, full_name: string, language: string|null}>
+     * @return array<int, array{id: int, full_name: string, name: string, language: string|null, private: bool}>
      */
     public function getUserRepos(string $token, int $page = 1, int $perPage = 10): array;
 

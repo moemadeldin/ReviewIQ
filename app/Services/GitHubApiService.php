@@ -20,13 +20,13 @@ final readonly class GitHubApiService implements GitHubApi
     public function __construct(private string $baseUrl) {}
 
     /**
-     * @return array<int, array{id: int, full_name: string, language: string|null}>
+     * @return array<int, array{id: int, full_name: string, name: string, language: string|null, private: bool}>
      */
     public function getUserRepos(string $token, int $page = 1, int $perPage = 0): array
     {
         $perPage = $perPage > 0 ? $perPage : (int) config('services.github.repos_per_page', 10);
 
-        $cacheKey = sprintf('github:repos:%s:page:%d', hash('sha256', $token), $page);
+        $cacheKey = sprintf('github:repos:%s:page:%d:per:%d', hash('sha256', $token), $page, $perPage);
 
         return Cache::remember($cacheKey, self::REPOS_CACHE_TTL, function () use ($token, $page, $perPage): array {
             $response = $this->http($token)->get($this->baseUrl.'/user/repos', [
@@ -37,7 +37,7 @@ final readonly class GitHubApiService implements GitHubApi
 
             $response->throw();
 
-            /** @var array<int, array{id: int, full_name: string, language: string|null}> */
+            /** @var array<int, array{id: int, full_name: string, name: string, language: string|null, private: bool}> */
             return $response->json();
         });
     }
