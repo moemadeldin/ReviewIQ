@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
+import { Cpu } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface ReviewStreamProps {
@@ -57,29 +58,38 @@ export function ReviewStream({ prId, onComplete }: ReviewStreamProps) {
     }
 
     return (
-        <div className="rounded-lg border p-4">
-            <div className="mb-2 text-sm font-medium text-muted-foreground">
-                AI is analyzing...
+        <div className="overflow-hidden rounded-xl border border-violet-500/25 bg-card/40">
+            <div className="flex items-center gap-2 border-b border-violet-500/20 bg-violet-500/10 px-4 py-2.5">
+                <Cpu className="size-3.5 animate-pulse text-violet-700 dark:text-violet-300" />
+                <span className="text-sm font-medium text-violet-800 dark:text-violet-200">
+                    AI is analyzing this pull request
+                </span>
+                <span className="ml-auto flex gap-1.5">
+                    <span
+                        className="size-1.5 animate-bounce rounded-full bg-violet-400"
+                        style={{ animationDelay: '0ms' }}
+                    />
+                    <span
+                        className="size-1.5 animate-bounce rounded-full bg-violet-400"
+                        style={{ animationDelay: '150ms' }}
+                    />
+                    <span
+                        className="size-1.5 animate-bounce rounded-full bg-violet-400"
+                        style={{ animationDelay: '300ms' }}
+                    />
+                </span>
             </div>
-            <div className="min-h-[100px] space-y-2">
+            <div className="min-h-[120px] p-4">
                 {chunks.length === 0 && (
-                    <div className="flex gap-1">
-                        <div
-                            className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40"
-                            style={{ animationDelay: '0ms' }}
-                        />
-                        <div
-                            className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40"
-                            style={{ animationDelay: '150ms' }}
-                        />
-                        <div
-                            className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40"
-                            style={{ animationDelay: '300ms' }}
-                        />
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Reading the diff and building the review...
+                    </p>
                 )}
                 {chunks && (
-                    <pre className="text-sm whitespace-pre-wrap">{chunks}</pre>
+                    <pre className="font-mono text-sm whitespace-pre-wrap text-muted-foreground">
+                        {chunks}
+                        <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-violet-400 align-middle" />
+                    </pre>
                 )}
             </div>
         </div>

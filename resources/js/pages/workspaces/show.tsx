@@ -93,7 +93,7 @@ export default function Show() {
                                                         }
                                                     />
                                                     {errors.name && (
-                                                        <p className="text-sm text-red-500">
+                                                        <p className="text-sm text-destructive">
                                                             {errors.name}
                                                         </p>
                                                     )}
@@ -182,9 +182,11 @@ export default function Show() {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <Link
                         href={`/workspaces/${workspace.slug}/members`}
-                        className="flex items-center rounded-lg border p-6 hover:bg-muted/50"
+                        className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
                     >
-                        <Users className="mr-4 h-8 w-8" />
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
+                            <Users className="size-5" />
+                        </span>
                         <div>
                             <div className="font-semibold">Members</div>
                             <div className="text-sm text-muted-foreground">
@@ -195,9 +197,11 @@ export default function Show() {
 
                     <Link
                         href={`/workspaces/${workspace.slug}/invitations`}
-                        className="flex items-center rounded-lg border p-6 hover:bg-muted/50"
+                        className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
                     >
-                        <Mail className="mr-4 h-8 w-8" />
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
+                            <Mail className="size-5" />
+                        </span>
                         <div>
                             <div className="font-semibold">Invitations</div>
                             <div className="text-sm text-muted-foreground">
@@ -208,9 +212,11 @@ export default function Show() {
 
                     <Link
                         href={`/workspaces/${workspace.slug}/repos`}
-                        className="flex items-center rounded-lg border p-6 hover:bg-muted/50"
+                        className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
                     >
-                        <GitBranch className="mr-4 h-8 w-8" />
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
+                            <GitBranch className="size-5" />
+                        </span>
                         <div>
                             <div className="font-semibold">Repositories</div>
                             <div className="text-sm text-muted-foreground">
@@ -221,9 +227,11 @@ export default function Show() {
 
                     <Link
                         href={`/workspaces/${workspace.slug}/reviews`}
-                        className="flex items-center rounded-lg border p-6 hover:bg-muted/50"
+                        className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
                     >
-                        <FileCheck className="mr-4 h-8 w-8" />
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
+                            <FileCheck className="size-5" />
+                        </span>
                         <div>
                             <div className="font-semibold">Reviews</div>
                             <div className="text-sm text-muted-foreground">

@@ -1,5 +1,7 @@
 import { Form, Head, usePage } from '@inertiajs/react';
+import { Mail } from 'lucide-react';
 import { useState } from 'react';
+import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -120,39 +122,35 @@ export default function Invitations() {
                 <Card>
                     <CardContent className="pt-6">
                         {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
+                            <div className="flex items-center justify-center py-10">
+                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
                             </div>
                         ) : invitations.length === 0 ? (
-                            <div className="py-12 text-center">
-                                <div className="mb-2 text-lg font-medium text-muted-foreground">
-                                    No pending invitations
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                    Invite members to collaborate in this
-                                    workspace
-                                </div>
-                            </div>
+                            <EmptyState
+                                icon={Mail}
+                                title="No pending invitations"
+                                description="Invite members to collaborate in this workspace"
+                            />
                         ) : (
                             <>
                                 <div className="rounded-md border">
                                     <table className="w-full">
                                         <thead>
-                                            <tr className="border-b bg-muted/50 text-left">
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                            <tr className="border-b border-border/60 bg-muted/40 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                <th className="px-4 py-3">
                                                     Email
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     Role
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     Sent
                                                 </th>
-                                                <th className="px-4 py-3 text-sm font-medium">
+                                                <th className="px-4 py-3">
                                                     Expires
                                                 </th>
                                                 {canManage && (
-                                                    <th className="px-4 py-3 text-right text-sm font-medium">
+                                                    <th className="px-4 py-3 text-right">
                                                         Actions
                                                     </th>
                                                 )}
@@ -162,7 +160,7 @@ export default function Invitations() {
                                             {invitations.map((invitation) => (
                                                 <tr
                                                     key={invitation.id}
-                                                    className="border-b"
+                                                    className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/30"
                                                 >
                                                     <td className="px-4 py-3">
                                                         <span className="font-medium">
@@ -170,8 +168,13 @@ export default function Invitations() {
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <Badge variant="secondary">
-                                                            {invitation.role}
+                                                        <Badge className="border-transparent bg-muted text-muted-foreground">
+                                                            {invitation.role
+                                                                .charAt(0)
+                                                                .toUpperCase() +
+                                                                invitation.role.slice(
+                                                                    1,
+                                                                )}
                                                         </Badge>
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-muted-foreground">

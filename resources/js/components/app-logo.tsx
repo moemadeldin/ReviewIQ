@@ -1,16 +1,19 @@
-import AppLogoIcon from '@/components/app-logo-icon';
-
 export default function AppLogo() {
     return (
-        <>
-            <div className="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-                <AppLogoIcon className="size-5 fill-current text-white dark:text-black" />
-            </div>
-            <div className="ml-1 grid flex-1 text-left text-sm">
-                <span className="mb-0.5 truncate leading-tight font-semibold">
-                    ReviewIQ
-                </span>
-            </div>
-        </>
+        <div className="flex items-center gap-2.5">
+            <img
+                src="/logo.png"
+                alt="ReviewIQ"
+                className="hidden h-8 w-auto shrink-0 overflow-hidden rounded-md object-contain ring-1 ring-white/15 dark:block"
+            />
+            <img
+                src="/logo-light.png"
+                alt="ReviewIQ"
+                className="h-8 w-auto shrink-0 overflow-hidden rounded-md object-contain ring-1 ring-black/10 dark:hidden"
+            />
+            <span className="text-base font-semibold tracking-tight text-foreground group-data-[collapsible=icon]:hidden">
+                ReviewIQ
+            </span>
+        </div>
     );
 }
