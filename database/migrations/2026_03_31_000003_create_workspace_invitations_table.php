@@ -17,9 +17,9 @@ return new class extends Migration
         Schema::create('workspace_invitations', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('workspace_id')
-            ->nullable()
-            ->constrained('workspaces')
-            ->cascadeOnDelete();
+                ->nullable()
+                ->constrained('workspaces')
+                ->cascadeOnDelete();
             $table->string('email')->nullable();
             $table->string('token')->nullable()->unique();
             $table->string('role')->nullable()->default(Roles::Member->value);

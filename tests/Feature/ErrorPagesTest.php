@@ -6,7 +6,7 @@ use App\Models\User;
 
 it('exists for every supported error status view', function (): void {
     foreach ([400, 401, 403, 404, 405, 409, 413, 419, 422, 429, 500, 502, 503, 504] as $code) {
-        expect(view()->exists("errors.$code"))->toBeTrue();
+        expect(view()->exists('errors.'.$code))->toBeTrue();
     }
 });
 

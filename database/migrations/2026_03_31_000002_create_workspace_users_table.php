@@ -13,17 +13,17 @@ return new class extends Migration
     {
         Schema::create('workspace_users', function (Blueprint $table): void {
             $table->foreignUuid('workspace_id')
-            ->nullable()
-            ->constrained('workspaces')
-            ->cascadeOnDelete();
+                ->nullable()
+                ->constrained('workspaces')
+                ->cascadeOnDelete();
             $table->foreignUuid('user_id')
-            ->nullable()
-            ->constrained('users')
-            ->cascadeOnDelete();
+                ->nullable()
+                ->constrained('users')
+                ->cascadeOnDelete();
             $table->string('role')
-            ->nullable()
-            ->default(Roles::Member->value)
-            ->index();
+                ->nullable()
+                ->default(Roles::Member->value)
+                ->index();
             $table->timestamps();
 
             $table->primary(['workspace_id', 'user_id']);

@@ -15,9 +15,9 @@ return new class extends Migration
             $table->string('name')->nullable();
             $table->string('slug')->nullable();
             $table->foreignUuid('owner_id')
-            ->nullable()
-            ->constrained('users')
-            ->cascadeOnDelete();
+                ->nullable()
+                ->constrained('users')
+                ->cascadeOnDelete();
             $table->timestamps();
 
             $table->unique(['owner_id', 'slug']);
