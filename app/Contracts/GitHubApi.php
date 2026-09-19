@@ -19,6 +19,7 @@ interface GitHubApi
 
     /**
      * @param  array<int, array{file?: string, line?: int|null, severity?: string, message?: string, description?: string, title?: string}>  $issues
+     * @return int Number of inline comments posted (may be 0 when review body only)
      */
     public function postReviewComments(
         string $token,
@@ -27,5 +28,5 @@ interface GitHubApi
         string $commitSha,
         array $issues,
         string $body,
-    ): void;
+    ): int;
 }

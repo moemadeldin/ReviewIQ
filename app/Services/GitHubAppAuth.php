@@ -8,6 +8,7 @@ use App\Contracts\GitHubAppAuth as GitHubAppAuthContract;
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 final readonly class GitHubAppAuth implements GitHubAppAuthContract
@@ -60,7 +61,14 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
 
         if ($response->status() === 401) {
             Cache::forget($this->cacheKey());
-            throw new RuntimeException('GitHub App authentication failed (401)');
+
+            /** @var string|null $error */
+            $error = $response->json('message');
+            $detail = is_string($error) && $error !== '' ? $error : $response->body();
+
+            Log::error('GitHub App authentication failed (401)', ['error' => $detail]);
+
+            throw new RuntimeException('GitHub App authentication failed (401): '.$detail);
         }
 
         $response->throw();

@@ -101,6 +101,7 @@ final readonly class GitHubApiService implements GitHubApi
 
     /**
      * @param  array<int, array{file: string, line: int|null, severity: string, message: string}>  $issues
+     * @return int Number of inline comments posted (may be 0 for body-only reviews)
      */
     public function postReviewComments(
         string $token,
@@ -109,28 +110,31 @@ final readonly class GitHubApiService implements GitHubApi
         string $commitSha,
         array $issues,
         string $body,
-    ): void {
+    ): int {
         $comments = $this->buildComments($issues);
 
-        if ($comments === []) {
-            return;
+        $payload = [
+            'commit_id' => $commitSha,
+            'body' => $body,
+            'event' => 'COMMENT',
+        ];
+
+        if ($comments !== []) {
+            $payload['comments'] = $comments;
         }
 
         try {
             $this->http($token)
                 ->retry(2, 200)
-                ->post($this->baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', [
-                    'commit_id' => $commitSha,
-                    'body' => $body,
-                    'event' => 'COMMENT',
-                    'comments' => $comments,
-                ])
+                ->post($this->baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', $payload)
                 ->throw();
         } catch (RequestException $requestException) {
             throw_if($requestException->response->status() !== Response::HTTP_UNPROCESSABLE_ENTITY, $requestException);
 
             $this->postCommentsIndividually($token, $fullName, $prNumber, $commitSha, $comments);
         }
+
+        return count($comments);
     }
 
     private function http(string $token): PendingRequest

@@ -57,9 +57,10 @@ return [
     'openrouter' => [
         'api_key' => env('OPENROUTER_API_KEY'),
         'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1/'),
-        'model' => env('OPENROUTER_MODEL', 'deepseek/deepseek-v4-flash:free'),
+        'model' => env('OPENROUTER_MODEL', 'deepseek/deepseek-v4-flash-0731:free'),
         'temperature' => (float) env('OPENROUTER_TEMPERATURE', 0.2),
-        'max_tokens' => (int) env('OPENROUTER_MAX_TOKENS', 2000),
-        'timeout' => env('OPENROUTER_TIMEOUT', 60),
+        'max_tokens' => (int) env('OPENROUTER_MAX_TOKENS', 12000),
+        'timeout' => env('OPENROUTER_TIMEOUT', 600),
+        'fallback_models' => env('OPENROUTER_FALLBACK_MODELS', ''),
     ],
 ];

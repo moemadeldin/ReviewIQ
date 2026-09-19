@@ -85,3 +85,56 @@ it('throws on register webhook failure', function (): void {
     expect(fn () => $this->github->registerWebhook('test-token', 'test/repo'))
         ->toThrow(RequestException::class);
 });
+
+it('posts review body only when no line numbers are present', function (): void {
+    Http::fake([
+        'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::response([], 200),
+    ]);
+
+    $posted = $this->github->postReviewComments(
+        token: 'test-token',
+        fullName: 'test/repo',
+        prNumber: 42,
+        commitSha: 'abc123',
+        issues: [
+            ['file' => 'app/Foo.php', 'line' => null, 'severity' => 'high', 'message' => 'Bug'],
+            ['file' => 'app/Bar.php', 'line' => null, 'severity' => 'low', 'message' => 'Nit'],
+        ],
+        body: '## ReviewIQ Review — Score: 65/100',
+    );
+
+    expect($posted)->toBe(0);
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer test-token')
+        && $request->method() === 'POST'
+        && $request->url() === 'https://api.github.com/repos/test/repo/pulls/42/reviews'
+        && $request['event'] === 'COMMENT'
+        && $request['body'] === '## ReviewIQ Review — Score: 65/100'
+        && ! isset($request['comments']));
+});
+
+it('posts review with inline comments for issues with line numbers', function (): void {
+    Http::fake([
+        'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::response([], 200),
+    ]);
+
+    $posted = $this->github->postReviewComments(
+        token: 'test-token',
+        fullName: 'test/repo',
+        prNumber: 42,
+        commitSha: 'abc123',
+        issues: [
+            ['file' => 'app/Foo.php', 'line' => 12, 'severity' => 'high', 'message' => 'Bug'],
+            ['file' => 'app/Bar.php', 'line' => 4, 'severity' => 'low', 'message' => 'Nit'],
+        ],
+        body: '## ReviewIQ Review — Score: 90/100',
+    );
+
+    expect($posted)->toBe(2);
+
+    Http::assertSent(fn ($request): bool => $request->method() === 'POST'
+        && $request->url() === 'https://api.github.com/repos/test/repo/pulls/42/reviews'
+        && count($request['comments']) === 2
+        && $request['comments'][0]['path'] === 'app/Foo.php'
+        && $request['comments'][0]['line'] === 12);
+});

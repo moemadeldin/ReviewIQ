@@ -39,6 +39,9 @@ final class AppServiceProvider extends ServiceProvider
             temperature: (float) config('services.openrouter.temperature'),
             maxTokens: (int) config('services.openrouter.max_tokens'),
             timeout: (int) config('services.openrouter.timeout'),
+            fallbackModels: array_values(array_filter(
+                array_map('trim', explode(',', (string) config('services.openrouter.fallback_models', ''))),
+            )),
         ));
 
         $this->app->bind(GitHubApi::class, GitHubApiService::class);

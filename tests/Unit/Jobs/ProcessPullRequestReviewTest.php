@@ -76,9 +76,9 @@ it('processes pull request review successfully', function (): void {
         ->and($review->recommendation)->toBe('approve');
 });
 
-it('skips processing when PR is already reviewing or reviewed', function (): void {
+it('skips processing when PR is not pending', function (PullRequestStatus $status): void {
     $pr = PullRequest::factory()->create([
-        'status' => PullRequestStatus::Reviewed,
+        'status' => $status,
     ]);
 
     $diffService = $this->mock(DiffProvider::class);
@@ -95,8 +95,12 @@ it('skips processing when PR is already reviewing or reviewed', function (): voi
     $job->handle($diffService, $promptBuilder, $mockAIReviewer, $githubApp);
 
     $pr->refresh();
-    expect($pr->status)->toBe(PullRequestStatus::Reviewed);
-});
+    expect($pr->status)->toBe($status);
+})->with([
+    'reviewing' => PullRequestStatus::Reviewing,
+    'reviewed' => PullRequestStatus::Reviewed,
+    'failed' => PullRequestStatus::Failed,
+]);
 
 it('sets failed status on job failure', function (): void {
     $pr = PullRequest::factory()->create([
