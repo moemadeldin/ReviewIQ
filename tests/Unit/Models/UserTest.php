@@ -20,7 +20,20 @@ test('to array', function (): void {
             'github_token',
             'created_at',
             'updated_at',
+            'avatar',
         ]);
+});
+
+test('avatar accessor returns github avatar when set', function (): void {
+    $user = User::factory()->create(['github_avatar' => 'https://avatars.example.com/me.png']);
+
+    expect($user->avatar)->toBe('https://avatars.example.com/me.png');
+});
+
+test('avatar accessor returns null when github avatar is not set', function (): void {
+    $user = User::factory()->create(['github_avatar' => null]);
+
+    expect($user->avatar)->toBeNull();
 });
 
 test('has owned workspaces', function (): void {
