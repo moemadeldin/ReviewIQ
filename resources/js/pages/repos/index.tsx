@@ -131,9 +131,7 @@ export default function Index() {
         const connected = connectedRepos[repo.full_name];
 
         if (selectedStatus === 'active') return !!connected?.is_active;
-        if (selectedStatus === 'inactive')
-            return connected !== undefined && !connected.is_active;
-        if (selectedStatus === 'not-connected') return connected === undefined;
+        if (selectedStatus === 'inactive') return !connected?.is_active;
 
         return true;
     });
@@ -274,9 +272,6 @@ export default function Index() {
                                 <option value="all">All statuses</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
-                                <option value="not-connected">
-                                    Not connected
-                                </option>
                             </select>
 
                             <select
