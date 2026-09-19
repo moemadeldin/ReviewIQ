@@ -1,5 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
+import { FolderGit2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
 import { Spinner } from '@/components/ui/spinner';
 import AppLayout from '@/layouts/app-layout';
@@ -204,17 +206,17 @@ export default function Index() {
                 </div>
 
                 {!isGitHubConnected ? (
-                    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
-                        <p className="font-medium">
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+                        <p className="font-medium text-amber-700 dark:text-amber-300">
                             Connect your GitHub account
                         </p>
-                        <p className="mt-1 text-sm">
+                        <p className="mt-1 text-sm text-amber-700/70 dark:text-amber-300/70">
                             Sign in with GitHub to see and manage your
                             repositories.
                         </p>
                         <a
                             href="/auth/github"
-                            className="mt-3 inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                            className="mt-3 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                         >
                             Connect GitHub
                         </a>
@@ -224,32 +226,24 @@ export default function Index() {
                         <Spinner className="size-8" />
                     </div>
                 ) : repos.length === 0 ? (
-                    <div className="py-12 text-center">
-                        <div className="mb-2 text-lg font-medium text-muted-foreground">
-                            No repositories found
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                            Make sure your GitHub account has access to
-                            repositories
-                        </div>
-                    </div>
+                    <EmptyState
+                        icon={FolderGit2}
+                        title="No repositories found"
+                        description="Make sure your GitHub account has access to repositories"
+                    />
                 ) : (
                     <>
                         <div className="rounded-md border">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b bg-muted/50 text-left">
-                                        <th className="px-4 py-3 text-sm font-medium">
+                                    <tr className="border-b border-border/60 bg-muted/40 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                        <th className="px-4 py-3">
                                             Repository
                                         </th>
-                                        <th className="px-4 py-3 text-sm font-medium">
-                                            Language
-                                        </th>
-                                        <th className="px-4 py-3 text-sm font-medium">
-                                            Status
-                                        </th>
+                                        <th className="px-4 py-3">Language</th>
+                                        <th className="px-4 py-3">Status</th>
                                         {canToggleSelected && (
-                                            <th className="px-4 py-3 text-sm font-medium">
+                                            <th className="px-4 py-3">
                                                 Toggle
                                             </th>
                                         )}
@@ -268,9 +262,7 @@ export default function Index() {
                                             <tr
                                                 key={repo.full_name}
                                                 className={cn(
-                                                    'border-b transition-colors',
-                                                    isActive &&
-                                                        'bg-green-50/50',
+                                                    'border-b border-border/60 transition-colors last:border-0 hover:bg-muted/30',
                                                 )}
                                             >
                                                 <td className="px-4 py-3">
@@ -298,7 +290,7 @@ export default function Index() {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {isActive ? (
-                                                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                                        <span className="rounded-full border-transparent bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                                                             Active
                                                         </span>
                                                     ) : (

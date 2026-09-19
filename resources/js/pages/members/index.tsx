@@ -1,5 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
+import { Users } from 'lucide-react';
 import { useState } from 'react';
+import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -216,27 +218,27 @@ export default function Index() {
                     </CardHeader>
                     <CardContent>
                         {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
+                            <div className="flex items-center justify-center py-10">
+                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
                             </div>
                         ) : members.length === 0 ? (
-                            <div className="py-8 text-center text-muted-foreground">
-                                No members found
-                            </div>
+                            <EmptyState
+                                icon={Users}
+                                title="No members found"
+                                description="Members will appear here once they join this workspace"
+                            />
                         ) : (
                             <div className="rounded-md border">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b bg-muted/50 text-left">
-                                            <th className="px-4 py-3 text-sm font-medium">
+                                        <tr className="border-b border-border/60 bg-muted/40 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                            <th className="px-4 py-3">
                                                 Member
                                             </th>
-                                            <th className="px-4 py-3 text-sm font-medium">
-                                                Role
-                                            </th>
+                                            <th className="px-4 py-3">Role</th>
 
                                             {isOwner && (
-                                                <th className="px-4 py-3 text-right text-sm font-medium">
+                                                <th className="px-4 py-3 text-right">
                                                     Actions
                                                 </th>
                                             )}
@@ -246,7 +248,7 @@ export default function Index() {
                                         {members.map((member) => (
                                             <tr
                                                 key={member.id}
-                                                className="border-b"
+                                                className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/30"
                                             >
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-3">
@@ -317,14 +319,14 @@ export default function Index() {
 }
 
 function RoleBadge({ role }: { role: string }) {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-        owner: 'default',
-        admin: 'secondary',
-        member: 'secondary',
+    const variants: Record<string, string> = {
+        owner: 'border-transparent bg-violet-500/15 text-violet-700 dark:text-violet-300',
+        admin: 'border-transparent bg-sky-500/15 text-sky-600 dark:text-sky-400',
+        member: 'border-transparent bg-muted text-muted-foreground',
     };
 
     return (
-        <Badge variant={variants[role] || 'secondary'}>
+        <Badge className={variants[role] || variants.member}>
             {role.charAt(0).toUpperCase() + role.slice(1)}
         </Badge>
     );

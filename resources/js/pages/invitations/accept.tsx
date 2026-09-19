@@ -36,7 +36,7 @@ export default function AcceptInvitation({
         >
             <Head title="Accept Invitation" />
 
-            <div className="mb-6 rounded-lg bg-muted p-4 text-sm">
+            <div className="mb-6 rounded-lg border border-border/70 bg-card/60 p-4 text-sm">
                 <p className="text-muted-foreground">
                     Invited as:{' '}
                     <span className="font-medium text-foreground">
