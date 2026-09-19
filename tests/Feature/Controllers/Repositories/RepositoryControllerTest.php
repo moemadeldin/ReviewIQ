@@ -117,6 +117,23 @@ it('redirects to workspaces when user has no workspace on store', function (): v
     $response->assertRedirectToRoute('workspaces.create');
 });
 
+it('filters repositories via search language and visibility query params', function (): void {
+    Http::fake([
+        'https://api.github.com/user/repos*' => Http::response([
+            ['id' => 1, 'full_name' => 'owner/blog-api', 'name' => 'blog-api', 'language' => 'PHP', 'private' => true],
+            ['id' => 2, 'full_name' => 'owner/cli-tool', 'name' => 'cli-tool', 'language' => 'PHP', 'private' => false],
+            ['id' => 3, 'full_name' => 'owner/web-app', 'name' => 'web-app', 'language' => 'TypeScript', 'private' => false],
+        ], 200),
+    ]);
+
+    $response = $this->actingAs($this->user)
+        ->get(route('repos.data', ['search' => 'api', 'language' => 'php', 'visibility' => 'private']));
+
+    $response->assertOk()
+        ->assertJsonCount(1, 'data.repositories')
+        ->assertJsonPath('data.repositories.0.full_name', 'owner/blog-api');
+});
+
 it('redirects to workspaces when user has no workspace on destroy', function (): void {
     $otherUser = User::factory()->create([
         'github_token' => 'other-token',

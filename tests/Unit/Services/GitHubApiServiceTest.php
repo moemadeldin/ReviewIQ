@@ -85,3 +85,24 @@ it('throws on register webhook failure', function (): void {
     expect(fn () => $this->github->registerWebhook('test-token', 'test/repo'))
         ->toThrow(RequestException::class);
 });
+
+it('requests up to 100 repos when a larger per page is given', function (): void {
+    Http::fake([
+        'https://api.github.com/user/repos*' => Http::response([], 200),
+    ]);
+
+    $this->github->getUserRepos('test-token', 1, 100);
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://api.github.com/user/repos?page=1&per_page=100&sort=updated');
+});
+
+it('caches repos independently per page size', function (): void {
+    Http::fake([
+        'https://api.github.com/user/repos*' => Http::response([], 200),
+    ]);
+
+    $this->github->getUserRepos('test-token', 1, 10);
+    $this->github->getUserRepos('test-token', 1, 100);
+
+    Http::assertSentCount(2);
+});

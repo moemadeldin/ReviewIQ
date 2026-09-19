@@ -14,15 +14,29 @@ final readonly class GetRepositoriesData
     public function __construct(private GitHubApi $github) {}
 
     /**
-     * @return array{repositories: array<int, array{id: int, full_name: string, language: string|null}>, connected_repos: array<string, Repository>, has_more: bool, current_page: int}
+     * @return array{repositories: array<int, array{id: int, full_name: string, name: string, language: string|null, private: bool}>, connected_repos: array<string, Repository>, has_more: bool, current_page: int}
      */
-    public function handle(User $user, ?Workspace $workspace = null, int $page = 1): array
-    {
+    public function handle(
+        User $user,
+        ?Workspace $workspace = null,
+        int $page = 1,
+        ?string $search = null,
+        ?string $language = null,
+        ?string $visibility = null,
+    ): array {
         if (! $user->github_token) {
             return ['repositories' => [], 'connected_repos' => [], 'has_more' => false, 'current_page' => $page];
         }
 
-        $githubRepos = $this->github->getUserRepos($user->github_token, $page);
+        $hasFilters = $search !== null && $search !== ''
+            || $language !== null && $language !== ''
+            || $visibility !== null && $visibility !== '';
+
+        if ($hasFilters) {
+            $githubRepos = $this->github->getUserRepos($user->github_token, 1, 100);
+        } else {
+            $githubRepos = $this->github->getUserRepos($user->github_token, $page);
+        }
 
         if ($workspace instanceof Workspace) {
             $connectedRepos = Repository::query()
@@ -48,13 +62,61 @@ final readonly class GetRepositoriesData
                 ->keyBy('full_name');
         }
 
-        $hasMore = count($githubRepos) === 10;
+        $perPage = (int) config('services.github.repos_per_page', 10);
+
+        if ($hasFilters) {
+            $githubRepos = array_values(array_filter(
+                $githubRepos,
+                fn (array $repo): bool => $this->matchesFilters($repo, $search, $language, $visibility),
+            ));
+
+            $total = count($githubRepos);
+            $githubRepos = array_slice($githubRepos, ($page - 1) * $perPage, $perPage);
+            $hasMore = $total > $page * $perPage;
+        } else {
+            $hasMore = count($githubRepos) === $perPage;
+        }
 
         return [
-            'repositories' => $githubRepos,
+            'repositories' => array_values($githubRepos),
             'connected_repos' => $connectedRepos,
             'has_more' => $hasMore,
             'current_page' => $page,
         ];
+    }
+
+    /**
+     * @param  array{id: int, full_name: string, name: string, language: string|null, private: bool}  $repo
+     */
+    private function matchesFilters(array $repo, ?string $search, ?string $language, ?string $visibility): bool
+    {
+        if ($search !== null && $search !== '') {
+            $needle = mb_strtolower($search);
+            $haystack = mb_strtolower(trim(($repo['full_name'] ?? '').' '.($repo['name'] ?? '')));
+
+            if (! str_contains($haystack, $needle)) {
+                return false;
+            }
+        }
+
+        if ($language !== null && $language !== '') {
+            if (mb_strtolower((string) ($repo['language'] ?? '')) !== mb_strtolower($language)) {
+                return false;
+            }
+        }
+
+        if ($visibility !== null && $visibility !== '') {
+            $isPrivate = (bool) ($repo['private'] ?? false);
+
+            if ($visibility === 'public' && $isPrivate) {
+                return false;
+            }
+
+            if ($visibility === 'private' && ! $isPrivate) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

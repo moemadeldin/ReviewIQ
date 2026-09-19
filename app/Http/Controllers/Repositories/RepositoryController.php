@@ -27,6 +27,9 @@ final readonly class RepositoryController
     public function index(#[CurrentUser()] User $user, Request $request): JsonResponse
     {
         $page = (int) $request->query('page', 1);
+        $search = $this->nullableString($request->query('search'));
+        $language = $this->nullableString($request->query('language'));
+        $visibility = $this->nullableString($request->query('visibility'));
 
         $workspace = null;
         $workspaceId = $request->query('workspace_id');
@@ -35,9 +38,14 @@ final readonly class RepositoryController
             $workspace = $user->workspaces()->find($workspaceId);
         }
 
-        $data = $this->getRepositoriesData->handle($user, $workspace, $page);
+        $data = $this->getRepositoriesData->handle($user, $workspace, $page, $search, $language, $visibility);
 
         return $this->success($data, 'ok');
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     public function store(WorkspaceOwnerRequest $request, #[CurrentUser()] User $user, Workspace $workspace, AttachRepository $action, string $fullName): JsonResponse|Response

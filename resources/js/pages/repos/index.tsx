@@ -1,6 +1,6 @@
 import { Head, usePage } from '@inertiajs/react';
-import { FolderGit2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { FolderGit2, Search, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
 import { Spinner } from '@/components/ui/spinner';
@@ -61,6 +61,12 @@ export default function Index() {
     const [toggling, setToggling] = useState<Record<string, boolean>>({});
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
+    const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [selectedLanguage, setSelectedLanguage] = useState('all');
+    const [selectedVisibility, setSelectedVisibility] = useState('all');
+    const [selectedStatus, setSelectedStatus] = useState('all');
+    const [languages, setLanguages] = useState<string[]>([]);
 
     const selectedWorkspace = workspaces.find(
         (w) => w.id === selectedWorkspaceId,
@@ -72,23 +78,45 @@ export default function Index() {
 
     const isGitHubConnected = !!auth.user.github_token;
 
-    const fetchRepos = (pageNum: number, workspaceId?: string | null) => {
-        setLoading(true);
-        const url = workspaceId
-            ? `/repos/data?page=${pageNum}&workspace_id=${workspaceId}`
-            : `/repos/data?page=${pageNum}`;
+    const fetchRepos = useCallback(
+        (pageNum: number, workspaceId?: string | null) => {
+            setLoading(true);
 
-        fetch(url)
-            .then((res) => res.json())
-            .then((data: RepositoryPageProps) => {
-                setRepos(data.data.repositories || []);
-                setConnectedRepos(data.data.connected_repos || {});
-                setHasMore(data.data.has_more ?? false);
-                setPage(data.data.current_page ?? pageNum);
-            })
-            .catch(() => {})
-            .finally(() => setLoading(false));
-    };
+            const params = new URLSearchParams({ page: String(pageNum) });
+            if (workspaceId) params.set('workspace_id', workspaceId);
+            if (debouncedSearch) params.set('search', debouncedSearch);
+            if (selectedLanguage !== 'all')
+                params.set('language', selectedLanguage);
+            if (selectedVisibility !== 'all')
+                params.set('visibility', selectedVisibility);
+
+            fetch(`/repos/data?${params.toString()}`)
+                .then((res) => res.json())
+                .then((data: RepositoryPageProps) => {
+                    setRepos(data.data.repositories || []);
+                    setConnectedRepos(data.data.connected_repos || {});
+                    setHasMore(data.data.has_more ?? false);
+                    setPage(data.data.current_page ?? pageNum);
+                    setLanguages((prev) => {
+                        const next = new Set(prev);
+                        (data.data.repositories ?? []).forEach((repo) => {
+                            if (repo.language) next.add(repo.language);
+                        });
+                        return Array.from(next).sort((a, b) =>
+                            a.localeCompare(b),
+                        );
+                    });
+                })
+                .catch(() => {})
+                .finally(() => setLoading(false));
+        },
+        [debouncedSearch, selectedLanguage, selectedVisibility],
+    );
+
+    useEffect(() => {
+        const timeout = setTimeout(() => setDebouncedSearch(search), 350);
+        return () => clearTimeout(timeout);
+    }, [search]);
 
     useEffect(() => {
         if (!isGitHubConnected) {
@@ -97,7 +125,31 @@ export default function Index() {
         }
 
         fetchRepos(1, selectedWorkspaceId);
-    }, [isGitHubConnected, selectedWorkspaceId]);
+    }, [isGitHubConnected, selectedWorkspaceId, fetchRepos]);
+
+    const filteredRepos = repos.filter((repo) => {
+        const connected = connectedRepos[repo.full_name];
+
+        if (selectedStatus === 'active') return !!connected?.is_active;
+        if (selectedStatus === 'inactive')
+            return connected !== undefined && !connected.is_active;
+        if (selectedStatus === 'not-connected') return connected === undefined;
+
+        return true;
+    });
+
+    const hasActiveFilters =
+        debouncedSearch !== '' ||
+        selectedLanguage !== 'all' ||
+        selectedVisibility !== 'all' ||
+        selectedStatus !== 'all';
+
+    const resetFilters = () => {
+        setSearch('');
+        setSelectedLanguage('all');
+        setSelectedVisibility('all');
+        setSelectedStatus('all');
+    };
 
     const prevPage = () => {
         if (page > 1) {
@@ -179,29 +231,108 @@ export default function Index() {
                     />
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <label
-                            htmlFor="workspace-select"
-                            className="text-sm font-medium"
-                        >
-                            Workspace:
-                        </label>
-                        <select
-                            id="workspace-select"
-                            value={selectedWorkspaceId || ''}
-                            onChange={(e) =>
-                                setSelectedWorkspaceId(e.target.value || null)
-                            }
-                            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        >
-                            <option value="">All Workspaces</option>
-                            {workspaces.map((workspace) => (
-                                <option key={workspace.id} value={workspace.id}>
-                                    {workspace.name}
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                        <div className="relative w-full lg:max-w-xs">
+                            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <input
+                                type="search"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search repositories..."
+                                className="w-full rounded-md border border-input bg-background py-2 pr-3 pl-9 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            />
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                            <select
+                                id="language-select"
+                                aria-label="Filter by language"
+                                value={selectedLanguage}
+                                onChange={(e) =>
+                                    setSelectedLanguage(e.target.value)
+                                }
+                                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            >
+                                <option value="all">All languages</option>
+                                {languages.map((language) => (
+                                    <option key={language} value={language}>
+                                        {language}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <select
+                                id="status-select"
+                                aria-label="Filter by status"
+                                value={selectedStatus}
+                                onChange={(e) =>
+                                    setSelectedStatus(e.target.value)
+                                }
+                                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            >
+                                <option value="all">All statuses</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="not-connected">
+                                    Not connected
                                 </option>
-                            ))}
-                        </select>
+                            </select>
+
+                            <select
+                                id="visibility-select"
+                                aria-label="Filter by visibility"
+                                value={selectedVisibility}
+                                onChange={(e) =>
+                                    setSelectedVisibility(e.target.value)
+                                }
+                                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            >
+                                <option value="all">Public & private</option>
+                                <option value="public">Public</option>
+                                <option value="private">Private</option>
+                            </select>
+
+                            <div className="flex items-center gap-2">
+                                <label
+                                    htmlFor="workspace-select"
+                                    className="text-sm font-medium"
+                                >
+                                    Workspace:
+                                </label>
+                                <select
+                                    id="workspace-select"
+                                    value={selectedWorkspaceId || ''}
+                                    onChange={(e) =>
+                                        setSelectedWorkspaceId(
+                                            e.target.value || null,
+                                        )
+                                    }
+                                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                >
+                                    <option value="">All Workspaces</option>
+                                    {workspaces.map((workspace) => (
+                                        <option
+                                            key={workspace.id}
+                                            value={workspace.id}
+                                        >
+                                            {workspace.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {hasActiveFilters && (
+                                <button
+                                    type="button"
+                                    onClick={resetFilters}
+                                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                                >
+                                    <X className="size-4" />
+                                    Reset
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -231,6 +362,21 @@ export default function Index() {
                         title="No repositories found"
                         description="Make sure your GitHub account has access to repositories"
                     />
+                ) : filteredRepos.length === 0 ? (
+                    <EmptyState
+                        icon={Search}
+                        title="No repositories match your filters"
+                        description="Try adjusting your search or clearing some filters"
+                        action={
+                            <button
+                                type="button"
+                                onClick={resetFilters}
+                                className="mt-1 inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs hover:bg-muted"
+                            >
+                                Reset filters
+                            </button>
+                        }
+                    />
                 ) : (
                     <>
                         <div className="rounded-md border">
@@ -250,7 +396,7 @@ export default function Index() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {repos.map((repo) => {
+                                    {filteredRepos.map((repo) => {
                                         const connected =
                                             connectedRepos[repo.full_name];
                                         const isActive =
