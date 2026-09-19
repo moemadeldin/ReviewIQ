@@ -63,7 +63,7 @@ final class PostReviewComments implements ShouldQueue
 
         $token = $this->resolveToken($githubApp);
 
-        $gitHub->postReviewComments(
+        $posted = $gitHub->postReviewComments(
             token: $token,
             fullName: $repoFullName,
             prNumber: $prNumber,
@@ -72,8 +72,9 @@ final class PostReviewComments implements ShouldQueue
             body: $body,
         );
 
-        Log::info('Posted '.count($issues).' review comments for PR #'.$this->pullRequest->number, [
+        Log::info('Posted review for PR #'.$this->pullRequest->number.' ('.$posted.' inline comments)', [
             'repo' => $repoFullName,
+            'issues' => count($issues),
         ]);
     }
 

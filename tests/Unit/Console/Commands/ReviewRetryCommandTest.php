@@ -17,7 +17,7 @@ it('dispatches jobs for pending and failed reviews', function (): void {
     Bus::fake();
 
     PullRequest::factory()->pending()->create();
-    PullRequest::factory()->create(['status' => PullRequestStatus::Failed]);
+    $failed = PullRequest::factory()->create(['status' => PullRequestStatus::Failed]);
 
     $this->artisan('reviews:retry')
         ->expectsOutputToContain('Found 2 reviews to retry.')
@@ -25,6 +25,9 @@ it('dispatches jobs for pending and failed reviews', function (): void {
         ->assertSuccessful();
 
     Bus::assertDispatchedTimes(ProcessPullRequestReview::class, 2);
+
+    $failed->refresh();
+    expect($failed->status)->toBe(PullRequestStatus::Pending);
 });
 
 it('skips reviewed prs but dispatches for reviewing', function (): void {
