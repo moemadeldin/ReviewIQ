@@ -12,9 +12,12 @@ return new class extends Migration
     {
         Schema::create('workspaces', function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->string('name');
-            $table->string('slug');
-            $table->foreignUuid('owner_id')->constrained('users')->cascadeOnDelete();
+            $table->string('name')->nullable();
+            $table->string('slug')->nullable();
+            $table->foreignUuid('owner_id')
+            ->nullable()
+            ->constrained('users')
+            ->cascadeOnDelete();
             $table->timestamps();
 
             $table->unique(['owner_id', 'slug']);

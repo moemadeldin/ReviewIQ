@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreignUuid('repository_id')->constrained('repositories')->cascadeOnDelete();
             $table->unsignedBigInteger('github_pr_id')->unique();
             $table->string('title')->nullable();
+            $table->longText('description')->nullable();
             $table->integer('number')->nullable();
             $table->string('author')->nullable();
             $table->string('diff_url')->nullable();

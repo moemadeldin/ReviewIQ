@@ -12,9 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('workspace_users', function (Blueprint $table): void {
-            $table->foreignUuid('workspace_id')->constrained('workspaces')->cascadeOnDelete();
-            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('role')->default(Roles::Member->value)->index();
+            $table->foreignUuid('workspace_id')
+            ->nullable()
+            ->constrained('workspaces')
+            ->cascadeOnDelete();
+            $table->foreignUuid('user_id')
+            ->nullable()
+            ->constrained('users')
+            ->cascadeOnDelete();
+            $table->string('role')
+            ->nullable()
+            ->default(Roles::Member->value)
+            ->index();
             $table->timestamps();
 
             $table->primary(['workspace_id', 'user_id']);
