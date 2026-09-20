@@ -13,34 +13,6 @@ final readonly class PromptBuilder
         private array $ignorePatterns = [],
     ) {}
 
-    private function getIgnorePatterns(): array
-    {
-        $defaults = [
-            '/package-lock\.json$/',
-            '/yarn\.lock$/',
-            '/pnpm-lock\.yaml$/',
-            '/composer\.lock$/',
-            '/Gemfile\.lock$/',
-            '/Cargo\.lock$/',
-            '/go\.sum$/',
-            '/\.(min|bundle)\.js$/',
-            '/\.(min)\.css$/',
-            '/\.(map|snapshot)$/',
-            '/\.generated\./',
-            '/\.pb\.go$/',
-            '/\.g\.dart$/',
-            '/vendor\//',
-            '/node_modules\//',
-            '/\.git\//',
-            '/dist\//',
-            '/build\//',
-            '/\.(class|jar|war|ear|dll|so|dylib|exe|bin)$/',
-            '/\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/',
-        ];
-
-        return array_merge($defaults, $this->ignorePatterns);
-    }
-
     public function buildSystemPrompt(): string
     {
         return <<<'PROMPT'
@@ -130,12 +102,11 @@ PROMPT;
         ?string $repoLanguage = null,
         ?string $customRules = null,
     ): string {
-        $language = $repoLanguage ?? 'Unknown';
         $description = $prDescription ?? 'No description provided.';
 
         $rules = '';
-        if ($customRules !== null && trim($customRules) !== '') {
-            $rules = "Custom rules for this repository (override your defaults if they conflict):\n".trim(mb_substr($customRules, 0, self::MAX_CUSTOM_RULES_LENGTH))."\n\n";
+        if ($customRules !== null && mb_trim($customRules) !== '') {
+            $rules = "Custom rules for this repository (override your defaults if they conflict):\n".mb_trim(mb_substr($customRules, 0, self::MAX_CUSTOM_RULES_LENGTH))."\n\n";
         }
 
         return <<<PROMPT
@@ -160,16 +131,12 @@ PROMPT;
     /**
      * Filter and truncate diff to stay within character limit.
      * Drops lowest-value files first.
-     *
-     * @param  string  $diff
-     * @param  int|null  $maxChars
-     * @return string
      */
     public function truncateDiff(string $diff, ?int $maxChars = null): string
     {
-        $maxChars = $maxChars ?? $this->maxDiffChars;
+        $maxChars ??= $this->maxDiffChars;
 
-        if (strlen($diff) <= $maxChars) {
+        if (mb_strlen($diff) <= $maxChars) {
             return $diff;
         }
 
@@ -185,33 +152,63 @@ PROMPT;
             // Always skip ignored patterns
             if ($this->isIgnored($filePath)) {
                 $droppedFiles[] = $filePath;
+
                 continue;
             }
 
-            if ($currentLength + strlen($fileDiff) > $maxChars && ! empty($keptFiles)) {
+            if ($currentLength + mb_strlen($fileDiff) > $maxChars && $keptFiles !== []) {
                 $droppedFiles[] = $filePath;
+
                 continue;
             }
 
             $keptFiles[$filePath] = $fileDiff;
-            $currentLength += strlen($fileDiff);
+            $currentLength += mb_strlen($fileDiff);
         }
 
         $result = implode("\n", $keptFiles);
 
-        if (! empty($droppedFiles)) {
+        if ($droppedFiles !== []) {
             $note = "\n\n---\n**Note: Review is partial. The following files were skipped due to size limits:**\n";
-            $note .= implode("\n", array_map(fn ($f) => "- {$f}", $droppedFiles));
+            $note .= implode("\n", array_map(fn ($f): string => '- '.$f, $droppedFiles));
             $result .= $note;
         }
 
         return $result;
     }
 
+    private function getIgnorePatterns(): array
+    {
+        $defaults = [
+            '/package-lock\.json$/',
+            '/yarn\.lock$/',
+            '/pnpm-lock\.yaml$/',
+            '/composer\.lock$/',
+            '/Gemfile\.lock$/',
+            '/Cargo\.lock$/',
+            '/go\.sum$/',
+            '/\.(min|bundle)\.js$/',
+            '/\.(min)\.css$/',
+            '/\.(map|snapshot)$/',
+            '/\.generated\./',
+            '/\.pb\.go$/',
+            '/\.g\.dart$/',
+            '/vendor\//',
+            '/node_modules\//',
+            '/\.git\//',
+            '/dist\//',
+            '/build\//',
+            '/\.(class|jar|war|ear|dll|so|dylib|exe|bin)$/',
+            '/\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/',
+        ];
+
+        return array_merge($defaults, $this->ignorePatterns);
+    }
+
     /**
      * Split a unified diff into per-file diffs.
      *
-     * @return array<string, string>  filePath => fileDiff
+     * @return array<string, string> filePath => fileDiff
      */
     private function splitDiffByFile(string $diff): array
     {
@@ -222,9 +219,10 @@ PROMPT;
 
         foreach ($lines as $line) {
             if (preg_match('/^diff --git a\/(.+) b\//', $line, $matches)) {
-                if ($currentFile !== '' && ! empty($currentDiff)) {
+                if ($currentFile !== '' && $currentDiff !== []) {
                     $files[$currentFile] = implode("\n", $currentDiff);
                 }
+
                 $currentFile = $matches[1];
                 $currentDiff = [$line];
             } elseif ($currentFile !== '') {
@@ -232,7 +230,7 @@ PROMPT;
             }
         }
 
-        if ($currentFile !== '' && ! empty($currentDiff)) {
+        if ($currentFile !== '' && $currentDiff !== []) {
             $files[$currentFile] = implode("\n", $currentDiff);
         }
 
@@ -249,21 +247,45 @@ PROMPT;
     {
         $priorities = [];
 
-        foreach ($files as $path => $content) {
-            $priority = 100; // base priority
-
+        foreach (array_keys($files) as $path) {
+            $priority = 100;
+            // base priority
             // Lower priority for generated/low-value files
-            if ($this->isLockfile($path)) $priority -= 50;
-            if ($this->isGenerated($path)) $priority -= 40;
-            if ($this->isMinified($path)) $priority -= 30;
-            if ($this->isVendor($path)) $priority -= 60;
-            if ($this->isBinary($path)) $priority -= 80;
-            if ($this->isSnapshot($path)) $priority -= 20;
+            if ($this->isLockfile($path)) {
+                $priority -= 50;
+            }
 
+            if ($this->isGenerated($path)) {
+                $priority -= 40;
+            }
+
+            if ($this->isMinified($path)) {
+                $priority -= 30;
+            }
+
+            if ($this->isVendor($path)) {
+                $priority -= 60;
+            }
+
+            if ($this->isBinary($path)) {
+                $priority -= 80;
+            }
+
+            if ($this->isSnapshot($path)) {
+                $priority -= 20;
+            }
             // Higher priority for source files
-            if ($this->isSourceFile($path)) $priority += 20;
-            if ($this->isTestFile($path)) $priority += 15;
-            if ($this->isConfigFile($path)) $priority += 10;
+            if ($this->isSourceFile($path)) {
+                $priority += 20;
+            }
+
+            if ($this->isTestFile($path)) {
+                $priority += 15;
+            }
+
+            if ($this->isConfigFile($path)) {
+                $priority += 10;
+            }
 
             $priorities[$path] = $priority;
         }
@@ -280,6 +302,7 @@ PROMPT;
                 return true;
             }
         }
+
         return false;
     }
 

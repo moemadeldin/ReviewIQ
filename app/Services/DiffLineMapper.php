@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-class DiffLineMapper
+final class DiffLineMapper
 {
     /**
      * Parse a unified diff and extract valid right-side line numbers per file.
      *
-     * @param  string  $diff
-     * @return array<string, array<int, true>>  file => [lineNumber => true]
+     * @return array<string, array<int, true>> file => [lineNumber => true]
      */
     public function map(string $diff): array
     {
@@ -30,6 +29,7 @@ class DiffLineMapper
                 if ($filePath === '/dev/null') {
                     $currentFile = '';
                     $inHunk = false;
+
                     continue;
                 }
 
@@ -38,6 +38,7 @@ class DiffLineMapper
                 $validLines[$currentFile] = [];
                 $rightLine = 0;
                 $inHunk = false;
+
                 continue;
             }
 
@@ -45,10 +46,13 @@ class DiffLineMapper
             if (preg_match('/^@@\s+-\d+(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/', $line, $matches)) {
                 $rightLine = (int) $matches[1] - 1; // Will be incremented on first context/added line
                 $inHunk = true;
+
                 continue;
             }
-
-            if (! $inHunk || $currentFile === '') {
+            if (! $inHunk) {
+                continue;
+            }
+            if ($currentFile === '') {
                 continue;
             }
 
@@ -57,6 +61,7 @@ class DiffLineMapper
                 $rightLine++;
                 $validLines[$currentFile][$rightLine] = true;
             }
+
             // Deleted line (- prefix) - does not increment rightLine
             // Binary file marker, "No newline at end of file" - ignored
         }
@@ -68,12 +73,11 @@ class DiffLineMapper
      * Annotate a unified diff with right-side line numbers.
      * Adds line number comments to context and added lines.
      *
-     * @param  string  $diff
-     * @return string  Annotated diff
+     * @return string Annotated diff
      */
     public function annotate(string $diff): string
     {
-        $map = $this->map($diff);
+        $this->map($diff);
         $lines = explode("\n", $diff);
         $annotated = [];
 
@@ -88,6 +92,7 @@ class DiffLineMapper
                 $rightLine = 0;
                 $inHunk = false;
                 $annotated[] = $line;
+
                 continue;
             }
 
@@ -96,11 +101,13 @@ class DiffLineMapper
                 $rightLine = (int) $matches[1] - 1;
                 $inHunk = true;
                 $annotated[] = $line;
+
                 continue;
             }
 
             if (! $inHunk || $currentFile === '') {
                 $annotated[] = $line;
+
                 continue;
             }
 
@@ -108,7 +115,7 @@ class DiffLineMapper
             if ($line !== '' && ($line[0] === ' ' || $line[0] === '+')) {
                 $rightLine++;
                 $prefix = $line[0];
-                $content = substr($line, 1);
+                $content = mb_substr($line, 1);
                 $annotated[] = sprintf('%s %s #L%d', $prefix, $content, $rightLine);
             } else {
                 // Deleted line or other - keep as-is
@@ -127,7 +134,7 @@ class DiffLineMapper
      */
     public function validateIssue(array $map, string $file, ?int $line): array
     {
-        $normalizedFile = ltrim($file, '/');
+        $normalizedFile = mb_ltrim($file, '/');
 
         // Check if file exists in map (try exact and with a/ b/ prefixes)
         $fileKey = $this->findFileKey($map, $normalizedFile);

@@ -15,6 +15,7 @@ it('switches the current workspace', function (): void {
         ->post(route('workspaces.switch', $second));
 
     $response->assertRedirect(route('workspaces.show', $first));
+
     expect(session('current_workspace_id'))->toBe($second->id);
 });
 
@@ -28,5 +29,6 @@ it('does not switch to a workspace the user cannot access', function (): void {
         ->post(route('workspaces.switch', $foreign));
 
     $response->assertRedirect(route('dashboard'));
+
     expect(session('current_workspace_id'))->toBe($workspace->id);
 });

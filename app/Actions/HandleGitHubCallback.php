@@ -30,16 +30,12 @@ final readonly class HandleGitHubCallback
             ->first();
 
         if ($linkedUser !== null) {
-            if ($currentUser !== null && $currentUser->isNot($linkedUser)) {
-                throw new GitHubAccountAlreadyLinkedException(
-                    'A user has already authenticated with this GitHub account.'
-                );
-            }
+            throw_if($currentUser instanceof User && $currentUser->isNot($linkedUser), GitHubAccountAlreadyLinkedException::class, 'A user has already authenticated with this GitHub account.');
 
             return $this->refreshGithubCredentials($linkedUser, $githubUser);
         }
 
-        if ($currentUser !== null) {
+        if ($currentUser instanceof User) {
             $this->refreshGithubCredentials($currentUser, $githubUser, $githubId);
 
             return $currentUser;

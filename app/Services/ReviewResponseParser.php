@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Exceptions\ReviewParseException;
-use JsonException;
-use RuntimeException;
 
 final readonly class ReviewResponseParser
 {
@@ -31,12 +29,8 @@ final readonly class ReviewResponseParser
 
         if (! is_array($parsed)) {
             $jsonError = json_last_error_msg();
-
             $parsed = json_decode($this->repairJson($clean), associative: true);
-
-            if (! is_array($parsed)) {
-                throw new ReviewParseException('Invalid JSON from OpenRouter: '.$jsonError);
-            }
+            throw_unless(is_array($parsed), ReviewParseException::class, 'Invalid JSON from OpenRouter: '.$jsonError);
         }
 
         $this->validateRequiredFields($parsed);
@@ -47,9 +41,8 @@ final readonly class ReviewResponseParser
     private function stripFences(string $raw): string
     {
         $clean = (string) preg_replace('/^```(?:json)?\s*/m', '', $raw);
-        $clean = mb_trim((string) preg_replace('/\s*```$/m', '', $clean));
 
-        return $clean;
+        return mb_trim((string) preg_replace('/\s*```$/m', '', $clean));
     }
 
     private function extractJsonObject(string $clean): string
@@ -58,7 +51,7 @@ final readonly class ReviewResponseParser
         $lastBrace = mb_strrpos($clean, '}');
 
         if ($firstBrace !== false && $lastBrace !== false && $lastBrace >= $firstBrace) {
-            $clean = mb_substr($clean, $firstBrace, $lastBrace - $firstBrace + 1);
+            return mb_substr($clean, $firstBrace, $lastBrace - $firstBrace + 1);
         }
 
         return $clean;
@@ -126,8 +119,8 @@ final readonly class ReviewResponseParser
         ));
 
         // Extract praise items to highlights
-        $praiseItems = array_filter($issues, fn ($i) => isset($i['_move_to_highlights']));
-        $issues = array_values(array_filter($issues, fn ($i) => ! isset($i['_move_to_highlights'])));
+        $praiseItems = array_filter($issues, fn (array $i): bool => isset($i['_move_to_highlights']));
+        $issues = array_values(array_filter($issues, fn (array $i): bool => ! isset($i['_move_to_highlights'])));
 
         $highlights = array_values(array_filter(
             array_map(function (mixed $highlight): ?array {
@@ -181,7 +174,7 @@ final readonly class ReviewResponseParser
         return $result;
     }
 
-private function repairJson(string $json): string
+    private function repairJson(string $json): string
     {
         // Fix unclosed quote on key before bracket: "key [ -> "key": [
         $json = (string) preg_replace('/"(\w+)\s*\[/', '"$1": [', $json);
@@ -206,80 +199,7 @@ private function repairJson(string $json): string
         // Fix trailing commas
         $json = (string) preg_replace('/,\s*"\s*([}\]])/', '$1', $json);
         $json = (string) preg_replace('/,\s*([}\]])/', '$1', $json);
-        $json = (string) preg_replace('/:\s*,/', ': null,', $json);
 
-        return $json;
-    }
-
-    /**
-     * Replace string literal bodies with placeholder tokens so repair rules never
-     * match inside string content (e.g. the value "coverage: filtering").
-     *
-     * @return array{0: string, 1: array<string, string>}
-     */
-    private function maskStringBodies(string $json): array
-    {
-        $length = strlen($json);
-        $masked = '';
-        $bodies = [];
-        $index = 0;
-
-        for ($i = 0; $i < $length; $i++) {
-            $char = $json[$i];
-
-            if ($char !== '"') {
-                $masked .= $char;
-                continue;
-            }
-
-            $previous = $i > 0 ? $json[$i - 1] : '{';
-            $startsString = str_contains('{[, :', $previous) || ctype_space($previous);
-
-            if (! $startsString) {
-                $masked .= $char;
-                continue;
-            }
-
-            $close = $i + 1;
-
-            while ($close < $length) {
-                $inner = $json[$close];
-
-                if ($inner === '\\') {
-                    $close += 2;
-                    continue;
-                }
-
-                if ($inner === '"') {
-                    $close++;
-                    break;
-                }
-
-                $close++;
-            }
-
-            if ($close > $length || $json[$close - 1] !== '"') {
-                $masked .= $char;
-                continue;
-            }
-
-            $followsString = $close >= $length
-                || str_contains(':,}] ', $json[$close])
-                || ctype_space($json[$close]);
-
-            if (! $followsString) {
-                $masked .= $char;
-                continue;
-            }
-
-            $full = substr($json, $i, $close - $i);
-            $token = "__STR_{$index}__";
-            $bodies[$token] = substr($full, 1, -1);
-            $masked .= '"'.$token.'"';
-            $index++;
-            $i = $close - 1;
-        }
-
-        return [$masked, $bodies];
+        return (string) preg_replace('/:\s*,/', ': null,', $json);
     }
 }

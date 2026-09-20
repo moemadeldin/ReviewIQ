@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Support\Sleep;
 use Psr\Http\Message\StreamInterface;
 
 final readonly class SseStreamReader
@@ -11,7 +12,6 @@ final readonly class SseStreamReader
     /**
      * @param  StreamInterface|resource  $stream
      * @param  callable(string): void  $onLine
-     * @return void
      */
     public function read($stream, callable $onLine): void
     {
@@ -30,7 +30,8 @@ final readonly class SseStreamReader
             $chunk = $stream->read(8192);
 
             if ($chunk === '') {
-                usleep(10_000);
+                Sleep::usleep(10_000);
+
                 continue;
             }
 
@@ -39,9 +40,12 @@ final readonly class SseStreamReader
             $buffer = array_pop($lines); // Keep incomplete line in buffer
 
             foreach ($lines as $line) {
-                $line = rtrim($line, "\r"); // Handle \r\n
-
-                if ($line === '' || $line === '0') {
+                $line = mb_rtrim($line, "\r");
+                // Handle \r\n
+                if ($line === '') {
+                    continue;
+                }
+                if ($line === '0') {
                     continue;
                 }
 
@@ -56,7 +60,7 @@ final readonly class SseStreamReader
 
         // Process any remaining buffer
         if ($buffer !== '') {
-            $buffer = rtrim($buffer, "\r");
+            $buffer = mb_rtrim($buffer, "\r");
             if ($buffer !== '' && ! str_starts_with($buffer, ': ')) {
                 $onLine($buffer);
             }
@@ -69,7 +73,8 @@ final readonly class SseStreamReader
             $chunk = fread($stream, 8192);
 
             if ($chunk === '') {
-                usleep(10_000);
+                Sleep::usleep(10_000);
+
                 continue;
             }
 
@@ -78,9 +83,12 @@ final readonly class SseStreamReader
             $buffer = array_pop($lines); // Keep incomplete line in buffer
 
             foreach ($lines as $line) {
-                $line = rtrim($line, "\r"); // Handle \r\n
-
-                if ($line === '' || $line === '0') {
+                $line = mb_rtrim($line, "\r");
+                // Handle \r\n
+                if ($line === '') {
+                    continue;
+                }
+                if ($line === '0') {
                     continue;
                 }
 
@@ -95,7 +103,7 @@ final readonly class SseStreamReader
 
         // Process any remaining buffer
         if ($buffer !== '') {
-            $buffer = rtrim($buffer, "\r");
+            $buffer = mb_rtrim($buffer, "\r");
             if ($buffer !== '' && ! str_starts_with($buffer, ': ')) {
                 $onLine($buffer);
             }

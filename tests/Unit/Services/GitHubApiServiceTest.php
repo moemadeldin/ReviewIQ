@@ -3,13 +3,11 @@
 declare(strict_types=1);
 
 use App\Services\GitHubApiService;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function (): void {
-    $this->github = app()->make(\App\Services\GitHubApiService::class);
+    $this->github = app()->make(GitHubApiService::class);
 });
 
 it('gets user repositories', function (): void {

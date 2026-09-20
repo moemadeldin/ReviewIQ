@@ -123,7 +123,7 @@ it('paginates filtered repos to 10 per page', function (): void {
         ->andReturn($repos);
 
     $query = new GetRepositoriesData($github);
-    $result = $query->handle($user, null, 1, 'repo', null, null);
+    $result = $query->handle($user, null, 1, 'repo');
 
     expect($result['repositories'])->toHaveCount(10)
         ->and($result['has_more'])->toBeTrue();
@@ -146,7 +146,7 @@ it('returns the remaining filtered repos on the second page', function (): void 
         ->andReturn($repos);
 
     $query = new GetRepositoriesData($github);
-    $result = $query->handle($user, null, 2, 'repo', null, null);
+    $result = $query->handle($user, null, 2, 'repo');
 
     expect($result['repositories'])->toHaveCount(2)
         ->and($result['has_more'])->toBeFalse();
@@ -164,7 +164,7 @@ it('returns empty filtered results when nothing matches', function (): void {
         ]);
 
     $query = new GetRepositoriesData($github);
-    $result = $query->handle($user, null, 1, 'nonexistent', null, null);
+    $result = $query->handle($user, null, 1, 'nonexistent');
 
     expect($result['repositories'])->toBe([])
         ->and($result['has_more'])->toBeFalse();
@@ -189,7 +189,7 @@ it('filters repos scoped to a workspace after excluding active repos elsewhere',
         ]);
 
     $query = new GetRepositoriesData($github);
-    $result = $query->handle($user, $workspace, 1, 'tool', null, null);
+    $result = $query->handle($user, $workspace, 1, 'tool');
 
     expect($result['repositories'])->toHaveCount(1)
         ->and($result['repositories'][0]['full_name'])->toBe('owner/cli-tool')

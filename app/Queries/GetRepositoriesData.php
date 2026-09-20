@@ -92,17 +92,15 @@ final readonly class GetRepositoriesData
     {
         if ($search !== null && $search !== '') {
             $needle = mb_strtolower($search);
-            $haystack = mb_strtolower(trim(($repo['full_name'] ?? '').' '.($repo['name'] ?? '')));
+            $haystack = mb_strtolower(mb_trim(($repo['full_name'] ?? '').' '.($repo['name'] ?? '')));
 
             if (! str_contains($haystack, $needle)) {
                 return false;
             }
         }
 
-        if ($language !== null && $language !== '') {
-            if (mb_strtolower((string) ($repo['language'] ?? '')) !== mb_strtolower($language)) {
-                return false;
-            }
+        if ($language !== null && $language !== '' && mb_strtolower((string) ($repo['language'] ?? '')) !== mb_strtolower($language)) {
+            return false;
         }
 
         if ($visibility !== null && $visibility !== '') {

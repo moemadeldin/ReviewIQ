@@ -14,6 +14,7 @@ use Illuminate\Support\Sleep;
 use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
+use Throwable;
 
 final readonly class OpenRouterReviewService implements AIReviewer
 {
@@ -59,7 +60,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
                     $isRetryable = $this->isRetryableStatus($status);
 
                     if ($attempt < self::MAX_FALLBACK_RETRIES && $isRetryable) {
-                        $delay = (int) (1000 * pow(2, $attempt)); // 1s, 2s
+                        $delay = (int) (1000 * 2 ** $attempt); // 1s, 2s
                         Log::warning('OpenRouter request failed, retrying', [
                             'model' => $model,
                             'attempt' => $attempt + 1,
@@ -68,6 +69,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
                             'delay_ms' => $delay,
                         ]);
                         Sleep::msleep($delay);
+
                         continue;
                     }
 
@@ -105,12 +107,12 @@ final readonly class OpenRouterReviewService implements AIReviewer
                 $body = $response->getBody();
                 $reader = new SseStreamReader();
 
-                $reader->read($body, function (string $line) use (&$fullContent, &$firstChunkEmitted, $onChunk, $model, &$response): void {
+                $reader->read($body, function (string $line) use (&$fullContent, &$firstChunkEmitted, $onChunk): void {
                     if (! str_starts_with($line, 'data: ')) {
                         return;
                     }
 
-                    $data = trim(substr($line, 6));
+                    $data = mb_trim(mb_substr($line, 6));
 
                     if ($data === '[DONE]') {
                         return;
@@ -128,9 +130,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
                     $onChunk($chunk);
                 });
 
-                if ($fullContent === '') {
-                    throw new ReviewParseException('OpenRouter returned empty streaming response');
-                }
+                throw_if($fullContent === '', ReviewParseException::class, 'OpenRouter returned empty streaming response');
 
                 $parsed = $parser->parse($fullContent, $model);
 
@@ -150,6 +150,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
                         'status' => $status,
                         'error' => $guzzleException->getMessage(),
                     ]);
+
                     continue;
                 }
 
@@ -178,7 +179,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
                 'model' => $model,
                 'finish_reason' => $finishReason,
                 'error' => $error,
-                'response_length' => strlen((string) json_encode($response)),
+                'response_length' => mb_strlen((string) json_encode($response)),
             ]);
 
             $hint = $finishReason === 'length'
@@ -218,11 +219,11 @@ final readonly class OpenRouterReviewService implements AIReviewer
                 'timeout' => $this->timeout,
                 'connect_timeout' => $this->connectTimeout,
             ]);
-        } catch (GuzzleException $e) {
+        } catch (GuzzleException $guzzleException) {
             throw new RuntimeException(
-                sprintf('OpenRouter API error: %s', $e->getMessage()),
-                $e->getCode(),
-                $e,
+                sprintf('OpenRouter API error: %s', $guzzleException->getMessage()),
+                $guzzleException->getCode(),
+                $guzzleException,
             );
         }
 
@@ -255,11 +256,12 @@ final readonly class OpenRouterReviewService implements AIReviewer
         return ['Authorization' => 'Bearer '.$this->apiKey];
     }
 
-    private function extractStatus(\Throwable $e): ?int
+    private function extractStatus(Throwable $e): ?int
     {
         if ($e instanceof RequestException) {
             return $e->getResponse()?->getStatusCode();
         }
+
         return null;
     }
 

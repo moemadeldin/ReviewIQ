@@ -21,6 +21,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
         $deliveryId = $request->header('X-GitHub-Delivery');
         if ($deliveryId && Cache::has('github:webhook:'.$deliveryId)) {
             Log::info('Duplicate webhook delivery ignored', ['delivery_id' => $deliveryId]);
+
             return;
         }
 
@@ -52,6 +53,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
 
         if (! $repository) {
             Log::info(sprintf('Repo not found in DB for GitHub ID: %s', $githubRepoId));
+
             return;
         }
 
@@ -64,6 +66,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
                 'author' => $prPayload['user']['login'],
                 'draft' => $prPayload['draft'] ?? false,
             ]);
+
             return;
         }
 
@@ -90,11 +93,9 @@ final readonly class GitHubWebhookService implements WebhookProvider
         if ($shouldDispatch) {
             $pr->update(['status' => PullRequestStatus::Pending, 'head_sha' => $headSha]);
             dispatch(new ProcessPullRequestReview($pr->fresh()));
-        } else {
+        } elseif ($pr->head_sha !== $headSha) {
             // PR is already being reviewed - check if head_sha changed
-            if ($pr->head_sha !== $headSha) {
-                $pr->update(['head_sha' => $headSha, 'pending_head_sha' => $headSha]);
-            }
+            $pr->update(['head_sha' => $headSha, 'pending_head_sha' => $headSha]);
         }
 
         if ($deliveryId) {

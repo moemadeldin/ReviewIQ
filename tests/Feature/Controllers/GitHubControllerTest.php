@@ -310,6 +310,7 @@ it('redirects back with an error when the oauth state is invalid', function (): 
 
     $response->assertRedirect(route('login'));
     $response->assertSessionHasErrors(['github' => 'The GitHub sign-in session expired. Please try again.']);
+
     expect(Auth::check())->toBeFalse();
 });
 
@@ -339,12 +340,12 @@ it('stores a long github token without truncation', function (): void {
         ->with('github')
         ->andReturn($mockDriver);
 
-$response = $this->get(route('auth.github.callback'));
+    $response = $this->get(route('auth.github.callback'));
 
     $response->assertRedirectToRoute('dashboard');
 
     $user->refresh();
 
-    expect(mb_strlen($user->getAttributes()['github_token']))->toBeGreaterThan(255);
+    expect(mb_strlen((string) $user->getAttributes()['github_token']))->toBeGreaterThan(255);
     expect($user->github_token)->toBe($longToken);
 });

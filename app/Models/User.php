@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Attributes\Appends;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -43,6 +44,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
     'two_factor_recovery_codes',
     'github_token',
 ])]
+#[Appends(['avatar', 'github_connected'])]
 final class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
@@ -51,9 +53,6 @@ final class User extends Authenticatable implements MustVerifyEmail
     use HasUuids;
     use Notifiable;
     use TwoFactorAuthenticatable;
-
-    /** @var list<string> */
-    protected $appends = ['avatar', 'github_connected'];
 
     /**
      * @return HasMany<Workspace, $this>

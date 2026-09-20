@@ -165,10 +165,8 @@ it('throws with max tokens hint and logs details when content is truncated empty
     expect(fn (): array => $service->review('system', 'user'))
         ->toThrow(ReviewParseException::class, 'finish_reason: length - increase OPENROUTER_MAX_TOKENS');
 
-    Log::assertLogged('error', function (string $message, array $context): bool {
-        return $message === 'OpenRouter returned empty response'
-            && ($context['finish_reason'] ?? null) === 'length';
-    });
+    Log::assertLogged('error', fn (string $message, array $context): bool => $message === 'OpenRouter returned empty response'
+        && ($context['finish_reason'] ?? null) === 'length');
 });
 
 it('throws on missing required fields', function (): void {

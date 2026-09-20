@@ -28,12 +28,10 @@ final readonly class GitHubController
         try {
             $user = $action->handle($currentUser instanceof User ? $currentUser : null);
         } catch (GitHubAccountAlreadyLinkedException) {
-            return redirect()
-                ->route('repos.index')
+            return to_route('repos.index')
                 ->withErrors(['github' => 'A user has already authenticated with this GitHub account.']);
         } catch (InvalidStateException) {
-            return redirect()
-                ->back()
+            return back()
                 ->withErrors(['github' => 'The GitHub sign-in session expired. Please try again.']);
         }
 

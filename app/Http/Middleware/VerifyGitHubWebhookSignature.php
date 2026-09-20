@@ -7,7 +7,6 @@ namespace App\Http\Middleware;
 use App\Exceptions\WebhookException;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 final readonly class VerifyGitHubWebhookSignature
@@ -18,21 +17,15 @@ final readonly class VerifyGitHubWebhookSignature
         /** @var string|null $secret */
         $secret = config('services.github.webhook_secret');
 
-        if (! $signature) {
-            throw new WebhookException('Missing signature.');
-        }
+        throw_unless($signature, WebhookException::class, 'Missing signature.');
 
-        if (! $secret) {
-            throw new WebhookException('Webhook secret not configured.');
-        }
+        throw_unless($secret, WebhookException::class, 'Webhook secret not configured.');
 
         /** @var string $body */
         $body = $request->getContent();
         $computed = 'sha256='.hash_hmac('sha256', $body, $secret);
 
-        if (! hash_equals($computed, $signature)) {
-            throw new AccessDeniedHttpException('Invalid signature.');
-        }
+        throw_unless(hash_equals($computed, $signature), AccessDeniedHttpException::class, 'Invalid signature.');
 
         return $next($request);
     }

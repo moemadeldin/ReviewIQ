@@ -55,7 +55,7 @@ final class AppServiceProvider extends ServiceProvider
             timeout: (int) config('services.openrouter.timeout'),
             connectTimeout: (int) config('services.openrouter.connect_timeout', 10),
             fallbackModels: array_values(array_filter(
-                array_map('trim', explode(',', (string) config('services.openrouter.fallback_models', ''))),
+                array_map(trim(...), explode(',', (string) config('services.openrouter.fallback_models', ''))),
             )),
             jsonObjectFormat: (bool) config('services.openrouter.json_object_format'),
         ));

@@ -29,7 +29,7 @@ use Throwable;
 
 #[Tries(3)]
 #[Timeout(600)]
-final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
+final class ProcessPullRequestReview implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;
@@ -73,10 +73,10 @@ final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
 
         try {
             $this->review($diffService, $promptBuilder, $diffLineMapper, $aiReviewer, $githubApp);
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             $this->pullRequest->update(['status' => PullRequestStatus::Pending]);
 
-            throw $e;
+            throw $throwable;
         }
     }
 
@@ -138,8 +138,8 @@ final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
             'repo' => $repoFullName,
             'preview' => mb_substr($diff, 0, 120),
             'head_sha' => $headSha,
-            'original_length' => strlen($diff),
-            'truncated_length' => strlen($truncatedDiff),
+            'original_length' => mb_strlen($diff),
+            'truncated_length' => mb_strlen($truncatedDiff),
         ]);
 
         /** @var array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, array{}>, highlights?: array<int, string>, recommendation?: string} $reviewResult */
@@ -188,7 +188,8 @@ final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
                 'pr' => $this->pullRequest->number,
                 'new_head_sha' => $newHeadSha,
             ]);
-            dispatch(new ProcessPullRequestReview($this->pullRequest->fresh()));
+            dispatch(new self($this->pullRequest->fresh()));
+
             return;
         }
 

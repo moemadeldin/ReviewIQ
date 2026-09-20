@@ -43,11 +43,6 @@ final readonly class RepositoryController
         return $this->success($data, 'ok');
     }
 
-    private function nullableString(mixed $value): ?string
-    {
-        return is_string($value) && $value !== '' ? $value : null;
-    }
-
     public function store(WorkspaceOwnerRequest $request, #[CurrentUser()] User $user, Workspace $workspace, AttachRepository $action, string $fullName): JsonResponse|Response
     {
         $repository = $action->handle($workspace, $user, $fullName);
@@ -61,5 +56,10 @@ final readonly class RepositoryController
         $action->handle($workspace, $user, $fullName);
 
         return $this->success(['message' => 'Repository disconnected'], 'ok');
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

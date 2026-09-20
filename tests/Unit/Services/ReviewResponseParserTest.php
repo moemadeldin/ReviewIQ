@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Services\ReviewResponseParser;
 use App\Exceptions\ReviewParseException;
+use App\Services\ReviewResponseParser;
 
 beforeEach(function (): void {
     $this->parser = new ReviewResponseParser();

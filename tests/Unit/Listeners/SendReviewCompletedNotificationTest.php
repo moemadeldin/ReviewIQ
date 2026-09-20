@@ -7,6 +7,7 @@ use App\Listeners\SendReviewCompletedNotification;
 use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\User;
+use App\Notifications\ReviewCompletedNotification;
 
 it('stores a relative review url so it works on any host', function (): void {
     $owner = User::factory()->create();
@@ -22,7 +23,7 @@ it('stores a relative review url so it works on any host', function (): void {
         'title' => 'Fix login bug',
     ]);
 
-    (new SendReviewCompletedNotification())->handle(new ReviewCompleted(
+    new SendReviewCompletedNotification()->handle(new ReviewCompleted(
         prId: $pr->id,
         review: [
             'summary' => 'Solid change.',
@@ -33,7 +34,7 @@ it('stores a relative review url so it works on any host', function (): void {
     $notification = $owner->notifications()->first();
 
     expect($notification)->not->toBeNull()
-        ->and($notification->type)->toBe(App\Notifications\ReviewCompletedNotification::class)
+        ->and($notification->type)->toBe(ReviewCompletedNotification::class)
         ->and($notification->data['review_url'])->toBe('/workspaces/'.$workspace->id.'/reviews/'.$pr->id)
         ->and($notification->data['review_url'])->not->toStartWith('http');
 });

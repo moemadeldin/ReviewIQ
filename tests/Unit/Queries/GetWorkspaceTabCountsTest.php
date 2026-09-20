@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\Roles;
 use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\User;
@@ -13,7 +14,7 @@ it('returns counts for reviews, repositories, members, and invitations', functio
     $user = User::factory()->create();
     $workspace = Workspace::factory()->withOwner($user)->create();
     $member = User::factory()->create();
-    $workspace->addUser($member, App\Enums\Roles::Member);
+    $workspace->addUser($member, Roles::Member);
 
     Repository::factory(2)->create(['workspace_id' => $workspace->id]);
     $repo = Repository::factory()->create(['workspace_id' => $workspace->id]);

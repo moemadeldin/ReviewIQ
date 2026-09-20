@@ -17,7 +17,6 @@ final readonly class GitHubApiService implements GitHubApi
     private const int REPOS_CACHE_TTL = 300;
 
     public function __construct(
-        private string $baseUrl,
         private GitHubHttp $http,
     ) {}
 
@@ -125,6 +124,7 @@ final readonly class GitHubApiService implements GitHubApi
             $this->http->json($token)
                 ->retry(2, 200, function (RequestException $e): bool {
                     $status = $e->response?->status();
+
                     return $e instanceof ConnectionException
                         || $status === Response::HTTP_TOO_MANY_REQUESTS
                         || ($status !== null && $status >= 500);

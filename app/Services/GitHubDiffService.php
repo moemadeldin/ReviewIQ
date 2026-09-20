@@ -14,7 +14,6 @@ final readonly class GitHubDiffService implements DiffProvider
     private const int DIFF_CACHE_TTL = 86400; // 24h - SHA-keyed diff is immutable
 
     public function __construct(
-        private string $baseUrl,
         private GitHubHttp $http,
     ) {}
 
