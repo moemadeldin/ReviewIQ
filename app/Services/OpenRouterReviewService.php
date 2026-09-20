@@ -32,6 +32,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
         private int $maxTokens,
         private int $timeout = 60,
         private array $fallbackModels = [],
+        private bool $jsonObjectFormat = true,
     ) {
         throw_if($this->baseUrl === '' || $this->baseUrl === '0', InvalidArgumentException::class, 'Base URL cannot be empty.');
         throw_if($this->apiKey === '' || $this->apiKey === '0', InvalidArgumentException::class, 'API key cannot be empty.');
@@ -178,6 +179,8 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
         if ($stream) {
             $body['stream'] = true;
+        } elseif ($this->jsonObjectFormat) {
+            $body['response_format'] = ['type' => 'json_object'];
         }
 
         return $body;

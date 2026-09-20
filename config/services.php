@@ -62,5 +62,6 @@ return [
         'max_tokens' => (int) env('OPENROUTER_MAX_TOKENS', 12000),
         'timeout' => env('OPENROUTER_TIMEOUT', 600),
         'fallback_models' => env('OPENROUTER_FALLBACK_MODELS', ''),
+        'json_object_format' => env('OPENROUTER_JSON_OBJECT_FORMAT', true),
     ],
 ];

@@ -42,6 +42,7 @@ final class AppServiceProvider extends ServiceProvider
             fallbackModels: array_values(array_filter(
                 array_map('trim', explode(',', (string) config('services.openrouter.fallback_models', ''))),
             )),
+            jsonObjectFormat: (bool) config('services.openrouter.json_object_format'),
         ));
 
         $this->app->bind(GitHubApi::class, GitHubApiService::class);
