@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Symfony\Component\HttpFoundation\Response;
 
 final readonly class GitHubController
@@ -30,6 +31,10 @@ final readonly class GitHubController
             return redirect()
                 ->route('repos.index')
                 ->withErrors(['github' => 'A user has already authenticated with this GitHub account.']);
+        } catch (InvalidStateException) {
+            return redirect()
+                ->back()
+                ->withErrors(['github' => 'The GitHub sign-in session expired. Please try again.']);
         }
 
         if ($currentUser === null) {

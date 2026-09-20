@@ -28,6 +28,18 @@ interface Notification {
     created_at: string;
 }
 
+/**
+ * Stored notification URLs may be absolute with a stale host (e.g. an old
+ * ngrok tunnel or local server), so resolve them to a path on the current
+ * origin before navigating.
+ */
+const resolveInternalPath = (url: string): string | null => {
+    const parsed = new URL(url, window.location.origin);
+    const path = parsed.pathname + parsed.search;
+
+    return path.length > 1 ? path : null;
+};
+
 export function NotificationBell() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -149,7 +161,12 @@ export function NotificationBell() {
         }
 
         markAsRead(notification.id);
-        router.visit(url);
+
+        const target = resolveInternalPath(url);
+
+        if (target !== null) {
+            router.visit(target);
+        }
     };
 
     const formatTime = (dateString: string) => {

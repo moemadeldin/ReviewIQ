@@ -6,13 +6,16 @@ namespace App\Actions;
 
 use App\Exceptions\GitHubAccountAlreadyLinkedException;
 use App\Models\User;
+use Illuminate\Support\Facades\Crypt;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as SocialiteUser;
 
 final readonly class HandleGitHubCallback
 {
     /**
      * @throws GitHubAccountAlreadyLinkedException
+     * @throws InvalidStateException
      */
     public function handle(?User $currentUser = null): User
     {
@@ -33,20 +36,11 @@ final readonly class HandleGitHubCallback
                 );
             }
 
-            $linkedUser->update([
-                'github_avatar' => $githubUser->getAvatar(),
-                'github_token' => $githubUser->token,
-            ]);
-
-            return $linkedUser;
+            return $this->refreshGithubCredentials($linkedUser, $githubUser);
         }
 
         if ($currentUser !== null) {
-            $currentUser->update([
-                'github_id' => $githubId,
-                'github_avatar' => $githubUser->getAvatar(),
-                'github_token' => $githubUser->token,
-            ]);
+            $this->refreshGithubCredentials($currentUser, $githubUser, $githubId);
 
             return $currentUser;
         }
@@ -65,13 +59,24 @@ final readonly class HandleGitHubCallback
                 'email_verified_at' => now(),
             ]);
         } else {
-            $user->update([
-                'github_id' => $githubId,
-                'github_avatar' => $githubUser->getAvatar(),
-                'github_token' => $githubUser->token,
-            ]);
+            $this->refreshGithubCredentials($user, $githubUser, $githubId);
         }
 
         return $user;
+    }
+
+    /**
+     * Persist the freshly issued GitHub credentials without decrypting the
+     * previously stored token, which may be unreadable after an APP_KEY change.
+     */
+    private function refreshGithubCredentials(User $user, SocialiteUser $githubUser, ?string $githubId = null): User
+    {
+        User::query()->whereKey($user->id)->update([
+            'github_id' => $githubId ?? $user->github_id,
+            'github_avatar' => $githubUser->getAvatar(),
+            'github_token' => Crypt::encryptString($githubUser->token),
+        ]);
+
+        return $user->refresh();
     }
 }

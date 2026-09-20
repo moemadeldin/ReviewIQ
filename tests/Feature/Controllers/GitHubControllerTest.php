@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\GitHubProvider;
+use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as SocialiteUser;
 
 function createMockSocialiteUser(string $id, string $name, string $nickname, string $email, string $avatar, string $token): SocialiteUser
@@ -251,4 +254,97 @@ it('rejects connecting a github account already linked to another user', functio
     expect($userA->github_token)->toBe('owner-token');
     expect($userB->github_id)->toBeNull();
     expect(Auth::id())->toBe($userB->id);
+});
+
+it('reconnects an existing github user whose stored token cannot be decrypted', function (): void {
+    $user = User::factory()->create([
+        'email' => 'corrupt-token@example.com',
+        'github_id' => '88888',
+        'github_token' => 'previous-token',
+    ]);
+
+    User::query()->whereKey($user->id)->update(['github_token' => 'not-a-valid-encrypted-payload']);
+
+    expect(fn (): string => $user->fresh()->github_token)->toThrow(DecryptException::class);
+
+    Http::preventStrayRequests();
+
+    $mockUser = createMockSocialiteUser(
+        id: '88888',
+        name: 'Corrupt Token User',
+        nickname: 'corrupttoken',
+        email: 'corrupt-token@example.com',
+        avatar: 'https://example.com/avatar.jpg',
+        token: 'new-token'
+    );
+
+    $mockDriver = createMockGitHubDriver($mockUser);
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn($mockDriver);
+
+    $response = $this->get(route('auth.github.callback'));
+
+    $response->assertRedirectToRoute('dashboard');
+
+    $user->refresh();
+
+    expect($user->github_id)->toBe('88888');
+    expect($user->github_token)->toBe('new-token');
+    expect(Crypt::decryptString($user->getAttributes()['github_token']))->toBe('new-token');
+    expect(Auth::id())->toBe($user->id);
+});
+
+it('redirects back with an error when the oauth state is invalid', function (): void {
+    Http::preventStrayRequests();
+
+    $mockDriver = Mockery::mock(GitHubProvider::class);
+    $mockDriver->shouldReceive('user')->andThrow(InvalidStateException::class);
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn($mockDriver);
+
+    $response = $this->from(route('login'))->get(route('auth.github.callback'));
+
+    $response->assertRedirect(route('login'));
+    $response->assertSessionHasErrors(['github' => 'The GitHub sign-in session expired. Please try again.']);
+    expect(Auth::check())->toBeFalse();
+});
+
+it('stores a long github token without truncation', function (): void {
+    $longToken = 'gho_'.str_repeat('a', 120);
+
+    $user = User::factory()->create([
+        'email' => 'long-token@example.com',
+        'github_id' => '77777',
+        'github_token' => 'previous-token',
+    ]);
+
+    Http::preventStrayRequests();
+
+    $mockUser = createMockSocialiteUser(
+        id: '77777',
+        name: 'Long Token User',
+        nickname: 'longtoken',
+        email: 'long-token@example.com',
+        avatar: 'https://example.com/avatar.jpg',
+        token: $longToken
+    );
+
+    $mockDriver = createMockGitHubDriver($mockUser);
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn($mockDriver);
+
+$response = $this->get(route('auth.github.callback'));
+
+    $response->assertRedirectToRoute('dashboard');
+
+    $user->refresh();
+
+    expect(mb_strlen($user->getAttributes()['github_token']))->toBeGreaterThan(255);
+    expect($user->github_token)->toBe($longToken);
 });

@@ -34,7 +34,7 @@ final readonly class SendReviewCompletedNotification
         $workspace = $pr->repository->workspace;
         throw_unless(is_string($workspace->slug), RuntimeException::class, 'Workspace slug is missing');
 
-        $reviewUrl = route('reviews.show', [$workspace, $pr]);
+        $reviewUrl = url()->route('reviews.show', [$workspace, $pr], absolute: false);
         $score = (int) ($event->review['score'] ?? 0);
         $summary = (string) ($event->review['summary'] ?? '');
 
