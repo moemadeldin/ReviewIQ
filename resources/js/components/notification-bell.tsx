@@ -22,6 +22,7 @@ interface Notification {
         workspace_slug: string;
         accept_url: string;
         token: string;
+        review_url?: string;
     };
     read_at: string | null;
     created_at: string;
@@ -133,6 +134,24 @@ export function NotificationBell() {
             .catch(() => {});
     };
 
+    const openNotification = (
+        event: React.MouseEvent,
+        notification: Notification,
+    ) => {
+        if ((event.target as HTMLElement).closest('button')) {
+            return;
+        }
+
+        const url = notification.data.review_url;
+
+        if (!url) {
+            return;
+        }
+
+        markAsRead(notification.id);
+        router.visit(url);
+    };
+
     const formatTime = (dateString: string) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -196,6 +215,9 @@ export function NotificationBell() {
                                     'flex flex-col items-start gap-1 p-3',
                                     !notification.read_at && 'bg-muted/50',
                                 )}
+                                onClick={(event) =>
+                                    openNotification(event, notification)
+                                }
                             >
                                 <div className="flex w-full items-start justify-between gap-2">
                                     <span className="font-medium">
