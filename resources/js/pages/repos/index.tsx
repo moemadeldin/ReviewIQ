@@ -67,6 +67,7 @@ export default function Index() {
     const [hasMore, setHasMore] = useState(false);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [connecting, setConnecting] = useState(false);
     const [selectedLanguage, setSelectedLanguage] = useState('all');
     const [selectedVisibility, setSelectedVisibility] = useState('all');
     const [selectedStatus, setSelectedStatus] = useState('all');
@@ -352,9 +353,19 @@ export default function Index() {
                         </p>
                         <a
                             href="/auth/github"
-                            className="mt-3 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                            onClick={(event) => {
+                                event.preventDefault();
+                                setConnecting(true);
+                                window.location.href = '/auth/github';
+                            }}
+                            aria-disabled={connecting}
+                            className={cn(
+                                'mt-3 inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90',
+                                connecting && 'pointer-events-none opacity-70',
+                            )}
                         >
-                            Connect GitHub
+                            {connecting && <Spinner className="size-4" />}
+                            {connecting ? 'Connecting...' : 'Connect GitHub'}
                         </a>
                     </div>
                 ) : loading ? (
