@@ -7,7 +7,6 @@ namespace App\Services;
 use App\Contracts\GitHubAppAuth as GitHubAppAuthContract;
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
@@ -19,6 +18,7 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
 
     public function __construct(
         private string $baseUrl,
+        private GitHubHttp $http,
     ) {
         throw_if($this->baseUrl === '' || $this->baseUrl === '0', RuntimeException::class, 'Invalid GitHub base URL configuration');
     }
@@ -56,12 +56,8 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
 
     private function fetchAndCache(): string
     {
-        $response = Http::withToken($this->getJwt())
-            ->withHeaders([
-                'Accept' => config('services.github.accept_json'),
-                'X-GitHub-Api-Version' => config('services.github.api_version'),
-            ])
-            ->post($this->baseUrl.'/app/installations/'.$this->installationId().'/access_tokens');
+        $response = $this->http->appAuth($this->getJwt())
+            ->post('/app/installations/'.$this->installationId().'/access_tokens');
 
         if ($response->status() === 401) {
             /** @var string|null $error */

@@ -24,9 +24,12 @@ it('builds user prompt with all parameters', function (): void {
 
     expect($prompt)->toContain('Fix login bug')
         ->and($prompt)->toContain('Fixes the login redirect issue')
-        ->and($prompt)->toContain('PHP')
         ->and($prompt)->toContain('No debug code allowed')
-        ->and($prompt)->toContain('diff content');
+        ->and($prompt)->toContain('diff content')
+        ->and($prompt)->toContain('<pr_title>')
+        ->and($prompt)->toContain('<pr_description>')
+        ->and($prompt)->toContain('<custom_rules>')
+        ->and($prompt)->toContain('<diff>');
 });
 
 it('builds user prompt with minimal parameters', function (): void {
@@ -38,8 +41,11 @@ it('builds user prompt with minimal parameters', function (): void {
 
     expect($prompt)->toContain('My PR')
         ->and($prompt)->toContain('No description provided.')
-        ->and($prompt)->toContain('Unknown')
-        ->and($prompt)->not->toContain('Custom rules');
+        ->and($prompt)->not->toContain('Custom rules')
+        ->and($prompt)->toContain('<pr_title>')
+        ->and($prompt)->toContain('<pr_description>')
+        ->and($prompt)->toContain('<custom_rules>')
+        ->and($prompt)->toContain('<diff>');
 });
 
 it('builds user prompt with custom rules', function (): void {

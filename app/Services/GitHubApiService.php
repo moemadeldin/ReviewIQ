@@ -6,11 +6,9 @@ namespace App\Services;
 
 use App\Contracts\GitHubApi;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
@@ -18,7 +16,10 @@ final readonly class GitHubApiService implements GitHubApi
 {
     private const int REPOS_CACHE_TTL = 300;
 
-    public function __construct(private string $baseUrl) {}
+    public function __construct(
+        private string $baseUrl,
+        private GitHubHttp $http,
+    ) {}
 
     /**
      * @return array<int, array{id: int, full_name: string, name: string, language: string|null, private: bool}>
@@ -30,7 +31,7 @@ final readonly class GitHubApiService implements GitHubApi
         $cacheKey = sprintf('github:repos:%s:page:%d:per:%d', hash('sha256', $token), $page, $perPage);
 
         return Cache::remember($cacheKey, self::REPOS_CACHE_TTL, function () use ($token, $page, $perPage): array {
-            $response = $this->http($token)->get($this->baseUrl.'/user/repos', [
+            $response = $this->http->json($token)->get('/user/repos', [
                 'page' => $page,
                 'per_page' => $perPage,
                 'sort' => 'updated',
@@ -45,12 +46,9 @@ final readonly class GitHubApiService implements GitHubApi
 
     public function registerWebhook(string $token, string $fullName): int
     {
-        $appUrl = config('app.url');
-        throw_unless(is_string($appUrl), RuntimeException::class, 'Invalid app URL configuration');
-
-        $response = $this->http($token)->post($this->baseUrl.'/repos/'.$fullName.'/hooks', [
+        $response = $this->http->json($token)->post('/repos/'.$fullName.'/hooks', [
             'config' => [
-                'url' => config('services.github.webhook_url', $appUrl.'/api/v1/webhooks/github'),
+                'url' => GitHubWebhookHelper::webhookUrl(),
                 'content_type' => 'json',
             ],
             'events' => ['pull_request'],
@@ -68,12 +66,9 @@ final readonly class GitHubApiService implements GitHubApi
 
     public function findWebhookId(string $token, string $fullName): ?int
     {
-        $appUrl = config('app.url');
-        throw_unless(is_string($appUrl), RuntimeException::class, 'Invalid app URL configuration');
+        $webhookUrl = GitHubWebhookHelper::webhookUrl();
 
-        $webhookUrl = config('services.github.webhook_url', $appUrl.'/api/v1/webhooks/github');
-
-        $response = $this->http($token)->get($this->baseUrl.'/repos/'.$fullName.'/hooks', [
+        $response = $this->http->json($token)->get('/repos/'.$fullName.'/hooks', [
             'per_page' => 100,
         ]);
 
@@ -95,8 +90,8 @@ final readonly class GitHubApiService implements GitHubApi
 
     public function deleteWebhook(string $token, string $fullName, string $webhookId): void
     {
-        $this->http($token)
-            ->delete($this->baseUrl.'/repos/'.$fullName.'/hooks/'.$webhookId)
+        $this->http->json($token)
+            ->delete('/repos/'.$fullName.'/hooks/'.$webhookId)
             ->throw();
     }
 
@@ -127,14 +122,14 @@ final readonly class GitHubApiService implements GitHubApi
 
         // First attempt: post review with inline comments (if any)
         try {
-            $this->http($token)
+            $this->http->json($token)
                 ->retry(2, 200, function (RequestException $e): bool {
                     $status = $e->response?->status();
                     return $e instanceof ConnectionException
                         || $status === Response::HTTP_TOO_MANY_REQUESTS
                         || ($status !== null && $status >= 500);
                 })
-                ->post($this->baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', $payload)
+                ->post('/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', $payload)
                 ->throw();
 
             $postedCount = count($comments);
@@ -155,7 +150,7 @@ final readonly class GitHubApiService implements GitHubApi
 
     private function postReviewBodyOnly(string $token, string $fullName, int $prNumber, string $commitSha, string $body): void
     {
-        $this->http($token)->post($this->baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', [
+        $this->http->json($token)->post('/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', [
             'commit_id' => $commitSha,
             'body' => $body,
             'event' => 'COMMENT',
@@ -182,8 +177,8 @@ final readonly class GitHubApiService implements GitHubApi
         $posted = 0;
 
         foreach ($comments as $comment) {
-            $response = $this->http($token)->post(
-                $this->baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/comments',
+            $response = $this->http->json($token)->post(
+                '/repos/'.$fullName.'/pulls/'.$prNumber.'/comments',
                 [
                     'commit_id' => $commitSha,
                     'path' => $comment['path'],
@@ -204,14 +199,6 @@ final readonly class GitHubApiService implements GitHubApi
         }
 
         return $posted;
-    }
-
-    private function http(string $token): PendingRequest
-    {
-        return Http::withToken($token)->withHeaders([
-            'Accept' => config('services.github.accept_json'),
-            'X-GitHub-Api-Version' => config('services.github.api_version'),
-        ]);
     }
 
     /**

@@ -81,16 +81,17 @@ final readonly class GitHubWebhookService implements WebhookProvider
             ]
         );
 
-        $statusUpdated = PullRequest::query()
-            ->where('id', $pr->id)
-            ->whereNotIn('status', [PullRequestStatus::Reviewing->value, PullRequestStatus::Pending->value])
-            ->update(['status' => PullRequestStatus::Pending->value, 'head_sha' => $headSha]);
+        // Dispatch review job if:
+        // 1. PR was just created (new PR), OR
+        // 2. PR exists but was not in Reviewing/Pending state
+        $shouldDispatch = $pr->wasRecentlyCreated
+            || ! in_array($pr->status, [PullRequestStatus::Reviewing, PullRequestStatus::Pending], true);
 
-        if ($statusUpdated) {
+        if ($shouldDispatch) {
+            $pr->update(['status' => PullRequestStatus::Pending, 'head_sha' => $headSha]);
             dispatch(new ProcessPullRequestReview($pr->fresh()));
         } else {
             // PR is already being reviewed - check if head_sha changed
-            $pr->refresh();
             if ($pr->head_sha !== $headSha) {
                 $pr->update(['head_sha' => $headSha, 'pending_head_sha' => $headSha]);
             }

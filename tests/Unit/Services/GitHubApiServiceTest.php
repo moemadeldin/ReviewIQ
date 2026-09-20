@@ -9,7 +9,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function (): void {
-    $this->github = new GitHubApiService(baseUrl: config('services.github.base_url'));
+    $this->github = app()->make(\App\Services\GitHubApiService::class);
 });
 
 it('gets user repositories', function (): void {

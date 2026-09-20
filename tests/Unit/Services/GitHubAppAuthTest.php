@@ -67,7 +67,7 @@ beforeEach(function (): void {
 it('generates a valid JWT', function (): void {
     $publicKey = setupKey();
 
-    $auth = new GitHubAppAuth(config('services.github.base_url'));
+    $auth = app()->make(\App\Services\GitHubAppAuth::class);
     $jwt = $auth->getJwt();
 
     expect($jwt)->toBeString()->not->toBeEmpty();
@@ -89,7 +89,7 @@ it('fetches and caches installation token', function (): void {
         sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(['token' => 'ghs_test_token'], 201),
     ]);
 
-    $auth = new GitHubAppAuth(config('services.github.base_url'));
+    $auth = app()->make(\App\Services\GitHubAppAuth::class);
 
     $token = $auth->getInstallationToken();
     expect($token)->toBe('ghs_test_token');
@@ -110,7 +110,7 @@ it('returns cached token without HTTP call', function (): void {
         ->with(sprintf('github:installation_token:%s', $installationId))
         ->andReturn('cached_token');
 
-    $auth = new GitHubAppAuth(config('services.github.base_url'));
+    $auth = app()->make(\App\Services\GitHubAppAuth::class);
     $token = $auth->getInstallationToken();
 
     expect($token)->toBe('cached_token');
@@ -128,7 +128,7 @@ it('refreshToken clears cache and fetches new token', function (): void {
         sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(['token' => 'fresh_token'], 201),
     ]);
 
-    $auth = new GitHubAppAuth(config('services.github.base_url'));
+    $auth = app()->make(\App\Services\GitHubAppAuth::class);
     $token = $auth->refreshToken();
 
     expect($token)->toBe('fresh_token');
@@ -144,7 +144,7 @@ it('throws on empty token from API', function (): void {
         sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(['token' => ''], 200),
     ]);
 
-    $auth = new GitHubAppAuth(config('services.github.base_url'));
+    $auth = app()->make(\App\Services\GitHubAppAuth::class);
     $auth->getInstallationToken();
 })->throws(RuntimeException::class, 'Failed to get a valid GitHub App installation token');
 
@@ -157,21 +157,21 @@ it('throws and clears cache on 401', function (): void {
         sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(null, 401),
     ]);
 
-    $auth = new GitHubAppAuth(config('services.github.base_url'));
+    $auth = app()->make(\App\Services\GitHubAppAuth::class);
     $auth->refreshToken();
 })->throws(RuntimeException::class, 'GitHub App authentication failed (401)');
 
 it('throws when app id is missing', function (): void {
     Config::set('services.github_app.app_id', '');
 
-    $auth = new GitHubAppAuth(config('services.github.base_url'));
+    $auth = app()->make(\App\Services\GitHubAppAuth::class);
     $auth->getJwt();
 })->throws(RuntimeException::class, 'GitHub App ID not configured');
 
 it('throws when private key path is missing', function (): void {
     Config::set('services.github_app.private_key_path', '/nonexistent/key.pem');
 
-    $auth = new GitHubAppAuth(config('services.github.base_url'));
+    $auth = app()->make(\App\Services\GitHubAppAuth::class);
     $auth->getJwt();
 })->throws(RuntimeException::class, 'GitHub App private key');
 
@@ -179,14 +179,15 @@ it('throws when installation id is missing', function (): void {
     setupKey();
     Config::set('services.github_app.installation_id', '');
 
-    $auth = new GitHubAppAuth(config('services.github.base_url'));
+    $auth = app()->make(\App\Services\GitHubAppAuth::class);
     $auth->getInstallationToken();
 })->throws(RuntimeException::class, 'GitHub App installation ID not configured');
 
 it('throws when GitHub base URL is missing', function (): void {
     setupKey();
 
-    $auth = new GitHubAppAuth('');
+    // Need to create a new instance with empty baseUrl since the container has a singleton with valid URL
+    $auth = new \App\Services\GitHubAppAuth('', app()->make(\App\Services\GitHubHttp::class));
     $auth->getInstallationToken();
 })->throws(RuntimeException::class, 'Invalid GitHub base URL configuration');
 
@@ -199,6 +200,6 @@ it('throws when GitHub API returns no token key', function (): void {
         sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response([], 200),
     ]);
 
-    $auth = new GitHubAppAuth(config('services.github.base_url'));
+    $auth = app()->make(\App\Services\GitHubAppAuth::class);
     $auth->getInstallationToken();
 })->throws(RuntimeException::class, 'Failed to get a valid GitHub App installation token');

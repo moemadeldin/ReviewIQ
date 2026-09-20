@@ -12,6 +12,7 @@ use App\Contracts\WebhookProvider;
 use App\Services\GitHubApiService;
 use App\Services\GitHubAppAuth as GitHubAppAuthService;
 use App\Services\GitHubDiffService;
+use App\Services\GitHubHttp;
 use App\Services\GitHubWebhookService;
 use App\Services\OpenRouterReviewService;
 use GuzzleHttp\Client;
@@ -21,15 +22,23 @@ final class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(GitHubHttp::class, fn (): GitHubHttp => new GitHubHttp(
+            baseUrl: config('services.github.base_url'),
+        ));
+
         $this->app->singleton(GitHubApiService::class, fn (): GitHubApiService => new GitHubApiService(
             baseUrl: config('services.github.base_url'),
+            http: $this->app->make(GitHubHttp::class),
         ));
 
         $this->app->singleton(GitHubDiffService::class, fn (): GitHubDiffService => new GitHubDiffService(
             baseUrl: config('services.github.base_url'),
+            http: $this->app->make(GitHubHttp::class),
         ));
+
         $this->app->singleton(GitHubAppAuthService::class, fn (): GitHubAppAuthService => new GitHubAppAuthService(
             baseUrl: config('services.github.base_url'),
+            http: $this->app->make(GitHubHttp::class),
         ));
         $this->app->bind(GitHubAppAuth::class, GitHubAppAuthService::class);
 
