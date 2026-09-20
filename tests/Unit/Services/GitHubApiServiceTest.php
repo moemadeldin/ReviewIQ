@@ -144,16 +144,13 @@ it('posts review with inline comments for issues with line numbers', function ()
 it('handles 422 fallback: posts body-only review then individual comments', function (): void {
     Http::fake([
         // First call fails with 422
-        'https://api.github.com/repos/test/repo/pulls/42/reviews' => [
-            Http::response(['message' => 'Validation Failed'], 422),
-            // Second call (body-only review) succeeds
-            Http::response([], 200),
-        ],
+        'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::sequence()
+            ->push(['message' => 'Validation Failed'], 422)
+            ->push([], 200),
         // Individual comment calls
-        'https://api.github.com/repos/test/repo/pulls/42/comments' => [
-            Http::response([], 201),
-            Http::response([], 201),
-        ],
+        'https://api.github.com/repos/test/repo/pulls/42/comments' => Http::sequence()
+            ->push([], 201)
+            ->push([], 201),
     ]);
 
     $posted = $this->github->postReviewComments(
@@ -174,29 +171,27 @@ it('handles 422 fallback: posts body-only review then individual comments', func
     // Verify body-only review was posted
     Http::assertSent(fn ($request): bool => $request->url() === 'https://api.github.com/repos/test/repo/pulls/42/reviews'
         && $request['body'] === '## ReviewIQ Review — Score: 90/100'
-        && ! isset($request['comments']), times: 1);
+        && ! isset($request['comments']));
 
     // Verify individual comments were posted
     Http::assertSent(fn ($request): bool => $request->url() === 'https://api.github.com/repos/test/repo/pulls/42/comments'
         && $request['path'] === 'app/Foo.php'
-        && $request['line'] === 12, times: 1);
+        && $request['line'] === 12);
     Http::assertSent(fn ($request): bool => $request->url() === 'https://api.github.com/repos/test/repo/pulls/42/comments'
         && $request['path'] === 'app/Bar.php'
-        && $request['line'] === 4, times: 1);
+        && $request['line'] === 4);
 });
 
 it('returns actual posted count when some individual comments fail', function (): void {
     Http::fake([
         // First call fails with 422
-        'https://api.github.com/repos/test/repo/pulls/42/reviews' => [
-            Http::response(['message' => 'Validation Failed'], 422),
-            Http::response([], 200),
-        ],
+        'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::sequence()
+            ->push(['message' => 'Validation Failed'], 422)
+            ->push([], 200),
         // First comment succeeds, second fails
-        'https://api.github.com/repos/test/repo/pulls/42/comments' => [
-            Http::response([], 201),
-            Http::response(['message' => 'Not Found'], 404),
-        ],
+        'https://api.github.com/repos/test/repo/pulls/42/comments' => Http::sequence()
+            ->push([], 201)
+            ->push(['message' => 'Not Found'], 404),
     ]);
 
     $posted = $this->github->postReviewComments(
@@ -215,7 +210,6 @@ it('returns actual posted count when some individual comments fail', function ()
 });
 
 it('retries only on connection exception, 429, or 5xx', function (): void {
-    $attemptCount = 0;
     Http::fake([
         'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::sequence()
             ->push('Server Error', 500)
@@ -239,8 +233,10 @@ it('retries only on connection exception, 429, or 5xx', function (): void {
 it('does not retry on 422', function (): void {
     Http::fake([
         'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::sequence()
-            ->push('Validation Failed', 422),
-        'https://api.github.com/repos/test/repo/pulls/42/comments' => Http::response([], 201),
+            ->push('Validation Failed', 422)
+            ->push([], 200),
+        'https://api.github.com/repos/test/repo/pulls/42/comments' => Http::sequence()
+            ->push([], 201),
     ]);
 
     $posted = $this->github->postReviewComments(
