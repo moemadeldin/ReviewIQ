@@ -13,6 +13,7 @@ use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\Review;
 use App\Models\Workspace;
+use App\Services\DiffLineMapper;
 use App\Services\PromptBuilder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -53,6 +54,7 @@ final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
     public function handle(
         DiffProvider $diffService,
         PromptBuilder $promptBuilder,
+        DiffLineMapper $diffLineMapper,
         AIReviewer $aiReviewer,
         GitHubAppAuth $githubApp,
     ): void {
@@ -70,7 +72,7 @@ final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
         $this->pullRequest->refresh();
 
         try {
-            $this->review($diffService, $promptBuilder, $aiReviewer, $githubApp);
+            $this->review($diffService, $promptBuilder, $diffLineMapper, $aiReviewer, $githubApp);
         } catch (Throwable $e) {
             $this->pullRequest->update(['status' => PullRequestStatus::Pending]);
 
@@ -100,6 +102,7 @@ final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
     private function review(
         DiffProvider $diffService,
         PromptBuilder $promptBuilder,
+        DiffLineMapper $diffLineMapper,
         AIReviewer $aiReviewer,
         GitHubAppAuth $githubApp,
     ): void {
@@ -125,17 +128,25 @@ final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
             headSha: $headSha,
         );
 
+        // Annotate diff with line numbers for the LLM
+        $annotatedDiff = $diffLineMapper->annotate($diff);
+
+        // Truncate diff if too large
+        $truncatedDiff = $promptBuilder->truncateDiff($annotatedDiff);
+
         Log::info('Diff fetched for PR #'.$this->pullRequest->number, [
             'repo' => $repoFullName,
             'preview' => mb_substr($diff, 0, 120),
             'head_sha' => $headSha,
+            'original_length' => strlen($diff),
+            'truncated_length' => strlen($truncatedDiff),
         ]);
 
         /** @var array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, array{}>, highlights?: array<int, string>, recommendation?: string} $reviewResult */
         $reviewResult = $aiReviewer->review(
             systemPrompt: $promptBuilder->buildSystemPrompt(),
             userPrompt: $promptBuilder->buildUserPrompt(
-                diff: $diff,
+                diff: $truncatedDiff,
                 prTitle: $this->pullRequest->title ?? '',
                 prDescription: $this->pullRequest->description,
                 repoLanguage: $repository->language,
@@ -149,7 +160,7 @@ final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
                 'summary' => $reviewResult['summary'] ?? '',
                 'score' => $reviewResult['score'] ?? 0,
                 'score_rationale' => $reviewResult['score_rationale'] ?? '',
-                'issues' => $reviewResult['issues'] ?? [],
+                'issues' => $this->validateIssues($diffLineMapper, $diff, $reviewResult['issues'] ?? []),
                 'highlights' => $reviewResult['highlights'] ?? [],
                 'recommendation' => $reviewResult['recommendation'] ?? 'comment',
                 'raw_response' => json_encode($reviewResult),
@@ -189,5 +200,44 @@ final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
         Log::info('Review stored for PR #'.$this->pullRequest->number, [
             'score' => $reviewResult['score'] ?? 0,
         ]);
+    }
+
+    /**
+     * Validate issues against the diff line map.
+     * Invalid lines are set to null (kept in summary instead of inline).
+     *
+     * @param  array<int, array{file: string, line: int|null, severity: string, description: string, category: string, suggestion: string}>  $issues
+     * @return array<int, array{file: string, line: int|null, severity: string, description: string, category: string, suggestion: string}>
+     */
+    private function validateIssues(DiffLineMapper $diffLineMapper, string $originalDiff, array $issues): array
+    {
+        $map = $diffLineMapper->map($originalDiff);
+        $validated = [];
+
+        foreach ($issues as $issue) {
+            $file = $issue['file'] ?? '';
+            $line = $issue['line'] ?? null;
+
+            $validation = $diffLineMapper->validateIssue($map, $file, $line);
+
+            $validated[] = [
+                'file' => $validation['file'],
+                'line' => $validation['line'],
+                'severity' => $issue['severity'] ?? 'medium',
+                'description' => $issue['description'] ?? '',
+                'category' => $issue['category'] ?? 'maintainability',
+                'suggestion' => $issue['suggestion'] ?? '',
+            ];
+
+            if (! $validation['valid'] && $line !== null) {
+                Log::warning('Issue line invalid, moved to summary', [
+                    'file' => $file,
+                    'original_line' => $line,
+                    'valid_lines' => array_keys($map[$diffLineMapper->findFileKey($map, $file)] ?? []),
+                ]);
+            }
+        }
+
+        return $validated;
     }
 }

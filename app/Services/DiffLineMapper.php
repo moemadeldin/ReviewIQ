@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-final readonly class DiffLineMapper
+class DiffLineMapper
 {
     /**
      * Parse a unified diff and extract valid right-side line numbers per file.
@@ -148,7 +148,7 @@ final readonly class DiffLineMapper
     /**
      * Find the actual key in the map for a given file path.
      */
-    private function findFileKey(array $map, string $file): ?string
+    public function findFileKey(array $map, string $file): ?string
     {
         // Try exact match
         if (isset($map[$file])) {

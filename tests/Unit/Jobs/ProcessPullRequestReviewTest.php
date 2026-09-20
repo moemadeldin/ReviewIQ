@@ -12,6 +12,7 @@ use App\Models\Repository;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\DiffLineMapper;
 use App\Services\PromptBuilder;
 use Illuminate\Support\Facades\Log;
 
@@ -50,6 +51,18 @@ it('processes pull request review successfully', function (): void {
 
     $promptBuilder = new PromptBuilder();
 
+    $diffLineMapper = $this->mock(DiffLineMapper::class);
+    $diffLineMapper->shouldReceive('annotate')
+        ->once()
+        ->andReturn('annotated diff');
+    $diffLineMapper->shouldReceive('map')
+        ->once()
+        ->andReturn([]);
+    $diffLineMapper->shouldReceive('validateIssue')
+        ->andReturn(['file' => '', 'line' => null, 'valid' => true]);
+    $diffLineMapper->shouldReceive('findFileKey')
+        ->andReturn(null);
+
     $reviewContent = [
         'summary' => 'Good code',
         'score' => 85,
@@ -65,7 +78,7 @@ it('processes pull request review successfully', function (): void {
         ->andReturn($reviewContent);
 
     $job = new ProcessPullRequestReview($pr);
-    $job->handle($diffService, $promptBuilder, $mockAIReviewer, $githubApp);
+    $job->handle($diffService, $promptBuilder, $diffLineMapper, $mockAIReviewer, $githubApp);
 
     $pr->refresh();
     expect($pr->status)->toBe(PullRequestStatus::Reviewed);
@@ -87,13 +100,17 @@ it('skips processing when PR is not pending', function (PullRequestStatus $statu
 
     $promptBuilder = new PromptBuilder();
 
+    $diffLineMapper = $this->mock(DiffLineMapper::class);
+    $diffLineMapper->shouldNotReceive('annotate');
+    $diffLineMapper->shouldNotReceive('map');
+
     $mockAIReviewer = $this->mock(AIReviewer::class);
     $mockAIReviewer->shouldNotReceive('review');
 
     $githubApp = $this->mock(GitHubAppAuth::class);
 
     $job = new ProcessPullRequestReview($pr);
-    $job->handle($diffService, $promptBuilder, $mockAIReviewer, $githubApp);
+    $job->handle($diffService, $promptBuilder, $diffLineMapper, $mockAIReviewer, $githubApp);
 
     $pr->refresh();
     expect($pr->status)->toBe($status);

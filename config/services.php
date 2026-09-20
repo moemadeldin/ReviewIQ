@@ -65,4 +65,8 @@ return [
         'fallback_models' => env('OPENROUTER_FALLBACK_MODELS', ''),
         'json_object_format' => env('OPENROUTER_JSON_OBJECT_FORMAT', true),
     ],
+    'prompt' => [
+        'max_diff_chars' => env('PROMPT_MAX_DIFF_CHARS', 100000),
+        'ignore_patterns' => env('PROMPT_IGNORE_PATTERNS', ''),
+    ],
 ];
