@@ -12,13 +12,13 @@ use RuntimeException;
 
 final readonly class GitHubDiffService implements DiffProvider
 {
-    private const int DIFF_CACHE_TTL = 300;
+    private const int DIFF_CACHE_TTL = 86400; // 24h - SHA-keyed diff is immutable
 
     public function __construct(private string $baseUrl) {}
 
-    public function getDiff(string $token, string $repoFullName, int $prNumber): string
+    public function getDiff(string $token, string $repoFullName, int $prNumber, string $headSha): string
     {
-        $cacheKey = sprintf('github:diff:%s:%s:%d', hash('sha256', $token), $repoFullName, $prNumber);
+        $cacheKey = sprintf('github:diff:%s:%d:%s', $repoFullName, $prNumber, $headSha);
 
         return Cache::remember($cacheKey, self::DIFF_CACHE_TTL, function () use ($token, $repoFullName, $prNumber): string {
             $response = Http::withToken($token)

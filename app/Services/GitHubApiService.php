@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Contracts\GitHubApi;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Response;
@@ -100,8 +101,8 @@ final readonly class GitHubApiService implements GitHubApi
     }
 
     /**
-     * @param  array<int, array{file: string, line: int|null, severity: string, message: string}>  $issues
-     * @return int Number of inline comments posted (may be 0 for body-only reviews)
+     * @param  array<int, array{file: string, line: int|null, severity: string, description?: string, title?: string, message?: string}>  $issues
+     * @return int Number of inline comments actually posted (may be 0 for body-only reviews)
      */
     public function postReviewComments(
         string $token,
@@ -112,6 +113,7 @@ final readonly class GitHubApiService implements GitHubApi
         string $body,
     ): int {
         $comments = $this->buildComments($issues);
+        $postedCount = 0;
 
         $payload = [
             'commit_id' => $commitSha,
@@ -123,18 +125,85 @@ final readonly class GitHubApiService implements GitHubApi
             $payload['comments'] = $comments;
         }
 
+        // First attempt: post review with inline comments (if any)
         try {
             $this->http($token)
-                ->retry(2, 200)
+                ->retry(2, 200, function (RequestException $e): bool {
+                    $status = $e->response?->status();
+                    return $e instanceof ConnectionException
+                        || $status === Response::HTTP_TOO_MANY_REQUESTS
+                        || ($status !== null && $status >= 500);
+                })
                 ->post($this->baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', $payload)
                 ->throw();
-        } catch (RequestException $requestException) {
-            throw_if($requestException->response->status() !== Response::HTTP_UNPROCESSABLE_ENTITY, $requestException);
 
-            $this->postCommentsIndividually($token, $fullName, $prNumber, $commitSha, $comments);
+            $postedCount = count($comments);
+        } catch (RequestException $requestException) {
+            $status = $requestException->response->status();
+
+            // 422: validation error (e.g., stale line numbers) - post body-only review, then comments individually
+            if ($status === Response::HTTP_UNPROCESSABLE_ENTITY) {
+                $this->postReviewBodyOnly($token, $fullName, $prNumber, $commitSha, $body);
+                $postedCount = $this->postCommentsIndividually($token, $fullName, $prNumber, $commitSha, $comments);
+            } else {
+                throw $requestException;
+            }
         }
 
-        return count($comments);
+        return $postedCount;
+    }
+
+    private function postReviewBodyOnly(string $token, string $fullName, int $prNumber, string $commitSha, string $body): void
+    {
+        $this->http($token)->post($this->baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', [
+            'commit_id' => $commitSha,
+            'body' => $body,
+            'event' => 'COMMENT',
+        ])->throw();
+    }
+
+    /**
+     * @param  array<int, array{path: string, line: int, side: string, body: string}>  $comments
+     * @return int Number of comments successfully posted
+     */
+    private function postCommentsIndividually(
+        string $token,
+        string $fullName,
+        int $prNumber,
+        string $commitSha,
+        array $comments,
+    ): int {
+        Log::warning('Batch review comments rejected (422), posting individually', [
+            'repo' => $fullName,
+            'pr' => $prNumber,
+            'total' => count($comments),
+        ]);
+
+        $posted = 0;
+
+        foreach ($comments as $comment) {
+            $response = $this->http($token)->post(
+                $this->baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/comments',
+                [
+                    'commit_id' => $commitSha,
+                    'path' => $comment['path'],
+                    'line' => $comment['line'],
+                    'body' => $comment['body'],
+                ],
+            );
+
+            if ($response->failed()) {
+                Log::warning('Skipping comment with unresolvable path', [
+                    'file' => $comment['path'],
+                    'line' => $comment['line'],
+                    'status' => $response->status(),
+                ]);
+            } else {
+                $posted++;
+            }
+        }
+
+        return $posted;
     }
 
     private function http(string $token): PendingRequest
@@ -146,7 +215,7 @@ final readonly class GitHubApiService implements GitHubApi
     }
 
     /**
-     * @param  array<int, array{file: string, line: int|null, severity: string, message: string}>  $issues
+     * @param  array<int, array{file: string, line: int|null, severity: string, description?: string, title?: string, message?: string}>  $issues
      * @return array<int, array{path: string, line: int, side: string, body: string}>
      */
     private function buildComments(array $issues): array
@@ -177,42 +246,5 @@ final readonly class GitHubApiService implements GitHubApi
         }
 
         return $comments;
-    }
-
-    /**
-     * @param  array<int, array{path: string, line: int, side: string, body: string}>  $comments
-     */
-    private function postCommentsIndividually(
-        string $token,
-        string $fullName,
-        int $prNumber,
-        string $commitSha,
-        array $comments,
-    ): void {
-        Log::warning('Batch review comments rejected (422), posting individually', [
-            'repo' => $fullName,
-            'pr' => $prNumber,
-            'total' => count($comments),
-        ]);
-
-        foreach ($comments as $comment) {
-            $response = $this->http($token)->post(
-                $this->baseUrl.'/repos/'.$fullName.'/pulls/'.$prNumber.'/comments',
-                [
-                    'commit_id' => $commitSha,
-                    'path' => $comment['path'],
-                    'line' => $comment['line'],
-                    'body' => $comment['body'],
-                ],
-            );
-
-            if ($response->failed()) {
-                Log::warning('Skipping comment with unresolvable path', [
-                    'file' => $comment['path'],
-                    'line' => $comment['line'],
-                    'status' => $response->status(),
-                ]);
-            }
-        }
     }
 }

@@ -6,5 +6,5 @@ namespace App\Contracts;
 
 interface DiffProvider
 {
-    public function getDiff(string $token, string $repoFullName, int $prNumber): string;
+    public function getDiff(string $token, string $repoFullName, int $prNumber, string $headSha): string;
 }

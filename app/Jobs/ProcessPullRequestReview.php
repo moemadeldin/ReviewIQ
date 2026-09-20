@@ -110,6 +110,7 @@ final class ProcessPullRequestReview implements ShouldQueue
             token: $githubApp->getInstallationToken(),
             repoFullName: $repoFullName,
             prNumber: $prNumber,
+            headSha: $this->pullRequest->head_sha ?? '',
         );
 
         Log::info('Diff fetched for PR #'.$this->pullRequest->number, [

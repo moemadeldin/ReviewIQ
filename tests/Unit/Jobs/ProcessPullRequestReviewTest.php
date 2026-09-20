@@ -34,6 +34,7 @@ it('processes pull request review successfully', function (): void {
         'status' => PullRequestStatus::Pending,
         'number' => 42,
         'title' => 'Test PR',
+        'head_sha' => '51738a50db7241299cae62d372eef1c03886c96d',
     ]);
 
     $githubApp = $this->mock(GitHubAppAuth::class);
@@ -44,7 +45,7 @@ it('processes pull request review successfully', function (): void {
     $diffService = $this->mock(DiffProvider::class);
     $diffService->shouldReceive('getDiff')
         ->once()
-        ->with('test-token', 'owner/repo', 42)
+        ->with('test-token', 'owner/repo', 42, '51738a50db7241299cae62d372eef1c03886c96d')
         ->andReturn('diff content');
 
     $promptBuilder = new PromptBuilder();
