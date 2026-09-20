@@ -28,7 +28,9 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(GitHubDiffService::class, fn (): GitHubDiffService => new GitHubDiffService(
             baseUrl: config('services.github.base_url'),
         ));
-        $this->app->singleton(GitHubAppAuthService::class, fn (): GitHubAppAuthService => new GitHubAppAuthService());
+        $this->app->singleton(GitHubAppAuthService::class, fn (): GitHubAppAuthService => new GitHubAppAuthService(
+            baseUrl: config('services.github.base_url'),
+        ));
         $this->app->bind(GitHubAppAuth::class, GitHubAppAuthService::class);
 
         $this->app->singleton(OpenRouterReviewService::class, fn (): OpenRouterReviewService => new OpenRouterReviewService(

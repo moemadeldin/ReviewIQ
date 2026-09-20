@@ -17,6 +17,12 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
 
     private const int JWT_TTL_SECONDS = 600;
 
+    public function __construct(
+        private string $baseUrl,
+    ) {
+        throw_if($this->baseUrl === '' || $this->baseUrl === '0', RuntimeException::class, 'Invalid GitHub base URL configuration');
+    }
+
     public function getInstallationToken(): string
     {
         $cached = Cache::get($this->cacheKey());
@@ -30,8 +36,6 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
 
     public function refreshToken(): string
     {
-        Cache::forget($this->cacheKey());
-
         return $this->fetchAndCache();
     }
 
@@ -57,11 +61,9 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
                 'Accept' => config('services.github.accept_json'),
                 'X-GitHub-Api-Version' => config('services.github.api_version'),
             ])
-            ->post($this->baseUrl().'/app/installations/'.$this->installationId().'/access_tokens');
+            ->post($this->baseUrl.'/app/installations/'.$this->installationId().'/access_tokens');
 
         if ($response->status() === 401) {
-            Cache::forget($this->cacheKey());
-
             /** @var string|null $error */
             $error = $response->json('message');
             $detail = is_string($error) && $error !== '' ? $error : $response->body();
@@ -92,14 +94,6 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
         return 'github:installation_token:'.$this->installationId();
     }
 
-    private function baseUrl(): string
-    {
-        $url = config('services.github.base_url');
-        throw_unless(is_string($url) && $url !== '', RuntimeException::class, 'Invalid GitHub base URL configuration');
-
-        return $url;
-    }
-
     private function appId(): string
     {
         $id = config('services.github_app.app_id');
@@ -119,16 +113,14 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
     /** @return non-empty-string */
     private function privateKey(): string
     {
-        return Cache::remember('github:app:private_key', now()->addDay(), function (): string {
-            $path = config('services.github_app.private_key_path');
-            throw_unless(is_string($path) && $path !== '', RuntimeException::class, 'GitHub App private key path not configured');
-            throw_unless(is_file($path), RuntimeException::class, 'GitHub App private key not found at: '.$path);
-            throw_unless(is_readable($path), RuntimeException::class, 'GitHub App private key is not readable at: '.$path);
+        $path = config('services.github_app.private_key_path');
+        throw_unless(is_string($path) && $path !== '', RuntimeException::class, 'GitHub App private key path not configured');
+        throw_unless(is_file($path), RuntimeException::class, 'GitHub App private key not found at: '.$path);
+        throw_unless(is_readable($path), RuntimeException::class, 'GitHub App private key is not readable at: '.$path);
 
-            $contents = file_get_contents($path);
-            throw_unless(is_string($contents) && $contents !== '', RuntimeException::class, 'Failed to read GitHub App private key at: '.$path);
+        $contents = file_get_contents($path);
+        throw_unless(is_string($contents) && $contents !== '', RuntimeException::class, 'Failed to read GitHub App private key at: '.$path);
 
-            return $contents;
-        });
+        return $contents;
     }
 }
