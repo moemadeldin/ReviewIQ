@@ -83,7 +83,7 @@ export default function Members() {
         setLoading(true);
         try {
             const response = await fetch(
-                `/workspaces/${workspace.slug}/members/data?page=${pageNum}`,
+                `/workspaces/${workspace.id}/members/data?page=${pageNum}`,
                 {
                     headers: {
                         Accept: 'application/json',
@@ -111,7 +111,7 @@ export default function Members() {
         setInviteError(null);
         try {
             const response = await fetch(
-                `/workspaces/${workspace.slug}/invitations`,
+                `/workspaces/${workspace.id}/invitations`,
                 {
                     method: 'POST',
                     headers: {
@@ -165,11 +165,11 @@ export default function Members() {
         ...breadcrumbs,
         {
             title: workspace.name,
-            href: `/workspaces/${workspace.slug}`,
+            href: `/workspaces/${workspace.id}`,
         },
         {
             title: 'Members',
-            href: `/workspaces/${workspace.slug}/members`,
+            href: `/workspaces/${workspace.id}/members`,
         },
     ];
 
@@ -391,7 +391,7 @@ export default function Members() {
                                                                             </DialogDescription>
                                                                         </DialogHeader>
                                                                         <Form
-                                                                            action={`/workspaces/${workspace.slug}/members/${member.id}`}
+                                                                            action={`/workspaces/${workspace.id}/members/${member.id}`}
                                                                             method="delete"
                                                                             disableWhileProcessing
                                                                             onSuccess={() =>

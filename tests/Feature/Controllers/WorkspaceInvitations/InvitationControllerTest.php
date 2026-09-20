@@ -20,7 +20,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->id]), [
                 'email' => 'invitee@example.com',
                 'role' => Roles::Member->value,
             ]);
@@ -45,7 +45,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $otherWorkspace->id])
-            ->postJson(route('workspaces.invitations.store', ['workspace' => $otherWorkspace->slug]), [
+            ->postJson(route('workspaces.invitations.store', ['workspace' => $otherWorkspace->id]), [
                 'email' => 'invitee@example.com',
             ]);
 
@@ -60,7 +60,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->postJson(route('workspaces.invitations.store', ['workspace' => $this->workspace->id]), [
                 'email' => 'existing@example.com',
             ]);
 
@@ -77,7 +77,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->id]), [
                 'email' => 'invitee@example.com',
             ]);
 
@@ -95,7 +95,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->slug]), [
+            ->post(route('workspaces.invitations.store', ['workspace' => $this->workspace->id]), [
                 'email' => 'invitee@example.com',
             ]);
 
@@ -111,7 +111,7 @@ describe('WorkspaceInvitationController', function (): void {
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->getJson(route('workspaces.invitations', ['workspace' => $this->workspace->slug]));
+            ->getJson(route('workspaces.invitations', ['workspace' => $this->workspace->id]));
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -127,7 +127,7 @@ describe('WorkspaceInvitationController', function (): void {
     it('returns empty list when no invitations', function (): void {
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->getJson(route('workspaces.invitations', ['workspace' => $this->workspace->slug]));
+            ->getJson(route('workspaces.invitations', ['workspace' => $this->workspace->id]));
 
         $response->assertOk()
             ->assertJsonPath('data.invitations', [])
@@ -140,7 +140,7 @@ describe('WorkspaceInvitationController', function (): void {
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
             ->deleteJson(route('workspaces.invitations.destroy', [
-                'workspace' => $this->workspace->slug,
+                'workspace' => $this->workspace->id,
                 'invitation' => $invitation->id,
             ]), [
                 'password' => 'password',
@@ -160,7 +160,7 @@ describe('WorkspaceInvitationController', function (): void {
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
             ->deleteJson(route('workspaces.invitations.destroy', [
-                'workspace' => $this->workspace->slug,
+                'workspace' => $this->workspace->id,
                 'invitation' => $invitation->id,
             ]), [
                 'password' => 'password',
@@ -175,7 +175,7 @@ describe('WorkspaceInvitationController', function (): void {
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
             ->deleteJson(route('workspaces.invitations.destroy', [
-                'workspace' => $this->workspace->slug,
+                'workspace' => $this->workspace->id,
                 'invitation' => $invitation->id,
             ]), [
                 'password' => 'password',

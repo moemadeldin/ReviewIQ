@@ -215,6 +215,52 @@ it('allows workspace members to view a workspace', function (): void {
             ->has('workspace'));
 });
 
+it('opens own workspace when another user has the same name', function (): void {
+    $userA = User::factory()->create();
+    $userB = User::factory()->create();
+
+    $workspaceA = Workspace::factory()->withOwner($userA)->create(['name' => 'Test']);
+    $workspaceB = Workspace::factory()->withOwner($userB)->create(['name' => 'Test']);
+
+    $response = $this->actingAs($userB)
+        ->get(route('workspaces.show', $workspaceB));
+
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('workspaces/show')
+            ->where('workspace.id', $workspaceB->id)
+            ->where('workspace.owner_id', $userB->id));
+});
+
+it('redirects a non-member away from another workspace', function (): void {
+    $owner = User::factory()->create();
+    $nonMember = User::factory()->create();
+    Workspace::factory()->withOwner($owner)->create(['name' => 'Test']);
+    Workspace::factory()->withOwner($nonMember)->create(['name' => 'Other']);
+
+    $response = $this->actingAs($nonMember)
+        ->get(route('workspaces.show', Workspace::query()->where('name', 'Test')->first()));
+
+    $response->assertRedirect(route('dashboard'));
+});
+
+it('opens same-named workspace as member showing the correct owner', function (): void {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $ownedWorkspace = Workspace::factory()->withOwner($member)->create(['name' => 'Test']);
+    $joinedWorkspace = Workspace::factory()->withOwner($owner)->create(['name' => 'Test']);
+    $joinedWorkspace->addUser($member, Roles::Member);
+
+    $response = $this->actingAs($member)
+        ->get(route('workspaces.show', $joinedWorkspace));
+
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('workspaces/show')
+            ->where('workspace.id', $joinedWorkspace->id)
+            ->where('workspace.owner_id', $owner->id));
+});
+
 it('auto-generates slug from workspace name', function (): void {
     $user = User::factory()->create();
 

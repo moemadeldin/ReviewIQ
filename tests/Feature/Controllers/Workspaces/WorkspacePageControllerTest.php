@@ -20,7 +20,7 @@ it('renders members page', function (): void {
 
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
-        ->get(route('workspaces.members.page', ['workspace' => $this->workspace->slug]));
+        ->get(route('workspaces.members.page', ['workspace' => $this->workspace->id]));
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -39,7 +39,7 @@ it('renders repos page', function (): void {
 
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
-        ->get(route('workspaces.repos.page', ['workspace' => $this->workspace->slug]));
+        ->get(route('workspaces.repos.page', ['workspace' => $this->workspace->id]));
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -56,7 +56,7 @@ it('renders invitations page', function (): void {
 
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
-        ->get(route('workspaces.invitations.page', ['workspace' => $this->workspace->slug]));
+        ->get(route('workspaces.invitations.page', ['workspace' => $this->workspace->id]));
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -78,7 +78,7 @@ it('renders reviews index page', function (): void {
 
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
-        ->get(route('reviews.page', ['workspace' => $this->workspace->slug]));
+        ->get(route('reviews.page', ['workspace' => $this->workspace->id]));
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -98,7 +98,7 @@ it('renders reviews index page with filters', function (): void {
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
         ->get(route('reviews.page', [
-            'workspace' => $this->workspace->slug,
+            'workspace' => $this->workspace->id,
             'repository_id' => $repo->id,
             'status' => 'pending',
         ]));
@@ -118,7 +118,7 @@ it('renders review detail page', function (): void {
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
         ->get(route('reviews.show', [
-            'workspace' => $this->workspace->slug,
+            'workspace' => $this->workspace->id,
             'pullRequest' => $pr->id,
         ]));
 
@@ -135,7 +135,7 @@ it('redirects non-members away from workspace pages', function (string $routeNam
     Workspace::factory()->withOwner($nonMember)->create();
 
     $response = $this->actingAs($nonMember)
-        ->get(route($routeName, ['workspace' => $this->workspace->slug]));
+        ->get(route($routeName, ['workspace' => $this->workspace->id]));
 
     $response->assertRedirect(route('dashboard'));
 })->with([
@@ -151,7 +151,7 @@ it('redirects non-members away from workspace pages', function (string $routeNam
 it('includes user role in all pages', function (): void {
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
-        ->get(route('workspaces.members.page', ['workspace' => $this->workspace->slug]));
+        ->get(route('workspaces.members.page', ['workspace' => $this->workspace->id]));
 
     $response->assertInertia(fn ($page) => $page
         ->where('userRole', 'owner'));

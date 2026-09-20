@@ -30,7 +30,7 @@ it('returns pull requests with reviews for workspace', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->getJson(route('reviews.index', ['workspace' => $workspace->slug]));
+        ->getJson(route('reviews.index', ['workspace' => $workspace->id]));
 
     $response->assertOk()
         ->assertJsonStructure([
@@ -48,7 +48,7 @@ it('returns empty list when no pull requests', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->getJson(route('reviews.index', ['workspace' => $workspace->slug]));
+        ->getJson(route('reviews.index', ['workspace' => $workspace->id]));
 
     $response->assertOk()
         ->assertJsonPath('data.pull_requests', [])
@@ -78,7 +78,7 @@ it('returns pull request detail with review', function (): void {
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
         ->get(route('reviews.show', [
-            'workspace' => $workspace->slug,
+            'workspace' => $workspace->id,
             'pullRequest' => $pr->id,
         ]));
 
@@ -111,7 +111,7 @@ it('returns pull request detail as json', function (): void {
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
         ->getJson(route('reviews.show.data', [
-            'workspace' => $workspace->slug,
+            'workspace' => $workspace->id,
             'pullRequest' => $pr->id,
         ]));
 
@@ -136,7 +136,7 @@ it('filters pull requests by repository', function (): void {
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
         ->getJson(route('reviews.index', [
-            'workspace' => $workspace->slug,
+            'workspace' => $workspace->id,
             'repository_id' => $repo1->id,
         ]));
 
@@ -156,7 +156,7 @@ it('filters pull requests by status', function (): void {
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
         ->getJson(route('reviews.index', [
-            'workspace' => $workspace->slug,
+            'workspace' => $workspace->id,
             'status' => 'reviewed',
         ]));
 
@@ -174,7 +174,7 @@ it('does not leak pull requests from another workspace', function (): void {
     $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
         ->getJson(route('reviews.show.data', [
-            'workspace' => $workspace->slug,
+            'workspace' => $workspace->id,
             'pullRequest' => $otherPr->id,
         ]))
         ->assertNotFound();
@@ -182,7 +182,7 @@ it('does not leak pull requests from another workspace', function (): void {
     $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
         ->get(route('reviews.show', [
-            'workspace' => $workspace->slug,
+            'workspace' => $workspace->id,
             'pullRequest' => $otherPr->id,
         ]))
         ->assertNotFound();
@@ -190,7 +190,7 @@ it('does not leak pull requests from another workspace', function (): void {
     $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
         ->post(route('reviews.re-review', [
-            'workspace' => $workspace->slug,
+            'workspace' => $workspace->id,
             'pullRequest' => $otherPr->id,
         ]))
         ->assertNotFound();

@@ -65,7 +65,7 @@ export default function Invitations() {
         setLoading(true);
         try {
             const response = await fetch(
-                `/workspaces/${workspace.slug}/invitations/data?page=${pageNum}`,
+                `/workspaces/${workspace.id}/invitations/data?page=${pageNum}`,
                 {
                     headers: {
                         Accept: 'application/json',
@@ -101,11 +101,11 @@ export default function Invitations() {
         ...breadcrumbs,
         {
             title: workspace.name,
-            href: `/workspaces/${workspace.slug}`,
+            href: `/workspaces/${workspace.id}`,
         },
         {
             title: 'Invitations',
-            href: `/workspaces/${workspace.slug}/invitations`,
+            href: `/workspaces/${workspace.id}/invitations`,
         },
     ];
 
@@ -242,7 +242,7 @@ export default function Invitations() {
                                                                         </DialogDescription>
                                                                     </DialogHeader>
                                                                     <Form
-                                                                        action={`/workspaces/${workspace.slug}/invitations/${invitation.id}`}
+                                                                        action={`/workspaces/${workspace.id}/invitations/${invitation.id}`}
                                                                         method="delete"
                                                                         disableWhileProcessing
                                                                         onSuccess={() =>

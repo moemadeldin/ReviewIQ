@@ -88,7 +88,7 @@ it('stores a repository successfully', function (): void {
 
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
-        ->post(route('repos.store', ['workspace' => $this->workspace->slug, 'fullName' => 'owner/repo']));
+        ->post(route('repos.store', ['workspace' => $this->workspace->id, 'fullName' => 'owner/repo']));
 
     $response->assertJsonPath('status', 'Success')
         ->assertJsonPath('message', 'Repository connected')
@@ -112,7 +112,7 @@ it('redirects to workspaces when user has no workspace on store', function (): v
     ]);
 
     $response = $this->actingAs($otherUser)
-        ->post(route('repos.store', ['workspace' => $this->workspace->slug, 'fullName' => 'owner/repo']));
+        ->post(route('repos.store', ['workspace' => $this->workspace->id, 'fullName' => 'owner/repo']));
 
     $response->assertRedirectToRoute('workspaces.create');
 });
@@ -140,7 +140,7 @@ it('redirects to workspaces when user has no workspace on destroy', function ():
     ]);
 
     $response = $this->actingAs($otherUser)
-        ->delete(route('repos.destroy', ['workspace' => $this->workspace->slug, 'fullName' => 'owner/repo']));
+        ->delete(route('repos.destroy', ['workspace' => $this->workspace->id, 'fullName' => 'owner/repo']));
 
     $response->assertRedirectToRoute('workspaces.create');
 });
@@ -155,7 +155,7 @@ it('destroys a repository successfully', function (): void {
 
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
-        ->delete(route('repos.destroy', ['workspace' => $this->workspace->slug, 'fullName' => 'owner/repo']));
+        ->delete(route('repos.destroy', ['workspace' => $this->workspace->id, 'fullName' => 'owner/repo']));
 
     $response->assertOk();
 
@@ -166,7 +166,7 @@ it('redirects to workspaces.create when user has no workspaces on destroy', func
     $userWithoutWorkspace = User::factory()->create();
 
     $response = $this->actingAs($userWithoutWorkspace)
-        ->delete(route('repos.destroy', ['workspace' => $this->workspace->slug, 'fullName' => 'owner/repo']));
+        ->delete(route('repos.destroy', ['workspace' => $this->workspace->id, 'fullName' => 'owner/repo']));
 
     $response->assertRedirectToRoute('workspaces.create');
 });

@@ -55,7 +55,7 @@ export default function Repos() {
         setLoading(true);
         try {
             const response = await fetch(
-                `/workspaces/${workspace.slug}/repos/data?page=${pageNum}`,
+                `/workspaces/${workspace.id}/repos/data?page=${pageNum}`,
                 {
                     headers: {
                         Accept: 'application/json',
@@ -84,7 +84,7 @@ export default function Repos() {
         try {
             const method = currentStatus ? 'DELETE' : 'POST';
             const response = await fetch(
-                `/workspaces/${workspace.slug}/repos/${repoFullName}`,
+                `/workspaces/${workspace.id}/repos/${repoFullName}`,
                 {
                     method,
                     headers: {
@@ -134,11 +134,11 @@ export default function Repos() {
         ...breadcrumbs,
         {
             title: workspace.name,
-            href: `/workspaces/${workspace.slug}`,
+            href: `/workspaces/${workspace.id}`,
         },
         {
             title: 'Repositories',
-            href: `/workspaces/${workspace.slug}/repos`,
+            href: `/workspaces/${workspace.id}/repos`,
         },
     ];
 

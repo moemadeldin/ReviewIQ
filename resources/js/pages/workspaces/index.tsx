@@ -61,7 +61,7 @@ function WorkspaceCard({
     workspace: Workspace;
     isCurrent: boolean;
 }) {
-    const href = `/workspaces/${workspace.slug}`;
+    const href = `/workspaces/${workspace.id}`;
 
     return (
         <Card

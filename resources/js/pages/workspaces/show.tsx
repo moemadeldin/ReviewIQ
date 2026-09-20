@@ -71,7 +71,7 @@ export default function Show() {
                                         </DialogDescription>
                                     </DialogHeader>
                                     <Form
-                                        action={`/workspaces/${workspace.slug}`}
+                                        action={`/workspaces/${workspace.id}`}
                                         method="put"
                                         disableWhileProcessing
                                         className="space-y-4"
@@ -145,7 +145,7 @@ export default function Show() {
                                         </DialogDescription>
                                     </DialogHeader>
                                     <Form
-                                        action={`/workspaces/${workspace.slug}`}
+                                        action={`/workspaces/${workspace.id}`}
                                         method="delete"
                                         disableWhileProcessing
                                         className="space-y-4"
@@ -181,7 +181,7 @@ export default function Show() {
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <Link
-                        href={`/workspaces/${workspace.slug}/members`}
+                        href={`/workspaces/${workspace.id}/members`}
                         className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
                     >
                         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
@@ -196,7 +196,7 @@ export default function Show() {
                     </Link>
 
                     <Link
-                        href={`/workspaces/${workspace.slug}/invitations`}
+                        href={`/workspaces/${workspace.id}/invitations`}
                         className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
                     >
                         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
@@ -211,7 +211,7 @@ export default function Show() {
                     </Link>
 
                     <Link
-                        href={`/workspaces/${workspace.slug}/repos`}
+                        href={`/workspaces/${workspace.id}/repos`}
                         className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
                     >
                         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
@@ -226,7 +226,7 @@ export default function Show() {
                     </Link>
 
                     <Link
-                        href={`/workspaces/${workspace.slug}/reviews`}
+                        href={`/workspaces/${workspace.id}/reviews`}
                         className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
                     >
                         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">

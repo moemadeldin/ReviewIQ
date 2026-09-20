@@ -35,11 +35,6 @@ final class Workspace extends Model
     use HasUuids;
     use Sluggable;
 
-    public function getRouteKeyName(): string
-    {
-        return 'slug';
-    }
-
     /**
      * @return BelongsTo<User, $this>
      */

@@ -23,7 +23,7 @@ it('returns connected repositories for workspace', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->getJson(route('workspaces.repos', ['workspace' => $workspace->slug]));
+        ->getJson(route('workspaces.repos', ['workspace' => $workspace->id]));
 
     $response->assertOk()
         ->assertJsonStructure([
@@ -41,7 +41,7 @@ it('returns empty list when no repositories', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->getJson(route('workspaces.repos', ['workspace' => $workspace->slug]));
+        ->getJson(route('workspaces.repos', ['workspace' => $workspace->id]));
 
     $response->assertOk()
         ->assertJsonPath('data.repositories', [])

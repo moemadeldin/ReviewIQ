@@ -18,7 +18,7 @@ it('returns workspace members', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->getJson(route('workspaces.members', ['workspace' => $workspace->slug]));
+        ->getJson(route('workspaces.members', ['workspace' => $workspace->id]));
 
     $response->assertOk();
 });
@@ -29,7 +29,7 @@ it('returns empty members list', function (): void {
 
     $response = $this->actingAs($user)
         ->withSession(['current_workspace_id' => $workspace->id])
-        ->getJson(route('workspaces.members', ['workspace' => $workspace->slug]));
+        ->getJson(route('workspaces.members', ['workspace' => $workspace->id]));
 
     $response->assertOk();
 });

@@ -103,6 +103,6 @@ final class User extends Authenticatable implements MustVerifyEmail
 
     protected function avatar(): Attribute
     {
-        return Attribute::get(fn (): ?string => $this->github_avatar);
+        return Attribute::get(fn (): ?string => $this->getAttributes()['github_avatar'] ?? null);
     }
 }

@@ -85,11 +85,11 @@ export default function PullRequestShow() {
         ...breadcrumbs,
         {
             title: workspace.name,
-            href: `/workspaces/${workspace.slug}`,
+            href: `/workspaces/${workspace.id}`,
         },
         {
             title: 'Reviews',
-            href: `/workspaces/${workspace.slug}/reviews`,
+            href: `/workspaces/${workspace.id}/reviews`,
         },
     ];
 
@@ -125,7 +125,7 @@ export default function PullRequestShow() {
                             )}
                         {showReview && (
                             <form
-                                action={`/workspaces/${workspace.slug}/reviews/${pullRequest.id}/re-review`}
+                                action={`/workspaces/${workspace.id}/reviews/${pullRequest.id}/re-review`}
                                 method="POST"
                             >
                                 <input

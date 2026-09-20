@@ -97,7 +97,7 @@ export default function Reviews() {
             if (status && status !== 'all') params.set('status', status);
 
             const response = await fetch(
-                `/workspaces/${workspace.slug}/reviews/data?${params.toString()}`,
+                `/workspaces/${workspace.id}/reviews/data?${params.toString()}`,
                 {
                     headers: {
                         Accept: 'application/json',
@@ -139,11 +139,11 @@ export default function Reviews() {
         ...breadcrumbs,
         {
             title: workspace.name,
-            href: `/workspaces/${workspace.slug}`,
+            href: `/workspaces/${workspace.id}`,
         },
         {
             title: 'Reviews',
-            href: `/workspaces/${workspace.slug}/reviews`,
+            href: `/workspaces/${workspace.id}/reviews`,
         },
     ];
 
@@ -275,7 +275,7 @@ export default function Reviews() {
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <Link
-                                                            href={`/workspaces/${workspace.slug}/reviews/${pr.id}`}
+                                                            href={`/workspaces/${workspace.id}/reviews/${pr.id}`}
                                                             className="text-sm font-medium text-foreground hover:text-primary"
                                                         >
                                                             {pr.title ||
