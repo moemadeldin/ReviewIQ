@@ -7,21 +7,24 @@ namespace App\Services;
 use App\Contracts\WebhookProvider;
 use App\Enums\PullRequestAction;
 use App\Enums\PullRequestStatus;
-use App\Exceptions\WebhookException;
 use App\Jobs\ProcessPullRequestReview;
 use App\Models\PullRequest;
 use App\Models\Repository;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 final readonly class GitHubWebhookService implements WebhookProvider
 {
     public function handle(Request $request): void
     {
-        $this->verifySignature($request);
+        $deliveryId = $request->header('X-GitHub-Delivery');
+        if ($deliveryId && Cache::has('github:webhook:'.$deliveryId)) {
+            Log::info('Duplicate webhook delivery ignored', ['delivery_id' => $deliveryId]);
+            return;
+        }
 
-        /** @var array{id?: int, action?: string, repository?: array{id?: int}, pull_request?: array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}}} $payload */
+        /** @var array{id?: int, action?: string, repository?: array{id?: int}, pull_request?: array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}, draft: bool}} $payload */
         $payload = json_decode($request->getContent(), true) ?? [];
         $event = $request->header('X-GitHub-Event');
         $action = $payload['action'] ?? null;
@@ -32,9 +35,10 @@ final readonly class GitHubWebhookService implements WebhookProvider
             'event' => $event,
             'action' => $action,
             'github_repo_id' => $githubRepoId,
+            'delivery_id' => $deliveryId,
         ]);
 
-        if ($event !== 'pull_request' || ! in_array($action, [PullRequestAction::Opened->value, PullRequestAction::Synchronize->value], true)) {
+        if ($event !== 'pull_request' || ! $this->isActionHandled($action)) {
             return;
         }
 
@@ -47,14 +51,23 @@ final readonly class GitHubWebhookService implements WebhookProvider
             ->first();
 
         if (! $repository) {
-            Log::error(sprintf("Repo not found in DB for GitHub ID: %s. Ensure the repo is toggled 'on' in your app.", $githubRepoId));
-
+            Log::info(sprintf('Repo not found in DB for GitHub ID: %s', $githubRepoId));
             return;
         }
 
-        /** @var array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}, body: string|null} $prPayload */
+        /** @var array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}, body: string|null, draft: bool} $prPayload */
         $prPayload = $payload['pull_request'];
 
+        if ($this->shouldSkipPr($prPayload)) {
+            Log::info('Skipping PR review', [
+                'pr' => $prPayload['number'],
+                'author' => $prPayload['user']['login'],
+                'draft' => $prPayload['draft'] ?? false,
+            ]);
+            return;
+        }
+
+        $headSha = $prPayload['head']['sha'];
         $pr = PullRequest::query()->updateOrCreate(
             ['github_pr_id' => (string) $prPayload['id']],
             [
@@ -63,37 +76,51 @@ final readonly class GitHubWebhookService implements WebhookProvider
                 'number' => $prPayload['number'],
                 'author' => $prPayload['user']['login'],
                 'diff_url' => $prPayload['diff_url'],
-                'head_sha' => $prPayload['head']['sha'],
+                'head_sha' => $headSha,
                 'description' => $prPayload['body'] ?? null,
             ]
         );
 
-        /** @var PullRequestStatus $status */
-        $status = $pr->status;
-        if (! in_array($status, [PullRequestStatus::Reviewing, PullRequestStatus::Pending], true)) {
-            $pr->update(['status' => PullRequestStatus::Pending]);
-            dispatch(new ProcessPullRequestReview($pr));
+        // Dispatch review job if:
+        // 1. PR was just created (new PR), OR
+        // 2. PR exists but was not in Reviewing/Pending state
+        $shouldDispatch = $pr->wasRecentlyCreated
+            || ! in_array($pr->status, [PullRequestStatus::Reviewing, PullRequestStatus::Pending], true);
+
+        if ($shouldDispatch) {
+            $pr->update(['status' => PullRequestStatus::Pending, 'head_sha' => $headSha]);
+            dispatch(new ProcessPullRequestReview($pr->fresh()));
+        } else {
+            // PR is already being reviewed - check if head_sha changed
+            if ($pr->head_sha !== $headSha) {
+                $pr->update(['head_sha' => $headSha, 'pending_head_sha' => $headSha]);
+            }
+        }
+
+        if ($deliveryId) {
+            Cache::put('github:webhook:'.$deliveryId, true, 86400); // 24h TTL
         }
     }
 
-    private function verifySignature(Request $request): void
+    private function isActionHandled(?string $action): bool
     {
-        $signature = $request->header('X-Hub-Signature-256');
-        /** @var string|null $secret */
-        $secret = config('services.github.webhook_secret');
+        $configuredActions = array_merge(
+            [PullRequestAction::Opened->value, PullRequestAction::Synchronize->value],
+            config('github.webhook_extra_actions', ['reopened', 'ready_for_review'])
+        );
 
-        if (! $signature || ! $secret) {
-            Log::error('Webhook verification failed: Missing signature or secret configuration.');
-            throw new WebhookException('Missing signature or secret.');
+        return in_array($action, $configuredActions, true);
+    }
+
+    private function shouldSkipPr(array $prPayload): bool
+    {
+        if (($prPayload['draft'] ?? false) === true) {
+            return true;
         }
 
-        /** @var string $body */
-        $body = $request->getContent();
-        $computed = 'sha256='.hash_hmac('sha256', $body, $secret);
+        $author = $prPayload['user']['login'] ?? '';
+        $skipBots = config('github.webhook_skip_bots', ['dependabot[bot]', 'renovate[bot]']);
 
-        if (! hash_equals($computed, $signature)) {
-            Log::error('Webhook verification failed: Invalid signature mismatch.');
-            throw new AccessDeniedHttpException('Invalid signature.');
-        }
+        return in_array($author, $skipBots, true);
     }
 }

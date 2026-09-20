@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property-read string|null $author
  * @property-read string|null $diff_url
  * @property-read string|null $head_sha
+ * @property-read string|null $pending_head_sha
  * @property-read PullRequestStatus $status
  * @property-read CarbonInterface $created_at
  * @property-read CarbonInterface $updated_at
@@ -62,6 +63,7 @@ final class PullRequest extends Model
             'author' => 'string',
             'diff_url' => 'string',
             'head_sha' => 'string',
+            'pending_head_sha' => 'string',
             'status' => PullRequestStatus::class,
         ];
     }

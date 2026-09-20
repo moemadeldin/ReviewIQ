@@ -8,6 +8,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RequireWorkspace;
 use App\Http\Middleware\SetCurrentWorkspace;
+use App\Http\Middleware\VerifyGitHubWebhookSignature;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'current_workspace' => SetCurrentWorkspace::class,
             'require_workspace' => RequireWorkspace::class,
             'workspace_access' => EnsureWorkspaceAccess::class,
+            'verify_github_webhook' => VerifyGitHubWebhookSignature::class,
         ]);
 
         $middleware->web(append: [

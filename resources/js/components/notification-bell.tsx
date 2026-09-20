@@ -158,7 +158,7 @@ export function NotificationBell() {
                 >
                     <Bell className="size-5" />
                     {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs text-white">
+                        <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-notification px-1 text-xs text-notification-foreground">
                             {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
                     )}
@@ -202,7 +202,7 @@ export function NotificationBell() {
                                         {notification.data.title}
                                     </span>
                                     {!notification.read_at && (
-                                        <span className="size-2 shrink-0 rounded-full bg-blue-500" />
+                                        <span className="size-2 shrink-0 rounded-full bg-notification" />
                                     )}
                                 </div>
                                 <span className="line-clamp-2 text-sm text-muted-foreground">

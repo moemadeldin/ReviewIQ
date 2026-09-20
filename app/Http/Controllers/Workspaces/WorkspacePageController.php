@@ -16,6 +16,7 @@ use App\Queries\GetConnectedRepositories;
 use App\Queries\GetPullRequestsWithReviews;
 use App\Queries\GetWorkspaceInvitations;
 use App\Queries\GetWorkspaceMembers;
+use App\Queries\GetWorkspaceTabCounts;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,6 +29,7 @@ final readonly class WorkspacePageController
         private GetWorkspaceInvitations $getInvitations,
         private GetConnectedRepositories $getRepos,
         private GetPullRequestsWithReviews $getPullRequests,
+        private GetWorkspaceTabCounts $getTabCounts,
     ) {}
 
     public function members(#[CurrentUser()] User $user, Workspace $workspace): Response
@@ -38,6 +40,7 @@ final readonly class WorkspacePageController
         return Inertia::render('workspaces/members', [
             'workspace' => $workspace,
             'userRole' => $userRole,
+            'tabCounts' => $this->getTabCounts->handle($workspace),
             'initialMembers' => WorkspaceMemberResource::collection($members->items())->resolve(),
             'membersCurrentPage' => $members->currentPage(),
             'membersHasMore' => $members->hasMorePages(),
@@ -52,6 +55,7 @@ final readonly class WorkspacePageController
         return Inertia::render('workspaces/repos', [
             'workspace' => $workspace,
             'userRole' => $userRole,
+            'tabCounts' => $this->getTabCounts->handle($workspace),
             'initialRepos' => RepositoryResource::collection($paginator)->resolve(),
             'reposCurrentPage' => $paginator->currentPage(),
             'reposHasMore' => $paginator->hasMorePages(),
@@ -66,6 +70,7 @@ final readonly class WorkspacePageController
         return Inertia::render('workspaces/invitations', [
             'workspace' => $workspace,
             'userRole' => $userRole,
+            'tabCounts' => $this->getTabCounts->handle($workspace),
             'initialInvitations' => WorkspaceInvitationResource::collection($invitations->items())->resolve(),
             'invitationsCurrentPage' => $invitations->currentPage(),
             'invitationsHasMore' => $invitations->hasMorePages(),
@@ -91,6 +96,7 @@ final readonly class WorkspacePageController
         return Inertia::render('reviews/index', [
             'workspace' => $workspace,
             'userRole' => $userRole,
+            'tabCounts' => $this->getTabCounts->handle($workspace),
             'initialPullRequests' => PullRequestResource::collection($paginator)->resolve(),
             'currentPage' => $paginator->currentPage(),
             'hasMore' => $paginator->hasMorePages(),

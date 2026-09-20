@@ -13,8 +13,10 @@ use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\Review;
 use App\Models\Workspace;
+use App\Services\DiffLineMapper;
 use App\Services\PromptBuilder;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\Attributes\Timeout;
@@ -27,7 +29,7 @@ use Throwable;
 
 #[Tries(3)]
 #[Timeout(600)]
-final class ProcessPullRequestReview implements ShouldQueue
+final class ProcessPullRequestReview implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable;
     use InteractsWithQueue;
@@ -38,6 +40,11 @@ final class ProcessPullRequestReview implements ShouldQueue
         public readonly PullRequest $pullRequest,
     ) {}
 
+    public function uniqueId(): string
+    {
+        return 'review-pr-'.$this->pullRequest->id;
+    }
+
     /** @return array<int, int> */
     public function backoff(): array
     {
@@ -47,6 +54,7 @@ final class ProcessPullRequestReview implements ShouldQueue
     public function handle(
         DiffProvider $diffService,
         PromptBuilder $promptBuilder,
+        DiffLineMapper $diffLineMapper,
         AIReviewer $aiReviewer,
         GitHubAppAuth $githubApp,
     ): void {
@@ -64,7 +72,7 @@ final class ProcessPullRequestReview implements ShouldQueue
         $this->pullRequest->refresh();
 
         try {
-            $this->review($diffService, $promptBuilder, $aiReviewer, $githubApp);
+            $this->review($diffService, $promptBuilder, $diffLineMapper, $aiReviewer, $githubApp);
         } catch (Throwable $e) {
             $this->pullRequest->update(['status' => PullRequestStatus::Pending]);
 
@@ -85,12 +93,16 @@ final class ProcessPullRequestReview implements ShouldQueue
             ? PullRequestStatus::Failed
             : PullRequestStatus::Pending;
 
-        $this->pullRequest->update(['status' => $status]);
+        $this->pullRequest->update([
+            'status' => $status,
+            'pending_head_sha' => null,
+        ]);
     }
 
     private function review(
         DiffProvider $diffService,
         PromptBuilder $promptBuilder,
+        DiffLineMapper $diffLineMapper,
         AIReviewer $aiReviewer,
         GitHubAppAuth $githubApp,
     ): void {
@@ -106,22 +118,35 @@ final class ProcessPullRequestReview implements ShouldQueue
         $repoFullName = $repository->full_name;
         throw_unless($repoFullName !== '', RuntimeException::class, 'Invalid repository full name');
 
+        // Use pending_head_sha if set (push during review), otherwise use head_sha
+        $headSha = $this->pullRequest->pending_head_sha ?? $this->pullRequest->head_sha ?? '';
+
         $diff = $diffService->getDiff(
             token: $githubApp->getInstallationToken(),
             repoFullName: $repoFullName,
             prNumber: $prNumber,
+            headSha: $headSha,
         );
+
+        // Annotate diff with line numbers for the LLM
+        $annotatedDiff = $diffLineMapper->annotate($diff);
+
+        // Truncate diff if too large
+        $truncatedDiff = $promptBuilder->truncateDiff($annotatedDiff);
 
         Log::info('Diff fetched for PR #'.$this->pullRequest->number, [
             'repo' => $repoFullName,
             'preview' => mb_substr($diff, 0, 120),
+            'head_sha' => $headSha,
+            'original_length' => strlen($diff),
+            'truncated_length' => strlen($truncatedDiff),
         ]);
 
         /** @var array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, array{}>, highlights?: array<int, string>, recommendation?: string} $reviewResult */
         $reviewResult = $aiReviewer->review(
             systemPrompt: $promptBuilder->buildSystemPrompt(),
             userPrompt: $promptBuilder->buildUserPrompt(
-                diff: $diff,
+                diff: $truncatedDiff,
                 prTitle: $this->pullRequest->title ?? '',
                 prDescription: $this->pullRequest->description,
                 repoLanguage: $repository->language,
@@ -135,7 +160,7 @@ final class ProcessPullRequestReview implements ShouldQueue
                 'summary' => $reviewResult['summary'] ?? '',
                 'score' => $reviewResult['score'] ?? 0,
                 'score_rationale' => $reviewResult['score_rationale'] ?? '',
-                'issues' => $reviewResult['issues'] ?? [],
+                'issues' => $this->validateIssues($diffLineMapper, $diff, $reviewResult['issues'] ?? []),
                 'highlights' => $reviewResult['highlights'] ?? [],
                 'recommendation' => $reviewResult['recommendation'] ?? 'comment',
                 'raw_response' => json_encode($reviewResult),
@@ -149,10 +174,70 @@ final class ProcessPullRequestReview implements ShouldQueue
 
         dispatch(new PostReviewComments($this->pullRequest));
 
-        $this->pullRequest->update(['status' => PullRequestStatus::Reviewed]);
+        // Check if a new push arrived during review
+        $this->pullRequest->refresh();
+        if ($this->pullRequest->pending_head_sha !== null
+            && $this->pullRequest->pending_head_sha !== $this->pullRequest->head_sha) {
+            $newHeadSha = $this->pullRequest->pending_head_sha;
+            $this->pullRequest->update([
+                'head_sha' => $newHeadSha,
+                'pending_head_sha' => null,
+                'status' => PullRequestStatus::Pending,
+            ]);
+            Log::info('New push detected during review, re-dispatching', [
+                'pr' => $this->pullRequest->number,
+                'new_head_sha' => $newHeadSha,
+            ]);
+            dispatch(new ProcessPullRequestReview($this->pullRequest->fresh()));
+            return;
+        }
+
+        $this->pullRequest->update([
+            'status' => PullRequestStatus::Reviewed,
+            'pending_head_sha' => null,
+        ]);
 
         Log::info('Review stored for PR #'.$this->pullRequest->number, [
             'score' => $reviewResult['score'] ?? 0,
         ]);
+    }
+
+    /**
+     * Validate issues against the diff line map.
+     * Invalid lines are set to null (kept in summary instead of inline).
+     *
+     * @param  array<int, array{file: string, line: int|null, severity: string, description: string, category: string, suggestion: string}>  $issues
+     * @return array<int, array{file: string, line: int|null, severity: string, description: string, category: string, suggestion: string}>
+     */
+    private function validateIssues(DiffLineMapper $diffLineMapper, string $originalDiff, array $issues): array
+    {
+        $map = $diffLineMapper->map($originalDiff);
+        $validated = [];
+
+        foreach ($issues as $issue) {
+            $file = $issue['file'] ?? '';
+            $line = $issue['line'] ?? null;
+
+            $validation = $diffLineMapper->validateIssue($map, $file, $line);
+
+            $validated[] = [
+                'file' => $validation['file'],
+                'line' => $validation['line'],
+                'severity' => $issue['severity'] ?? 'medium',
+                'description' => $issue['description'] ?? '',
+                'category' => $issue['category'] ?? 'maintainability',
+                'suggestion' => $issue['suggestion'] ?? '',
+            ];
+
+            if (! $validation['valid'] && $line !== null) {
+                Log::warning('Issue line invalid, moved to summary', [
+                    'file' => $file,
+                    'original_line' => $line,
+                    'valid_lines' => array_keys($map[$diffLineMapper->findFileKey($map, $file)] ?? []),
+                ]);
+            }
+        }
+
+        return $validated;
     }
 }

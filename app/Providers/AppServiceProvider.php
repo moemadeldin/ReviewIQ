@@ -12,6 +12,7 @@ use App\Contracts\WebhookProvider;
 use App\Services\GitHubApiService;
 use App\Services\GitHubAppAuth as GitHubAppAuthService;
 use App\Services\GitHubDiffService;
+use App\Services\GitHubHttp;
 use App\Services\GitHubWebhookService;
 use App\Services\OpenRouterReviewService;
 use GuzzleHttp\Client;
@@ -21,27 +22,42 @@ final class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(GitHubHttp::class, fn (): GitHubHttp => new GitHubHttp(
+            baseUrl: config('services.github.base_url'),
+        ));
+
         $this->app->singleton(GitHubApiService::class, fn (): GitHubApiService => new GitHubApiService(
             baseUrl: config('services.github.base_url'),
+            http: $this->app->make(GitHubHttp::class),
         ));
 
         $this->app->singleton(GitHubDiffService::class, fn (): GitHubDiffService => new GitHubDiffService(
             baseUrl: config('services.github.base_url'),
+            http: $this->app->make(GitHubHttp::class),
         ));
-        $this->app->singleton(GitHubAppAuthService::class, fn (): GitHubAppAuthService => new GitHubAppAuthService());
+
+        $this->app->singleton(GitHubAppAuthService::class, fn (): GitHubAppAuthService => new GitHubAppAuthService(
+            baseUrl: config('services.github.base_url'),
+            http: $this->app->make(GitHubHttp::class),
+        ));
         $this->app->bind(GitHubAppAuth::class, GitHubAppAuthService::class);
 
         $this->app->singleton(OpenRouterReviewService::class, fn (): OpenRouterReviewService => new OpenRouterReviewService(
-            client: new Client(['timeout' => config('services.openrouter.timeout')]),
+            client: new Client([
+                'timeout' => config('services.openrouter.timeout'),
+                'connect_timeout' => config('services.openrouter.connect_timeout', 10),
+            ]),
             baseUrl: config('services.openrouter.base_url'),
             apiKey: config('services.openrouter.api_key'),
             model: config('services.openrouter.model'),
             temperature: (float) config('services.openrouter.temperature'),
             maxTokens: (int) config('services.openrouter.max_tokens'),
             timeout: (int) config('services.openrouter.timeout'),
+            connectTimeout: (int) config('services.openrouter.connect_timeout', 10),
             fallbackModels: array_values(array_filter(
                 array_map('trim', explode(',', (string) config('services.openrouter.fallback_models', ''))),
             )),
+            jsonObjectFormat: (bool) config('services.openrouter.json_object_format'),
         ));
 
         $this->app->bind(GitHubApi::class, GitHubApiService::class);

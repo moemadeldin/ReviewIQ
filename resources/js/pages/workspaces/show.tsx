@@ -1,30 +1,17 @@
-import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
+import { RoleBadge } from '@/components/role-badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatCard } from '@/components/ui/stat-card';
 import {
-    Users,
-    GitBranch,
-    Mail,
-    FileCheck,
-    Settings,
-    Trash2,
-} from 'lucide-react';
-import { useState } from 'react';
-import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+    WorkspaceTabs,
+    type WorkspaceTabCounts,
+} from '@/components/workspace-tabs';
 import AppLayout from '@/layouts/app-layout';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
 interface WorkspaceShowProps {
     workspace: Workspace;
+    tabCounts: WorkspaceTabCounts;
     [key: string]: unknown;
 }
 
@@ -35,210 +22,53 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Show() {
-    const { auth, workspace } = usePage<{ auth: Auth } & WorkspaceShowProps>()
-        .props;
-    const isOwner = auth.user.id === workspace.owner_id;
-    const [editOpen, setEditOpen] = useState(false);
-    const [deleteOpen, setDeleteOpen] = useState(false);
+export default function WorkspaceShow() {
+    const { auth, workspace, tabCounts } = usePage<
+        { auth: Auth } & WorkspaceShowProps
+    >().props;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={workspace.name} />
 
             <div className="space-y-6 px-4">
-                <div className="flex items-center justify-between">
-                    <Heading
-                        title={workspace.name}
-                        description="Manage your workspace"
-                    />
-                    {isOwner && (
-                        <div className="flex gap-2">
-                            <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline">
-                                        <Settings className="mr-2 h-4 w-4" />
-                                        Edit
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>
-                                            Rename workspace
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            Change the name of {workspace.name}
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <Form
-                                        action={`/workspaces/${workspace.id}`}
-                                        method="put"
-                                        disableWhileProcessing
-                                        className="space-y-4"
-                                        onSuccess={() => setEditOpen(false)}
-                                    >
-                                        {({ processing, errors }) => (
-                                            <>
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="edit-name">
-                                                        Workspace name
-                                                    </Label>
-                                                    <Input
-                                                        id="edit-name"
-                                                        type="text"
-                                                        name="name"
-                                                        required
-                                                        defaultValue={
-                                                            workspace.name
-                                                        }
-                                                    />
-                                                    {errors.name && (
-                                                        <p className="text-sm text-destructive">
-                                                            {errors.name}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            setEditOpen(false)
-                                                        }
-                                                    >
-                                                        Cancel
-                                                    </Button>
-                                                    <Button
-                                                        type="submit"
-                                                        disabled={processing}
-                                                    >
-                                                        {processing
-                                                            ? 'Saving...'
-                                                            : 'Save'}
-                                                    </Button>
-                                                </div>
-                                            </>
-                                        )}
-                                    </Form>
-                                </DialogContent>
-                            </Dialog>
+                <PageHeader
+                    title={workspace.name}
+                    subtitle="Overview and activity for this workspace"
+                />
 
-                            <Dialog
-                                open={deleteOpen}
-                                onOpenChange={setDeleteOpen}
-                            >
-                                <DialogTrigger asChild>
-                                    <Button variant="destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>
-                                            Delete workspace
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            This will permanently delete{' '}
-                                            {workspace.name} and all associated
-                                            data. This action cannot be undone.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <Form
-                                        action={`/workspaces/${workspace.id}`}
-                                        method="delete"
-                                        disableWhileProcessing
-                                        className="space-y-4"
-                                    >
-                                        {({ processing }) => (
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    onClick={() =>
-                                                        setDeleteOpen(false)
-                                                    }
-                                                >
-                                                    Cancel
-                                                </Button>
-                                                <Button
-                                                    type="submit"
-                                                    variant="destructive"
-                                                    disabled={processing}
-                                                >
-                                                    {processing
-                                                        ? 'Deleting...'
-                                                        : 'Delete workspace'}
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </Form>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
-                    )}
+                <WorkspaceTabs
+                    workspaceId={workspace.id}
+                    active="overview"
+                    counts={tabCounts}
+                />
+
+                <div>
+                    <h3 className="text-lg font-semibold tracking-tight">
+                        {workspace.name}
+                    </h3>
+                    <div className="mt-1">
+                        <RoleBadge
+                            role={
+                                workspace.owner_id === auth.user.id
+                                    ? 'owner'
+                                    : 'member'
+                            }
+                        />
+                    </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <Link
-                        href={`/workspaces/${workspace.id}/members`}
-                        className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
-                    >
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
-                            <Users className="size-5" />
-                        </span>
-                        <div>
-                            <div className="font-semibold">Members</div>
-                            <div className="text-sm text-muted-foreground">
-                                View and manage workspace members
-                            </div>
-                        </div>
-                    </Link>
-
-                    <Link
-                        href={`/workspaces/${workspace.id}/invitations`}
-                        className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
-                    >
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
-                            <Mail className="size-5" />
-                        </span>
-                        <div>
-                            <div className="font-semibold">Invitations</div>
-                            <div className="text-sm text-muted-foreground">
-                                View pending invitations
-                            </div>
-                        </div>
-                    </Link>
-
-                    <Link
-                        href={`/workspaces/${workspace.id}/repos`}
-                        className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
-                    >
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
-                            <GitBranch className="size-5" />
-                        </span>
-                        <div>
-                            <div className="font-semibold">Repositories</div>
-                            <div className="text-sm text-muted-foreground">
-                                View connected repositories
-                            </div>
-                        </div>
-                    </Link>
-
-                    <Link
-                        href={`/workspaces/${workspace.id}/reviews`}
-                        className="flex items-center gap-4 rounded-lg border border-border/70 bg-card/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/30"
-                    >
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
-                            <FileCheck className="size-5" />
-                        </span>
-                        <div>
-                            <div className="font-semibold">Reviews</div>
-                            <div className="text-sm text-muted-foreground">
-                                View pull request reviews
-                            </div>
-                        </div>
-                    </Link>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <StatCard label="Reviews" value={tabCounts.reviews} />
+                    <StatCard
+                        label="Repositories"
+                        value={tabCounts.repositories}
+                    />
+                    <StatCard label="Members" value={tabCounts.members} />
+                    <StatCard
+                        label="Pending invitations"
+                        value={tabCounts.invitations}
+                    />
                 </div>
             </div>
         </AppLayout>

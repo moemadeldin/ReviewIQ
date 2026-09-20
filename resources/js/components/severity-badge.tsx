@@ -4,13 +4,13 @@ import { cn } from '@/lib/utils';
 
 const severityStyles: Record<string, string> = {
     critical:
-        'border-transparent bg-rose-500/15 text-rose-600 dark:text-rose-400',
-    error: 'border-transparent bg-rose-500/15 text-rose-600 dark:text-rose-400',
-    high: 'border-transparent bg-orange-500/15 text-orange-600 dark:text-orange-400',
+        'border-transparent bg-severity-critical/15 text-severity-critical dark:text-severity-critical',
+    error: 'border-transparent bg-severity-critical/15 text-severity-critical dark:text-severity-critical',
+    high: 'border-transparent bg-severity-high/15 text-severity-high dark:text-severity-high',
     warning:
-        'border-transparent bg-amber-500/15 text-amber-600 dark:text-amber-400',
-    medium: 'border-transparent bg-amber-500/15 text-amber-600 dark:text-amber-400',
-    low: 'border-transparent bg-sky-500/15 text-sky-600 dark:text-sky-400',
+        'border-transparent bg-severity-medium/15 text-severity-medium dark:text-severity-medium',
+    medium: 'border-transparent bg-severity-medium/15 text-severity-medium dark:text-severity-medium',
+    low: 'border-transparent bg-severity-low/15 text-severity-low dark:text-severity-low',
     info: 'border-border bg-muted text-muted-foreground',
 };
 

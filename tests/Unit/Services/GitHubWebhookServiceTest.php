@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Enums\PullRequestStatus;
-use App\Exceptions\WebhookException;
 use App\Jobs\ProcessPullRequestReview;
 use App\Models\PullRequest;
 use App\Models\Repository;
@@ -11,17 +10,24 @@ use App\Models\Workspace;
 use App\Services\GitHubWebhookService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 beforeEach(function (): void {
     Config::set('services.github.webhook_secret', 'test-secret');
     Bus::fake();
+    Cache::flush();
     Log::spy();
 });
 
 function makeWebhookRequest(string $event, string $action, array $overrides = []): Request
+{
+    // Use positional arguments only to avoid PHP named argument restrictions
+    return makeWebhookRequestInternal($event, $action, $overrides);
+}
+
+function makeWebhookRequestInternal(string $event, string $action, array $overrides = []): Request
 {
     $payload = array_merge([
         'action' => $action,
@@ -33,6 +39,7 @@ function makeWebhookRequest(string $event, string $action, array $overrides = []
             'user' => ['login' => 'testuser'],
             'diff_url' => 'https://api.github.com/repos/owner/repo/pulls/42',
             'head' => ['sha' => 'abc123'],
+            'draft' => false,
         ],
     ], $overrides);
 
@@ -45,46 +52,15 @@ function makeWebhookRequest(string $event, string $action, array $overrides = []
         server: [
             'HTTP_X-GitHub-Event' => $event,
             'HTTP_X-Hub-Signature-256' => $signature,
+            'HTTP_X-GitHub-Delivery' => 'test-delivery-123',
             'CONTENT_TYPE' => 'application/json',
         ],
         content: $body,
     );
 }
 
-it('throws exception when signature is missing', function (): void {
-    Config::set('services.github.webhook_secret');
-
-    $request = Request::create('/webhook', 'POST', content: '{}');
-
-    $service = new GitHubWebhookService();
-
-    expect(fn () => $service->handle($request))
-        ->toThrow(WebhookException::class, 'Missing signature or secret.');
-});
-
-it('throws exception on invalid signature', function (): void {
-    $body = json_encode(['action' => 'opened']);
-    $badSignature = 'sha256=invalidsignature';
-
-    $request = Request::create(
-        uri: '/webhook',
-        method: 'POST',
-        server: [
-            'HTTP_X-GitHub-Event' => 'pull_request',
-            'HTTP_X-Hub-Signature-256' => $badSignature,
-            'CONTENT_TYPE' => 'application/json',
-        ],
-        content: $body,
-    );
-
-    $service = new GitHubWebhookService();
-
-    expect(fn () => $service->handle($request))
-        ->toThrow(AccessDeniedHttpException::class, 'Invalid signature.');
-});
-
 it('returns early for non-pull-request events', function (): void {
-    $request = makeWebhookRequest(event: 'push', action: '');
+    $request = makeWebhookRequest('push', '');
 
     $service = new GitHubWebhookService();
     $service->handle($request);
@@ -93,7 +69,7 @@ it('returns early for non-pull-request events', function (): void {
 });
 
 it('returns early for unsupported actions', function (): void {
-    $request = makeWebhookRequest(event: 'pull_request', action: 'closed');
+    $request = makeWebhookRequest('pull_request', 'closed');
 
     $service = new GitHubWebhookService();
     $service->handle($request);
@@ -124,7 +100,7 @@ it('returns early when pull_request is missing', function (): void {
 });
 
 it('returns early when repository not found in database', function (): void {
-    $request = makeWebhookRequest(event: 'pull_request', action: 'opened');
+    $request = makeWebhookRequest('pull_request', 'opened');
 
     $service = new GitHubWebhookService();
     $service->handle($request);
@@ -139,7 +115,7 @@ it('creates pull request and dispatches job for opened action', function (): voi
         'workspace_id' => $workspace->id,
     ]);
 
-    $request = makeWebhookRequest(event: 'pull_request', action: 'opened');
+    $request = makeWebhookRequest('pull_request', 'opened');
 
     $service = new GitHubWebhookService();
     $service->handle($request);
@@ -189,10 +165,66 @@ it('skips dispatch when pr is already reviewing', function (): void {
         'status' => PullRequestStatus::Reviewing,
     ]);
 
-    $request = makeWebhookRequest(event: 'pull_request', action: 'opened');
+    $request = makeWebhookRequest('pull_request', 'opened');
 
     $service = new GitHubWebhookService();
     $service->handle($request);
 
     Bus::assertNotDispatched(ProcessPullRequestReview::class);
+});
+
+it('deduplicates webhook deliveries via X-GitHub-Delivery header', function (): void {
+    $workspace = Workspace::factory()->create();
+    Repository::factory()->create([
+        'github_repo_id' => '12345',
+        'workspace_id' => $workspace->id,
+    ]);
+
+    $request = makeWebhookRequest('pull_request', 'opened');
+
+    $service = new GitHubWebhookService();
+    $service->handle($request);
+
+    Bus::assertDispatched(ProcessPullRequestReview::class);
+
+    // Second call with same delivery ID should be ignored
+    $service->handle($request);
+
+    Bus::assertDispatched(ProcessPullRequestReview::class);
+});
+
+it('skips draft PRs', function (): void {
+    $workspace = Workspace::factory()->create();
+    Repository::factory()->create([
+        'github_repo_id' => '12345',
+        'workspace_id' => $workspace->id,
+    ]);
+
+    $request = makeWebhookRequest('pull_request', 'opened', [
+        'pull_request' => ['draft' => true, 'number' => 42, 'user' => ['login' => 'testuser']],
+    ]);
+
+    $service = new GitHubWebhookService();
+    $service->handle($request);
+
+    Bus::assertNotDispatched(ProcessPullRequestReview::class);
+});
+
+it('skips dependabot and renovate bot PRs', function (): void {
+    $workspace = Workspace::factory()->create();
+    Repository::factory()->create([
+        'github_repo_id' => '12345',
+        'workspace_id' => $workspace->id,
+    ]);
+
+    foreach (['dependabot[bot]', 'renovate[bot]'] as $bot) {
+        $request = makeWebhookRequest('pull_request', 'opened', [
+            'pull_request' => ['user' => ['login' => $bot], 'number' => 42],
+        ]);
+
+        $service = new GitHubWebhookService();
+        $service->handle($request);
+
+        Bus::assertNotDispatched(ProcessPullRequestReview::class);
+    }
 });

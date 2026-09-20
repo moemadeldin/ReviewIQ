@@ -11,6 +11,7 @@ use App\Http\Requests\Workspaces\StoreWorkspaceRequest;
 use App\Http\Requests\Workspaces\WorkspaceOwnerRequest;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Queries\GetWorkspaceTabCounts;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -18,6 +19,10 @@ use Inertia\Response;
 
 final readonly class WorkspaceController
 {
+    public function __construct(
+        private GetWorkspaceTabCounts $getTabCounts,
+    ) {}
+
     public function index(#[CurrentUser()] User $user): Response
     {
         return Inertia::render('workspaces/index', [
@@ -47,6 +52,15 @@ final readonly class WorkspaceController
     {
         return Inertia::render('workspaces/show', [
             'workspace' => $workspace,
+            'tabCounts' => $this->getTabCounts->handle($workspace),
+        ]);
+    }
+
+    public function settings(Workspace $workspace): Response
+    {
+        return Inertia::render('workspaces/settings', [
+            'workspace' => $workspace,
+            'tabCounts' => $this->getTabCounts->handle($workspace),
         ]);
     }
 

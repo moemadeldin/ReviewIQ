@@ -13,6 +13,7 @@ import {
     SidebarMenuItem,
     SidebarSeparator,
 } from '@/components/ui/sidebar';
+import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
@@ -31,6 +32,7 @@ const mainNavItems: NavItem[] = [
         title: 'Repositories',
         href: '/repos',
         icon: GitBranch,
+        matchPrefix: '/repos',
     },
 ];
 
@@ -46,6 +48,7 @@ export function AppSidebar() {
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
+                    <WorkspaceSwitcher />
                 </SidebarMenu>
             </SidebarHeader>
 

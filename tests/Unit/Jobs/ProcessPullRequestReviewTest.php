@@ -12,6 +12,7 @@ use App\Models\Repository;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\DiffLineMapper;
 use App\Services\PromptBuilder;
 use Illuminate\Support\Facades\Log;
 
@@ -34,6 +35,7 @@ it('processes pull request review successfully', function (): void {
         'status' => PullRequestStatus::Pending,
         'number' => 42,
         'title' => 'Test PR',
+        'head_sha' => '51738a50db7241299cae62d372eef1c03886c96d',
     ]);
 
     $githubApp = $this->mock(GitHubAppAuth::class);
@@ -44,10 +46,22 @@ it('processes pull request review successfully', function (): void {
     $diffService = $this->mock(DiffProvider::class);
     $diffService->shouldReceive('getDiff')
         ->once()
-        ->with('test-token', 'owner/repo', 42)
+        ->with('test-token', 'owner/repo', 42, '51738a50db7241299cae62d372eef1c03886c96d')
         ->andReturn('diff content');
 
     $promptBuilder = new PromptBuilder();
+
+    $diffLineMapper = $this->mock(DiffLineMapper::class);
+    $diffLineMapper->shouldReceive('annotate')
+        ->once()
+        ->andReturn('annotated diff');
+    $diffLineMapper->shouldReceive('map')
+        ->once()
+        ->andReturn([]);
+    $diffLineMapper->shouldReceive('validateIssue')
+        ->andReturn(['file' => '', 'line' => null, 'valid' => true]);
+    $diffLineMapper->shouldReceive('findFileKey')
+        ->andReturn(null);
 
     $reviewContent = [
         'summary' => 'Good code',
@@ -64,7 +78,7 @@ it('processes pull request review successfully', function (): void {
         ->andReturn($reviewContent);
 
     $job = new ProcessPullRequestReview($pr);
-    $job->handle($diffService, $promptBuilder, $mockAIReviewer, $githubApp);
+    $job->handle($diffService, $promptBuilder, $diffLineMapper, $mockAIReviewer, $githubApp);
 
     $pr->refresh();
     expect($pr->status)->toBe(PullRequestStatus::Reviewed);
@@ -86,13 +100,17 @@ it('skips processing when PR is not pending', function (PullRequestStatus $statu
 
     $promptBuilder = new PromptBuilder();
 
+    $diffLineMapper = $this->mock(DiffLineMapper::class);
+    $diffLineMapper->shouldNotReceive('annotate');
+    $diffLineMapper->shouldNotReceive('map');
+
     $mockAIReviewer = $this->mock(AIReviewer::class);
     $mockAIReviewer->shouldNotReceive('review');
 
     $githubApp = $this->mock(GitHubAppAuth::class);
 
     $job = new ProcessPullRequestReview($pr);
-    $job->handle($diffService, $promptBuilder, $mockAIReviewer, $githubApp);
+    $job->handle($diffService, $promptBuilder, $diffLineMapper, $mockAIReviewer, $githubApp);
 
     $pr->refresh();
     expect($pr->status)->toBe($status);

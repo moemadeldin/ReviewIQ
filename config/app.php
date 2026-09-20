@@ -125,4 +125,18 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Social Preview (Open Graph)
+    |--------------------------------------------------------------------------
+    |
+    | Absolute URL of the placeholder Open Graph image used when the landing
+    | page is shared. Dimensions match the image used (1200 x 630).
+    |
+    */
+
+    'og_image' => env('APP_URL', 'http://localhost').'/og-image.png',
+    'og_image_width' => 1200,
+    'og_image_height' => 630,
+
 ];

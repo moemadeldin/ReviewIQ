@@ -10,9 +10,9 @@ interface ScoreGaugeProps {
 
 function scoreColor(score: number | null): string {
     if (score === null) return 'text-muted-foreground';
-    if (score >= 80) return 'text-emerald-600 dark:text-emerald-400';
-    if (score >= 50) return 'text-amber-600 dark:text-amber-400';
-    return 'text-rose-600 dark:text-rose-400';
+    if (score >= 80) return 'text-score-high';
+    if (score >= 50) return 'text-score-medium';
+    return 'text-score-low';
 }
 
 export function ScoreGauge({

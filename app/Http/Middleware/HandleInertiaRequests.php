@@ -43,6 +43,11 @@ final class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'og' => [
+                'url' => config('app.og_image'),
+                'width' => config('app.og_image_width'),
+                'height' => config('app.og_image_height'),
+            ],
             'auth' => [
                 'user' => $request->user(),
                 'workspaces' => $request->user()?->workspaces->toArray() ?: [],

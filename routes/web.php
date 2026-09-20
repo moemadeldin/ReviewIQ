@@ -16,6 +16,11 @@ require __DIR__.'/auth.php';
 
 Route::get('/', fn () => Inertia::render('welcome'))->name('home');
 
+// Placeholder legal and contact pages (content to be written)...
+Route::get('privacy', fn () => Inertia::render('privacy'))->name('privacy');
+Route::get('terms', fn () => Inertia::render('terms'))->name('terms');
+Route::get('contact', fn () => Inertia::render('contact'))->name('contact');
+
 // Invitations (public, token-gated so logged-in users can accept too)...
 Route::get('invitations/{token}/accept', ShowAcceptInvitationController::class)->name('invitations.accept.page');
 

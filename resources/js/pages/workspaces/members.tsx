@@ -3,8 +3,8 @@ import { Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
+import { RoleBadge } from '@/components/role-badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -23,6 +23,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    WorkspaceTabs,
+    type WorkspaceTabCounts,
+} from '@/components/workspace-tabs';
 import AppLayout from '@/layouts/app-layout';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
@@ -37,6 +41,7 @@ interface Member {
 interface MembersPageProps {
     workspace: Workspace;
     userRole: string;
+    tabCounts: WorkspaceTabCounts;
     initialMembers: Member[];
     membersCurrentPage: number;
     membersHasMore: boolean;
@@ -54,6 +59,7 @@ export default function Members() {
     const {
         workspace,
         userRole,
+        tabCounts,
         initialMembers,
         membersCurrentPage,
         membersHasMore,
@@ -178,7 +184,7 @@ export default function Members() {
             <Head title={`${workspace.name} - Members`} />
 
             <div className="space-y-6 px-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <Heading
                         title="Members"
                         description={`${members.length} member${members.length !== 1 ? 's' : ''} in ${workspace.name}`}
@@ -222,9 +228,6 @@ export default function Members() {
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="admin">
-                                                Admin
-                                            </SelectItem>
                                             <SelectItem value="member">
                                                 Member
                                             </SelectItem>
@@ -260,6 +263,12 @@ export default function Members() {
                         </Dialog>
                     )}
                 </div>
+
+                <WorkspaceTabs
+                    workspaceId={workspace.id}
+                    active="members"
+                    counts={tabCounts}
+                />
 
                 <Card>
                     <CardContent className="pt-6">
@@ -465,19 +474,5 @@ export default function Members() {
                 </Card>
             </div>
         </AppLayout>
-    );
-}
-
-function RoleBadge({ role }: { role: string }) {
-    const variants: Record<string, string> = {
-        owner: 'border-transparent bg-violet-500/15 text-violet-700 dark:text-violet-300',
-        admin: 'border-transparent bg-sky-500/15 text-sky-600 dark:text-sky-400',
-        member: 'border-transparent bg-muted text-muted-foreground',
-    };
-
-    return (
-        <Badge className={variants[role] || variants.member}>
-            {role.charAt(0).toUpperCase() + role.slice(1)}
-        </Badge>
     );
 }

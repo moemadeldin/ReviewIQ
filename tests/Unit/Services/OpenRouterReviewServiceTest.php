@@ -31,6 +31,7 @@ function createOpenRouterService(Client $client, array $fallbackModels = []): Op
         (float) config('services.openrouter.temperature'),
         (int) config('services.openrouter.max_tokens'),
         (int) config('services.openrouter.timeout', 60),
+        (int) config('services.openrouter.connect_timeout', 10),
         $fallbackModels,
     );
 }
@@ -494,7 +495,7 @@ it('parses valid json without corrupting string bodies', function (): void {
     expect($result['summary'])->toBe('Added coverage: filtering, pagination support')
         ->and($result['score'])->toBe(72)
         ->and($result['score_rationale'])->toBe('Solid: build, fine edge: cases')
-        ->and($result['issues'][0]['message'])->toBe('The triggers: pagination here')
+        ->and($result['issues'][0]['description'])->toBe('The triggers: pagination here')
         ->and($result['highlights'][0]['content'])->toBe('clean: code, section');
 });
 
