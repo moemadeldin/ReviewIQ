@@ -1,6 +1,6 @@
 import { Head, usePage } from '@inertiajs/react';
-import { FolderGit2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { FolderGit2, Search, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 import AlertError from '@/components/alert-error';
 import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
