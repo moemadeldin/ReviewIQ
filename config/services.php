@@ -61,6 +61,7 @@ return [
         'temperature' => (float) env('OPENROUTER_TEMPERATURE', 0.2),
         'max_tokens' => (int) env('OPENROUTER_MAX_TOKENS', 12000),
         'timeout' => env('OPENROUTER_TIMEOUT', 600),
+        'connect_timeout' => env('OPENROUTER_CONNECT_TIMEOUT', 10),
         'fallback_models' => env('OPENROUTER_FALLBACK_MODELS', ''),
         'json_object_format' => env('OPENROUTER_JSON_OBJECT_FORMAT', true),
     ],

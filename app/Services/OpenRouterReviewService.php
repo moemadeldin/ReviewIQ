@@ -12,13 +12,12 @@ use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Sleep;
 use InvalidArgumentException;
+use JsonException;
 use RuntimeException;
 
 final readonly class OpenRouterReviewService implements AIReviewer
 {
-    private const int STREAM_READ_CHUNK = 1024;
-
-    private const int STREAM_SLEEP_US = 10_000;
+    private const int MAX_FALLBACK_RETRIES = 2;
 
     /**
      * @param  array<int, string>  $fallbackModels
@@ -31,6 +30,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
         private float $temperature,
         private int $maxTokens,
         private int $timeout = 60,
+        private int $connectTimeout = 10,
         private array $fallbackModels = [],
         private bool $jsonObjectFormat = true,
     ) {
@@ -43,15 +43,42 @@ final readonly class OpenRouterReviewService implements AIReviewer
         $lastError = null;
 
         foreach ($this->models() as $model) {
-            try {
-                return $this->attemptReview($model, $systemPrompt, $userPrompt);
-            } catch (ReviewParseException|RuntimeException $error) {
-                $lastError = $error;
+            for ($attempt = 0; $attempt <= self::MAX_FALLBACK_RETRIES; $attempt++) {
+                try {
+                    $result = $this->attemptReview($model, $systemPrompt, $userPrompt);
 
-                Log::warning('OpenRouter model attempt failed, trying fallback model', [
-                    'model' => $model,
-                    'error' => $error->getMessage(),
-                ]);
+                    return array_merge($result, ['meta' => [
+                        'model' => $model,
+                        'usage' => $result['usage'] ?? null,
+                    ]]);
+                } catch (ReviewParseException|RuntimeException|JsonException $error) {
+                    $lastError = $error;
+
+                    $status = $this->extractStatus($error);
+                    $isRetryable = $this->isRetryableStatus($status);
+
+                    if ($attempt < self::MAX_FALLBACK_RETRIES && $isRetryable) {
+                        $delay = (int) (1000 * pow(2, $attempt)); // 1s, 2s
+                        Log::warning('OpenRouter request failed, retrying', [
+                            'model' => $model,
+                            'attempt' => $attempt + 1,
+                            'status' => $status,
+                            'error' => $error->getMessage(),
+                            'delay_ms' => $delay,
+                        ]);
+                        Sleep::msleep($delay);
+                        continue;
+                    }
+
+                    Log::warning('OpenRouter model attempt failed, trying fallback model', [
+                        'model' => $model,
+                        'error' => $error->getMessage(),
+                        'status' => $status,
+                        'attempts' => $attempt + 1,
+                    ]);
+
+                    break;
+                }
             }
         }
 
@@ -61,56 +88,79 @@ final readonly class OpenRouterReviewService implements AIReviewer
     public function stream(string $systemPrompt, string $userPrompt, callable $onChunk): array
     {
         $fullContent = '';
+        $firstChunkEmitted = false;
 
-        try {
-            $response = $this->client->post($this->baseUrl.'chat/completions', [
-                'json' => $this->buildRequestBody($this->model, $systemPrompt, $userPrompt, stream: true),
-                'headers' => $this->buildHeaders(),
-                'stream' => true,
-                'read_timeout' => $this->timeout,
-            ]);
+        foreach ($this->models() as $model) {
+            try {
+                $response = $this->client->post($this->baseUrl.'chat/completions', [
+                    'json' => $this->buildRequestBody($model, $systemPrompt, $userPrompt, stream: true),
+                    'headers' => $this->buildHeaders(),
+                    'stream' => true,
+                    'read_timeout' => $this->timeout,
+                    'connect_timeout' => $this->connectTimeout,
+                ]);
 
-            $body = $response->getBody();
+                $body = $response->getBody();
+                $reader = new SseStreamReader();
 
-            while (! $body->eof()) {
-                $line = $body->read(self::STREAM_READ_CHUNK);
-
-                if ($line === '' || $line === '0') {
-                    Sleep::usleep(self::STREAM_SLEEP_US);
-
-                    continue;
-                }
-
-                foreach (explode("\n", $line) as $rawLine) {
-                    if (! str_starts_with($rawLine, 'data: ')) {
-                        continue;
+                $reader->read($body, function (string $line) use (&$fullContent, &$firstChunkEmitted, $onChunk, $model, &$response): void {
+                    if (! str_starts_with($line, 'data: ')) {
+                        return;
                     }
 
-                    $data = mb_trim(mb_substr($rawLine, 6));
+                    $data = trim(substr($line, 6));
 
                     if ($data === '[DONE]') {
-                        break 2;
+                        return;
                     }
 
-                    /** @var array{choices: array<int, array{delta: array{content: string}}>}|null $json */
                     $json = json_decode($data, associative: true);
                     $chunk = $json['choices'][0]['delta']['content'] ?? '';
 
                     if ($chunk === '') {
-                        continue;
+                        return;
                     }
 
                     $fullContent .= $chunk;
+                    $firstChunkEmitted = true;
                     $onChunk($chunk);
+                });
+
+                if ($fullContent === '') {
+                    throw new ReviewParseException('OpenRouter returned empty streaming response');
                 }
+
+                $parsed = $this->parse($fullContent, $model);
+
+                return array_merge($parsed, ['meta' => [
+                    'model' => $model,
+                    'usage' => $parsed['usage'] ?? null,
+                ]]);
+
+            } catch (GuzzleException|ReviewParseException|JsonException $guzzleException) {
+                $status = $this->extractStatus($guzzleException);
+                $isRetryable = $this->isRetryableStatus($status);
+
+                // Only fallback if no chunks were emitted yet
+                if (! $firstChunkEmitted && $isRetryable) {
+                    Log::warning('OpenRouter streaming failed before first chunk, trying fallback', [
+                        'model' => $model,
+                        'status' => $status,
+                        'error' => $guzzleException->getMessage(),
+                    ]);
+                    continue;
+                }
+
+                // If chunks were emitted, or not retryable, throw
+                throw new RuntimeException(
+                    sprintf('OpenRouter API error: %s', $guzzleException->getMessage()),
+                    $guzzleException->getCode(),
+                    $guzzleException,
+                );
             }
-        } catch (GuzzleException $guzzleException) {
-            $this->handleGuzzleException($guzzleException, 'streaming', $this->model);
         }
 
-        throw_if($fullContent === '', ReviewParseException::class, 'OpenRouter returned empty streaming response');
-
-        return $this->parse($fullContent, $this->model);
+        throw new ReviewParseException('All OpenRouter models failed');
     }
 
     private function attemptReview(string $model, string $systemPrompt, string $userPrompt): array
@@ -126,7 +176,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
                 'model' => $model,
                 'finish_reason' => $finishReason,
                 'error' => $error,
-                'response' => mb_substr((string) json_encode($response), 0, 1000),
+                'response_length' => strlen((string) json_encode($response)),
             ]);
 
             $hint = $finishReason === 'length'
@@ -136,7 +186,14 @@ final readonly class OpenRouterReviewService implements AIReviewer
             throw new ReviewParseException('OpenRouter returned empty response'.$hint);
         }
 
-        return $this->parse($raw, $model);
+        $parsed = $this->parse($raw, $model);
+
+        // Capture usage from response
+        if (isset($response['usage']) && is_array($response['usage'])) {
+            $parsed['usage'] = $response['usage'];
+        }
+
+        return $parsed;
     }
 
     /**
@@ -156,13 +213,18 @@ final readonly class OpenRouterReviewService implements AIReviewer
             $response = $this->client->post($this->baseUrl.'chat/completions', [
                 'json' => $this->buildRequestBody($model, $systemPrompt, $userPrompt, stream: false),
                 'headers' => $this->buildHeaders(),
-                'read_timeout' => $this->timeout,
+                'timeout' => $this->timeout,
+                'connect_timeout' => $this->connectTimeout,
             ]);
-        } catch (GuzzleException $guzzleException) {
-            $this->handleGuzzleException($guzzleException, 'review', $model);
+        } catch (GuzzleException $e) {
+            throw new RuntimeException(
+                sprintf('OpenRouter API error: %s', $e->getMessage()),
+                $e->getCode(),
+                $e,
+            );
         }
 
-        return json_decode((string) $response->getBody(), associative: true, flags: JSON_THROW_ON_ERROR);
+        return json_decode((string) $response->getBody(), associative: true);
     }
 
     private function buildRequestBody(string $model, string $systemPrompt, string $userPrompt, bool $stream): array
@@ -191,23 +253,17 @@ final readonly class OpenRouterReviewService implements AIReviewer
         return ['Authorization' => 'Bearer '.$this->apiKey];
     }
 
-    private function handleGuzzleException(GuzzleException $e, string $context, string $model): never
+    private function extractStatus(\Throwable $e): ?int
     {
+        if ($e instanceof RequestException) {
+            return $e->getResponse()?->getStatusCode();
+        }
+        return null;
+    }
 
-        $status = $e instanceof RequestException
-            ? $e->getResponse()?->getStatusCode()
-            : null;
-
-        Log::error(sprintf('OpenRouter API %s request failed', $context), [
-            'model' => $model,
-            'status' => $status,
-        ]);
-
-        throw new RuntimeException(
-            sprintf('OpenRouter API error: %s', $e->getMessage()),
-            $e->getCode(),
-            $e,
-        );
+    private function isRetryableStatus(?int $status): bool
+    {
+        return $status === 429 || ($status !== null && $status >= 500);
     }
 
     private function parse(string $raw, string $model): array
@@ -234,7 +290,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
                 Log::error('Failed to parse OpenRouter response', [
                     'model' => $model,
                     'error' => $jsonError,
-                    'raw' => mb_substr($raw, 0, 1000),
+                    'response_length' => strlen($raw),
                 ]);
 
                 throw new ReviewParseException('Invalid JSON from OpenRouter: '.$jsonError);
@@ -278,7 +334,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
      */
     private function maskStringBodies(string $json): array
     {
-        $length = mb_strlen($json);
+        $length = strlen($json);
         $masked = '';
         $bodies = [];
         $index = 0;
@@ -288,7 +344,6 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
             if ($char !== '"') {
                 $masked .= $char;
-
                 continue;
             }
 
@@ -297,7 +352,6 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
             if (! $startsString) {
                 $masked .= $char;
-
                 continue;
             }
 
@@ -308,22 +362,19 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
                 if ($inner === '\\') {
                     $close += 2;
-
                     continue;
                 }
 
                 if ($inner === '"') {
                     $close++;
-
                     break;
                 }
 
                 $close++;
             }
 
-            if ($close >= $length || $json[$close - 1] !== '"') {
+            if ($close > $length || $json[$close - 1] !== '"') {
                 $masked .= $char;
-
                 continue;
             }
 
@@ -333,13 +384,12 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
             if (! $followsString) {
                 $masked .= $char;
-
                 continue;
             }
 
-            $full = mb_substr($json, $i, $close - $i);
+            $full = substr($json, $i, $close - $i);
             $token = "\x1ASTR{$index}\x1A";
-            $bodies[$token] = mb_substr($full, 1, -1);
+            $bodies[$token] = substr($full, 1, -1);
             $masked .= '"'.$token.'"';
             $index++;
             $i = $close - 1;
@@ -350,17 +400,47 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
     private function sanitize(array $parsed): array
     {
-        $parsed['score'] = is_numeric($parsed['score'] ?? null) ? (int) $parsed['score'] : 0;
+        $parsed['score'] = is_numeric($parsed['score'] ?? null) ? max(0, min(100, (int) $parsed['score'])) : 0;
 
-        $parsed['issues'] = array_values(array_map(function (array $issue): array {
-            $issue['line'] = isset($issue['line']) && is_numeric($issue['line']) ? (int) $issue['line'] : null;
-            $issue['severity'] = in_array($issue['severity'] ?? null, ['critical', 'high', 'medium', 'low', 'praise'], strict: true)
-                ? $issue['severity']
-                : 'medium';
-            $issue['message'] ??= $issue['description'] ?? $issue['title'] ?? '';
+        $allowedSeverities = ['critical', 'high', 'medium', 'low', 'praise'];
+        $allowedRecommendations = ['approve', 'request_changes', 'comment'];
+        $allowedCategories = ['security', 'performance', 'error_handling', 'correctness', 'maintainability', 'style', 'testing'];
 
-            return $issue;
-        }, $parsed['issues'] ?? []));
+        $parsed['issues'] = array_values(array_map(
+            function (array $issue) use ($allowedSeverities, $allowedCategories): array {
+                $issue['line'] = isset($issue['line']) && is_numeric($issue['line']) ? (int) $issue['line'] : null;
+                $issue['severity'] = in_array($issue['severity'] ?? null, $allowedSeverities, true)
+                    ? $issue['severity']
+                    : 'medium';
+
+                // Move praise to highlights
+                if ($issue['severity'] === 'praise') {
+                    return ['_move_to_highlights' => true, 'content' => $issue['description'] ?? $issue['title'] ?? ''];
+                }
+
+                $issue['category'] = in_array($issue['category'] ?? null, $allowedCategories, true)
+                    ? $issue['category']
+                    : 'maintainability';
+
+                $issue['description'] ??= $issue['title'] ?? $issue['message'] ?? '';
+                unset($issue['message']); // Normalize to description only
+
+                return $issue;
+            },
+            $parsed['issues'] ?? []
+        ));
+
+        // Extract praise items to highlights
+        $praiseItems = array_filter($parsed['issues'], fn ($i) => isset($i['_move_to_highlights']));
+        $parsed['issues'] = array_values(array_filter($parsed['issues'], fn ($i) => ! isset($i['_move_to_highlights'])));
+
+        foreach ($praiseItems as $praise) {
+            $parsed['highlights'][] = [
+                'file' => '',
+                'line' => null,
+                'content' => $praise['content'],
+            ];
+        }
 
         $parsed['highlights'] = array_values(array_filter(
             array_map(function (mixed $highlight): ?array {
@@ -381,7 +461,10 @@ final readonly class OpenRouterReviewService implements AIReviewer
             fn (?array $h): bool => $h !== null && $h['content'] !== '',
         ));
 
-        $parsed['recommendation'] ??= 'comment';
+        $parsed['recommendation'] = in_array($parsed['recommendation'] ?? null, $allowedRecommendations, true)
+            ? $parsed['recommendation']
+            : 'comment';
+
         $parsed['score_rationale'] ??= '';
 
         return $parsed;

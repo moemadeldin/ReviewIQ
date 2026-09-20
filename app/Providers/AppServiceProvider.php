@@ -32,13 +32,17 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(GitHubAppAuth::class, GitHubAppAuthService::class);
 
         $this->app->singleton(OpenRouterReviewService::class, fn (): OpenRouterReviewService => new OpenRouterReviewService(
-            client: new Client(['timeout' => config('services.openrouter.timeout')]),
+            client: new Client([
+                'timeout' => config('services.openrouter.timeout'),
+                'connect_timeout' => config('services.openrouter.connect_timeout', 10),
+            ]),
             baseUrl: config('services.openrouter.base_url'),
             apiKey: config('services.openrouter.api_key'),
             model: config('services.openrouter.model'),
             temperature: (float) config('services.openrouter.temperature'),
             maxTokens: (int) config('services.openrouter.max_tokens'),
             timeout: (int) config('services.openrouter.timeout'),
+            connectTimeout: (int) config('services.openrouter.connect_timeout', 10),
             fallbackModels: array_values(array_filter(
                 array_map('trim', explode(',', (string) config('services.openrouter.fallback_models', ''))),
             )),
