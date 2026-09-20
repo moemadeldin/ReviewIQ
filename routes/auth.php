@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\UserEmailVerificationNotificationController;
 use App\Http\Controllers\Auth\UserPasswordController;
 use App\Http\Controllers\Auth\UserProfileController;
 use App\Http\Controllers\Auth\UserTwoFactorAuthenticationController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Repositories\GetConnectedRepositoriesController;
 use App\Http\Controllers\Repositories\RepositoryController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Reviews\ReReviewController;
 use App\Http\Controllers\Reviews\ReviewController;
 use App\Http\Controllers\WorkspaceInvitations\AcceptInvitationAsMemberController;
 use App\Http\Controllers\WorkspaceInvitations\WorkspaceInvitationController;
+use App\Http\Controllers\Workspaces\SwitchWorkspaceController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
 use App\Http\Controllers\Workspaces\WorkspaceMemberController;
 use App\Http\Controllers\Workspaces\WorkspacePageController;
@@ -23,7 +25,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
-    Route::get('dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     // Notifications...
     Route::controller(NotificationController::class)->group(function (): void {
@@ -38,8 +40,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('workspaces/create', 'create')->name('workspaces.create');
         Route::post('workspaces', 'store')->name('workspaces.store');
         Route::get('workspaces/{workspace}', 'show')->name('workspaces.show');
+        Route::get('workspaces/{workspace}/settings', 'settings')->name('workspaces.settings');
         Route::put('workspaces/{workspace}', 'update')->name('workspaces.update');
         Route::delete('workspaces/{workspace}', 'destroy')->name('workspaces.destroy');
+        Route::post('workspaces/{workspace}/switch', SwitchWorkspaceController::class)->name('workspaces.switch');
     });
 
     Route::controller(WorkspacePageController::class)->group(function (): void {

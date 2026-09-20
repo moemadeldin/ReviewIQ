@@ -41,6 +41,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
     'remember_token',
     'two_factor_secret',
     'two_factor_recovery_codes',
+    'github_token',
 ])]
 final class User extends Authenticatable implements MustVerifyEmail
 {
@@ -52,7 +53,7 @@ final class User extends Authenticatable implements MustVerifyEmail
     use TwoFactorAuthenticatable;
 
     /** @var list<string> */
-    protected $appends = ['avatar'];
+    protected $appends = ['avatar', 'github_connected'];
 
     /**
      * @return HasMany<Workspace, $this>
@@ -95,7 +96,7 @@ final class User extends Authenticatable implements MustVerifyEmail
             'two_factor_confirmed_at' => 'datetime',
             'github_id' => 'string',
             'github_avatar' => 'string',
-            'github_token' => 'string',
+            'github_token' => 'encrypted',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -104,5 +105,12 @@ final class User extends Authenticatable implements MustVerifyEmail
     protected function avatar(): Attribute
     {
         return Attribute::get(fn (): ?string => $this->getAttributes()['github_avatar'] ?? null);
+    }
+
+    protected function githubConnected(): Attribute
+    {
+        return Attribute::get(
+            fn (): bool => ($this->getAttributes()['github_token'] ?? null) !== null,
+        );
     }
 }

@@ -3,7 +3,7 @@ import { Mail } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { RoleBadge } from '@/components/role-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -14,6 +14,10 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    WorkspaceTabs,
+    type WorkspaceTabCounts,
+} from '@/components/workspace-tabs';
 import AppLayout from '@/layouts/app-layout';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
 
@@ -28,6 +32,7 @@ interface Invitation {
 interface InvitationsPageProps {
     workspace: Workspace;
     userRole: string;
+    tabCounts: WorkspaceTabCounts;
     initialInvitations: Invitation[];
     invitationsCurrentPage: number;
     invitationsHasMore: boolean;
@@ -45,6 +50,7 @@ export default function Invitations() {
     const {
         workspace,
         userRole,
+        tabCounts,
         initialInvitations,
         invitationsCurrentPage,
         invitationsHasMore,
@@ -119,6 +125,12 @@ export default function Invitations() {
                     description={`${invitations.length} pending invitation${invitations.length !== 1 ? 's' : ''} to ${workspace.name}`}
                 />
 
+                <WorkspaceTabs
+                    workspaceId={workspace.id}
+                    active="invitations"
+                    counts={tabCounts}
+                />
+
                 <Card>
                     <CardContent className="pt-6">
                         {loading ? (
@@ -168,14 +180,11 @@ export default function Invitations() {
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <Badge className="border-transparent bg-muted text-muted-foreground">
-                                                            {invitation.role
-                                                                .charAt(0)
-                                                                .toUpperCase() +
-                                                                invitation.role.slice(
-                                                                    1,
-                                                                )}
-                                                        </Badge>
+                                                        <RoleBadge
+                                                            role={
+                                                                invitation.role
+                                                            }
+                                                        />
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-muted-foreground">
                                                         {new Date(

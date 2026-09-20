@@ -13,6 +13,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    WorkspaceTabs,
+    type WorkspaceTabCounts,
+} from '@/components/workspace-tabs';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
@@ -44,6 +48,7 @@ interface PullRequest {
 
 interface ReviewsPageProps {
     workspace: Workspace;
+    tabCounts: WorkspaceTabCounts;
     initialPullRequests: PullRequest[];
     currentPage: number;
     hasMore: boolean;
@@ -65,6 +70,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Reviews() {
     const {
         workspace,
+        tabCounts,
         initialPullRequests,
         currentPage,
         hasMore,
@@ -149,11 +155,9 @@ export default function Reviews() {
 
     const getScoreChip = (score: number | null): string => {
         if (score === null) return 'bg-muted text-muted-foreground';
-        if (score >= 80)
-            return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
-        if (score >= 50)
-            return 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
-        return 'bg-rose-500/15 text-rose-600 dark:text-rose-400';
+        if (score >= 80) return 'bg-score-high/15 text-score-high';
+        if (score >= 50) return 'bg-score-medium/15 text-score-medium';
+        return 'bg-score-low/15 text-score-low';
     };
 
     const tabs = [
@@ -174,6 +178,12 @@ export default function Reviews() {
                         description={`${pullRequests.length} pull request${pullRequests.length !== 1 ? 's' : ''} in ${workspace.name}`}
                     />
                 </div>
+
+                <WorkspaceTabs
+                    workspaceId={workspace.id}
+                    active="reviews"
+                    counts={tabCounts}
+                />
 
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">

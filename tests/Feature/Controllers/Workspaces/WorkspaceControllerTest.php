@@ -188,6 +188,35 @@ it('renders workspace show page', function (): void {
             ->has('workspace'));
 });
 
+it('renders workspace settings page for a member', function (): void {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($user)->create();
+
+    $response = $this->actingAs($user)
+        ->get(route('workspaces.settings', $workspace));
+
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('workspaces/settings')
+            ->has('workspace')
+            ->has('tabCounts', 4));
+});
+
+it('renders workspace show page with tab counts', function (): void {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($user)->create();
+
+    $response = $this->actingAs($user)
+        ->get(route('workspaces.show', $workspace));
+
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('workspaces/show')
+            ->has('workspace')
+            ->has('tabCounts', 4)
+            ->where('tabCounts.repositories', 0));
+});
+
 it('redirects non-members away from a workspace', function (): void {
     $owner = User::factory()->create();
     $nonMember = User::factory()->create();

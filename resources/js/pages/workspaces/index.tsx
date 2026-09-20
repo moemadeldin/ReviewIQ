@@ -1,6 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowRight } from 'lucide-react';
-import Heading from '@/components/heading';
+import { RoleBadge } from '@/components/role-badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -8,6 +8,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
@@ -27,16 +28,15 @@ export default function Index() {
             <Head title="Workspaces" />
 
             <div className="space-y-6 px-4">
-                <div className="flex items-center justify-between">
-                    <Heading
-                        title="Your workspaces"
-                        description="Select a workspace or create a new one"
-                    />
-
-                    <Link href="/workspaces/create">
-                        <Button>Create workspace</Button>
-                    </Link>
-                </div>
+                <PageHeader
+                    title="Your workspaces"
+                    subtitle="Select a workspace or create a new one"
+                    actions={
+                        <Link href="/workspaces/create">
+                            <Button>Create workspace</Button>
+                        </Link>
+                    }
+                />
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {auth.workspaces.map((workspace) => (
@@ -91,12 +91,14 @@ function WorkspaceCard({
                         </span>
                     )}
                 </div>
-                <CardDescription>
-                    {workspace.pivot?.role === 'owner'
-                        ? 'Owner'
-                        : workspace.pivot?.role === 'admin'
-                          ? 'Admin'
-                          : 'Member'}
+                <CardDescription className="inline-flex">
+                    <RoleBadge
+                        role={
+                            workspace.pivot?.role === 'owner'
+                                ? 'owner'
+                                : 'member'
+                        }
+                    />
                 </CardDescription>
                 <div className="mt-2 flex gap-2">
                     <Link

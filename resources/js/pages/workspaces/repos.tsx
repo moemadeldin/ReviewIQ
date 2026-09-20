@@ -6,6 +6,10 @@ import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    WorkspaceTabs,
+    type WorkspaceTabCounts,
+} from '@/components/workspace-tabs';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { Auth, BreadcrumbItem, Workspace } from '@/types';
@@ -22,6 +26,7 @@ interface ConnectedRepo {
 interface ReposPageProps {
     workspace: Workspace;
     userRole: string;
+    tabCounts: WorkspaceTabCounts;
     initialRepos: ConnectedRepo[];
     reposCurrentPage: number;
     reposHasMore: boolean;
@@ -39,6 +44,7 @@ export default function Repos() {
     const {
         workspace,
         userRole,
+        tabCounts,
         initialRepos,
         reposCurrentPage,
         reposHasMore,
@@ -154,6 +160,12 @@ export default function Repos() {
                     />
                 </div>
 
+                <WorkspaceTabs
+                    workspaceId={workspace.id}
+                    active="repositories"
+                    counts={tabCounts}
+                />
+
                 <Card>
                     <CardContent className="pt-6">
                         {loading ? (
@@ -261,8 +273,8 @@ export default function Repos() {
                                                                         .full_name
                                                                 ]
                                                                     ? repo.is_active
-                                                                      ? 'Disabling..'
-                                                                      : 'Enabling..'
+                                                                        ? 'Disabling..'
+                                                                        : 'Enabling..'
                                                                     : repo.is_active
                                                                       ? 'Disable'
                                                                       : 'Enable'}

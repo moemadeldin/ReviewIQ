@@ -17,10 +17,10 @@ test('to array', function (): void {
             'two_factor_confirmed_at',
             'github_id',
             'github_avatar',
-            'github_token',
             'created_at',
             'updated_at',
             'avatar',
+            'github_connected',
         ]);
 });
 

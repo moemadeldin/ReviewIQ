@@ -30,6 +30,7 @@ final class PullRequestResource extends JsonResource
             'head_sha' => $pr->head_sha,
             'status' => $pr->status->value,
             'created_at' => $pr->created_at,
+            'workspace_id' => $repository instanceof Repository ? $repository->workspace_id : null,
             'repository' => $repository instanceof Repository ? [
                 'id' => $repository->id,
                 'full_name' => $repository->full_name,
