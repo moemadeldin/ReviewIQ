@@ -181,24 +181,34 @@ final readonly class ReviewResponseParser
         return $result;
     }
 
-    private function repairJson(string $json): string
+private function repairJson(string $json): string
     {
-        [$masked, $bodies] = $this->maskStringBodies($json);
-
-        // Fix unquoted keys: {summary:"value"} -> {"summary":"value"}
-        $json = (string) preg_replace('/(?<=[\{,])\s*([a-zA-Z_]\w*)\s*:/', '"$1":', $masked);
-        // Fix missing colon before bracket: "issues"[...] -> "issues": [...]
-        $json = (string) preg_replace('/"(\w+)"\s*(\[)/', '"$1": $2', $json);
+        // Fix unclosed quote on key before bracket: "key [ -> "key": [
+        $json = (string) preg_replace('/"(\w+)\s*\[/', '"$1": [', $json);
+        // Fix unquoted key before bracket: key [ -> "key": [
+        $json = (string) preg_replace('/(?<=[\s,{])(\w+)\s*\[/', '"$1": [', $json);
+        // Fix key missing opening quote before colon: key": -> "key":
+        $json = (string) preg_replace('/(?<=[\s,{])(\w+)":/', '"$1":', $json);
+        // Fix unquoted key before colon: key" -> "key" (when followed by colon)
+        $json = (string) preg_replace('/(?<=[\s,{])(\w+)"(?=\s*:)/', '"$1', $json);
+        // Fix missing colon before bracket (quoted key): "issues"[ -> "issues": [
+        $json = (string) preg_replace('/"(\w+)"\s*\[/', '"$1": [', $json);
+        // Fix unquoted key + quoted value: key "value" -> "key": "value"
+        $json = (string) preg_replace('/(?<=[\s,{])(\w+)\s+"([^"]+)"/', '"$1": "$2"', $json);
+        // Fix missing colon between key and value: key"value" -> "key": "value" (single line only)
+        $json = (string) preg_replace('/(?<=[\s,{])(\w+)"([^"\n]+)"/', '"$1": "$2"', $json);
+        // Fix unquoted value with trailing quote: :value" -> :"value"
+        $json = (string) preg_replace('/:\s*([a-zA-Z_]\w*)"(?=\s*[,\}])/', ': "$1"', $json);
         // Fix unquoted string values: :value, -> :"value",
         $json = (string) preg_replace('/:\s*([a-zA-Z_]\w*)(?=\s*[,\}])/', ': "$1"', $json);
+        // Fix unquoted values in arrays: [value,] -> ["value",
+        $json = (string) preg_replace('/\[\s*([a-zA-Z_]\w*)(?=\s*[,\}])/', '["$1"', $json);
         // Fix trailing commas
         $json = (string) preg_replace('/,\s*"\s*([}\]])/', '$1', $json);
         $json = (string) preg_replace('/,\s*([}\]])/', '$1', $json);
         $json = (string) preg_replace('/:\s*,/', ': null,', $json);
-        // Fix unquoted keys followed by quote: key"value" -> "key":"value"
-        $json = (string) preg_replace('/(?<=[\s,{])(\w+)\s+"([^"]+)"/', '"$1": "$2"', $json);
 
-        return (string) strtr($json, $bodies);
+        return $json;
     }
 
     /**
@@ -263,7 +273,7 @@ final readonly class ReviewResponseParser
             }
 
             $full = substr($json, $i, $close - $i);
-            $token = "\x1ASTR{$index}\x1A";
+            $token = "__STR_{$index}__";
             $bodies[$token] = substr($full, 1, -1);
             $masked .= '"'.$token.'"';
             $index++;
