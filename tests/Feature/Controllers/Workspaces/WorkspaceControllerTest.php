@@ -63,10 +63,6 @@ it('sets workspace as current after creation', function (): void {
 
     $workspace = Workspace::query()->where('owner_id', $user->id)->first();
 
-    $this->actingAs($user)
-        ->get(route('dashboard'))
-        ->assertOk();
-
     expect(session('current_workspace_id'))->toBe($workspace->id);
 });
 

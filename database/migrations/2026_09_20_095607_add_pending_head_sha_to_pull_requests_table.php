@@ -17,14 +17,4 @@ return new class extends Migration
             $table->string('pending_head_sha')->nullable()->after('head_sha');
         });
     }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('pull_requests', function (Blueprint $table): void {
-            $table->dropColumn('pending_head_sha');
-        });
-    }
 };

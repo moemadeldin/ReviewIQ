@@ -15,12 +15,4 @@ return new class extends Migration
             $table->text('github_avatar')->nullable()->change();
         });
     }
-
-    public function down(): void
-    {
-        Schema::table('users', function (Blueprint $table): void {
-            $table->string('github_token')->nullable()->change();
-            $table->string('github_avatar')->nullable()->change();
-        });
-    }
 };
