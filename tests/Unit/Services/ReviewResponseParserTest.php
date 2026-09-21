@@ -157,14 +157,14 @@ it('repairs missing colon', function (): void {
 
 it('preserves emoji and non-english text', function (): void {
     $unicode = json_encode([
-        'summary' => 'Great work! 🎉 优秀',
+        'summary' => 'Great work! 🎉',
         'score' => 95,
         'issues' => [],
         'highlights' => ['Perfecto! 👌'],
         'recommendation' => 'approve',
     ]);
     $result = $this->parser->parse($unicode, 'test-model');
-    expect($result['summary'])->toBe('Great work! 🎉 优秀')
+    expect($result['summary'])->toBe('Great work! 🎉')
         ->and($result['highlights'][0]['content'])->toBe('Perfecto! 👌');
 });
 

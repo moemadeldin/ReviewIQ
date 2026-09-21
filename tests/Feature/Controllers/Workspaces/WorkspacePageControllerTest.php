@@ -33,7 +33,7 @@ it('renders members page', function (): void {
 });
 
 it('renders repos page', function (): void {
-    $repo = Repository::factory()->create([
+    Repository::factory()->create([
         'workspace_id' => $this->workspace->id,
     ]);
 
@@ -52,7 +52,7 @@ it('renders repos page', function (): void {
 });
 
 it('renders invitations page', function (): void {
-    $invitation = WorkspaceInvitation::factory()->forWorkspace($this->workspace)->create();
+    WorkspaceInvitation::factory()->forWorkspace($this->workspace)->create();
 
     $response = $this->actingAs($this->user)
         ->withSession(['current_workspace_id' => $this->workspace->id])
@@ -72,7 +72,7 @@ it('renders reviews index page', function (): void {
     $repo = Repository::factory()->create([
         'workspace_id' => $this->workspace->id,
     ]);
-    $pr = PullRequest::factory()->create([
+    PullRequest::factory()->create([
         'repository_id' => $repo->id,
     ]);
 

@@ -10,6 +10,7 @@ use App\Models\Repository;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
+use Illuminate\Database\Eloquent\Builder;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,7 +21,7 @@ final readonly class DashboardController
         $workspaceIds = $user->workspaces()->pluck('workspaces.id');
 
         $recentPullRequests = PullRequest::query()
-            ->whereHas('repository', fn ($query) => $query->whereIn('workspace_id', $workspaceIds))
+            ->whereHas('repository', fn (Builder $query) => $query->whereIn('workspace_id', $workspaceIds))
             ->with(['repository', 'review'])
             ->latest('updated_at')
             ->limit(8)
@@ -32,10 +33,10 @@ final readonly class DashboardController
                 ->whereIn('workspace_id', $workspaceIds)
                 ->count(),
             'pullRequests' => PullRequest::query()
-                ->whereHas('repository', fn ($query) => $query->whereIn('workspace_id', $workspaceIds))
+                ->whereHas('repository', fn (Builder $query) => $query->whereIn('workspace_id', $workspaceIds))
                 ->count(),
             'reviews' => Review::query()
-                ->whereHas('pullRequest.repository', fn ($query) => $query->whereIn('workspace_id', $workspaceIds))
+                ->whereHas('pullRequest.repository', fn (Builder $query) => $query->whereIn('workspace_id', $workspaceIds))
                 ->count(),
         ];
 

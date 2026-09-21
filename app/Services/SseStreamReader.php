@@ -10,10 +10,9 @@ use Psr\Http\Message\StreamInterface;
 final readonly class SseStreamReader
 {
     /**
-     * @param  StreamInterface|resource  $stream
      * @param  callable(string): void  $onLine
      */
-    public function read($stream, callable $onLine): void
+    public function read(mixed $stream, callable $onLine): void
     {
         $buffer = '';
 
@@ -45,6 +44,7 @@ final readonly class SseStreamReader
                 if ($line === '') {
                     continue;
                 }
+
                 if ($line === '0') {
                     continue;
                 }
@@ -67,7 +67,7 @@ final readonly class SseStreamReader
         }
     }
 
-    private function readResource($stream, callable $onLine, string &$buffer): void
+    private function readResource(mixed $stream, callable $onLine, string &$buffer): void
     {
         while (! feof($stream)) {
             $chunk = fread($stream, 8192);
@@ -88,6 +88,7 @@ final readonly class SseStreamReader
                 if ($line === '') {
                     continue;
                 }
+
                 if ($line === '0') {
                     continue;
                 }

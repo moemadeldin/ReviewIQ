@@ -49,9 +49,11 @@ final class DiffLineMapper
 
                 continue;
             }
+
             if (! $inHunk) {
                 continue;
             }
+
             if ($currentFile === '') {
                 continue;
             }

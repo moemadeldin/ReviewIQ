@@ -170,7 +170,7 @@ PROMPT;
 
         if ($droppedFiles !== []) {
             $note = "\n\n---\n**Note: Review is partial. The following files were skipped due to size limits:**\n";
-            $note .= implode("\n", array_map(fn ($f): string => '- '.$f, $droppedFiles));
+            $note .= implode("\n", array_map(fn (string $f): string => '- '.$f, $droppedFiles));
             $result .= $note;
         }
 
@@ -274,6 +274,7 @@ PROMPT;
             if ($this->isSnapshot($path)) {
                 $priority -= 20;
             }
+
             // Higher priority for source files
             if ($this->isSourceFile($path)) {
                 $priority += 20;
@@ -297,13 +298,7 @@ PROMPT;
 
     private function isIgnored(string $path): bool
     {
-        foreach ($this->getIgnorePatterns() as $pattern) {
-            if (preg_match($pattern, $path)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($this->getIgnorePatterns(), fn ($pattern): int|false => preg_match($pattern, $path));
     }
 
     private function isLockfile(string $path): bool

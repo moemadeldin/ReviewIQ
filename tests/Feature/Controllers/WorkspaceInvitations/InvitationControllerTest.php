@@ -7,6 +7,7 @@ use App\Mail\WorkspaceInvitationMail;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Mail;
 
 beforeEach(function (): void {
@@ -25,7 +26,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
                 'role' => Roles::Member->value,
             ]);
 
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonPath('status', 'Success')
             ->assertJsonPath('message', 'Invitation sent');
 
@@ -49,7 +50,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
                 'email' => 'invitee@example.com',
             ]);
 
-        $response->assertStatus(403)
+        $response->assertStatus(Response::HTTP_FORBIDDEN)
             ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Only owners and admins can invite users');
     });
@@ -64,7 +65,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
                 'email' => 'existing@example.com',
             ]);
 
-        $response->assertStatus(409)
+        $response->assertStatus(Response::HTTP_CONFLICT)
             ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'User is already a member of this workspace');
     });
@@ -81,7 +82,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
                 'email' => 'invitee@example.com',
             ]);
 
-        $response->assertStatus(409)
+        $response->assertStatus(Response::HTTP_CONFLICT)
             ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invitation already sent to this email');
     });
@@ -99,7 +100,7 @@ describe('GenerateInvitationController (workspaces.invitations.store)', function
                 'email' => 'invitee@example.com',
             ]);
 
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonPath('status', 'Success');
     });
 });
@@ -166,7 +167,7 @@ describe('WorkspaceInvitationController', function (): void {
                 'password' => 'password',
             ]);
 
-        $response->assertStatus(403);
+        $response->assertStatus(Response::HTTP_FORBIDDEN);
     });
 
     it('returns 409 when trying to delete accepted invitation', function (): void {
@@ -181,7 +182,7 @@ describe('WorkspaceInvitationController', function (): void {
                 'password' => 'password',
             ]);
 
-        $response->assertStatus(409)
+        $response->assertStatus(Response::HTTP_CONFLICT)
             ->assertJsonPath('message', 'Cannot cancel accepted invitation');
     });
 });
@@ -197,7 +198,7 @@ describe('AcceptInvitationController', function (): void {
 
         $response = $this->postJson(route('invitations.accept', ['token' => 'existing-accept-token']));
 
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonPath('status', 'Success')
             ->assertJsonPath('message', 'Invitation accepted');
 
@@ -221,7 +222,7 @@ describe('AcceptInvitationController', function (): void {
         $response = $this->actingAs($existingUser)
             ->post(route('invitations.accept', ['token' => 'logged-in-accept-token']));
 
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonPath('status', 'Success')
             ->assertJsonPath('message', 'Invitation accepted');
 
@@ -245,7 +246,7 @@ describe('AcceptInvitationController', function (): void {
             'password_confirmation' => 'password123',
         ]);
 
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonPath('status', 'Success');
 
         $newUser = User::query()->whereEmail('newuser@example.com')->first();
@@ -261,7 +262,7 @@ describe('AcceptInvitationController', function (): void {
     it('returns error for invalid token', function (): void {
         $response = $this->postJson(route('invitations.accept', ['token' => 'invalid-token']));
 
-        $response->assertStatus(404)
+        $response->assertStatus(Response::HTTP_NOT_FOUND)
             ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invalid invitation');
     });
@@ -274,7 +275,7 @@ describe('AcceptInvitationController', function (): void {
 
         $response = $this->postJson(route('invitations.accept', ['token' => 'expired-accept-token']));
 
-        $response->assertStatus(410)
+        $response->assertStatus(Response::HTTP_GONE)
             ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invitation has expired');
     });
@@ -287,7 +288,7 @@ describe('AcceptInvitationController', function (): void {
 
         $response = $this->postJson(route('invitations.accept', ['token' => 'accepted-accept-token']));
 
-        $response->assertStatus(409)
+        $response->assertStatus(Response::HTTP_CONFLICT)
             ->assertJsonPath('status', 'Failed')
             ->assertJsonPath('message', 'Invitation already used');
     });

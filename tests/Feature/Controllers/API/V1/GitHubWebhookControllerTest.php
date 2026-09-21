@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Contracts\WebhookProvider;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 it('accepts valid github webhook and returns 202', function (): void {
@@ -25,7 +26,7 @@ it('accepts valid github webhook and returns 202', function (): void {
         ],
     ], ['X-GitHub-Event' => 'pull_request']);
 
-    $response->assertStatus(202)
+    $response->assertStatus(Response::HTTP_ACCEPTED)
         ->assertJsonPath('status', 'Success')
         ->assertJsonPath('message', 'Event accepted and dispatched to background processing.');
 });
@@ -40,7 +41,7 @@ it('returns 500 on webhook exception', function (): void {
         'action' => 'opened',
     ], ['X-GitHub-Event' => 'pull_request']);
 
-    $response->assertStatus(500)
+    $response->assertStatus(Response::HTTP_INTERNAL_SERVER_ERROR)
         ->assertJsonPath('status', 'Failed')
         ->assertJsonPath('message', 'Webhook processing failed');
 });
@@ -55,7 +56,7 @@ it('returns 500 on http exception', function (): void {
         'action' => 'opened',
     ], ['X-GitHub-Event' => 'pull_request']);
 
-    $response->assertStatus(403)
+    $response->assertStatus(Response::HTTP_FORBIDDEN)
         ->assertJsonPath('status', 'Failed')
         ->assertJsonPath('message', 'Invalid signature');
 });

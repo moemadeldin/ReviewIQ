@@ -60,7 +60,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
                     $isRetryable = $this->isRetryableStatus($status);
 
                     if ($attempt < self::MAX_FALLBACK_RETRIES && $isRetryable) {
-                        $delay = (int) (1000 * 2 ** $attempt); // 1s, 2s
+                        $delay = 1000 * 2 ** $attempt; // 1s, 2s
                         Log::warning('OpenRouter request failed, retrying', [
                             'model' => $model,
                             'attempt' => $attempt + 1,

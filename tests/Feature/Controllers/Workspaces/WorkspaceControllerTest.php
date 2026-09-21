@@ -72,7 +72,7 @@ it('sets workspace as current after creation', function (): void {
 
 it('renders workspace index page', function (): void {
     $user = User::factory()->create();
-    $workspace = Workspace::factory()->withOwner($user)->create();
+    Workspace::factory()->withOwner($user)->create();
 
     $response = $this->actingAs($user)
         ->get(route('workspaces.index'));
@@ -248,7 +248,7 @@ it('opens own workspace when another user has the same name', function (): void 
     $userA = User::factory()->create();
     $userB = User::factory()->create();
 
-    $workspaceA = Workspace::factory()->withOwner($userA)->create(['name' => 'Test']);
+    Workspace::factory()->withOwner($userA)->create(['name' => 'Test']);
     $workspaceB = Workspace::factory()->withOwner($userB)->create(['name' => 'Test']);
 
     $response = $this->actingAs($userB)
@@ -276,7 +276,7 @@ it('redirects a non-member away from another workspace', function (): void {
 it('opens same-named workspace as member showing the correct owner', function (): void {
     $owner = User::factory()->create();
     $member = User::factory()->create();
-    $ownedWorkspace = Workspace::factory()->withOwner($member)->create(['name' => 'Test']);
+    Workspace::factory()->withOwner($member)->create(['name' => 'Test']);
     $joinedWorkspace = Workspace::factory()->withOwner($owner)->create(['name' => 'Test']);
     $joinedWorkspace->addUser($member, Roles::Member);
 

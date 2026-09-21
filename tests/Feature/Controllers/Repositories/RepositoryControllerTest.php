@@ -4,6 +4,7 @@ declare(strict_types=1);
 use App\Models\Repository;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function (): void {
@@ -17,7 +18,7 @@ beforeEach(function (): void {
 
 it('returns empty data when user has workspace but none selected in session', function (): void {
     Http::fake([
-        'https://api.github.com/*' => Http::response([], 200),
+        'https://api.github.com/*' => Http::response([], Response::HTTP_OK),
     ]);
 
     $response = $this->actingAs($this->user)
@@ -39,7 +40,7 @@ it('returns connected repos for a selected workspace via workspace_id query', fu
     Http::fake([
         'https://api.github.com/*' => Http::response([
             ['id' => 123, 'full_name' => 'owner/repo', 'language' => 'PHP'],
-        ], 200),
+        ], Response::HTTP_OK),
     ]);
 
     $response = $this->actingAs($this->user)
@@ -67,7 +68,7 @@ it('returns connected repos from all workspaces when no workspace selected', fun
         'https://api.github.com/*' => Http::response([
             ['id' => 1, 'full_name' => 'owner/repo1', 'language' => 'PHP'],
             ['id' => 2, 'full_name' => 'owner/repo2', 'language' => 'PHP'],
-        ], 200),
+        ], Response::HTTP_OK),
     ]);
 
     $response = $this->actingAs($this->user)
@@ -82,7 +83,7 @@ it('stores a repository successfully', function (): void {
     Http::fake([
         'https://api.github.com/user/repos*' => Http::response([
             ['id' => 123, 'full_name' => 'owner/repo', 'language' => 'PHP'],
-        ], 200),
+        ], Response::HTTP_OK),
         'https://api.github.com/repos/*/hooks' => Http::response(['id' => 999], 201),
     ]);
 
@@ -123,7 +124,7 @@ it('filters repositories via search language and visibility query params', funct
             ['id' => 1, 'full_name' => 'owner/blog-api', 'name' => 'blog-api', 'language' => 'PHP', 'private' => true],
             ['id' => 2, 'full_name' => 'owner/cli-tool', 'name' => 'cli-tool', 'language' => 'PHP', 'private' => false],
             ['id' => 3, 'full_name' => 'owner/web-app', 'name' => 'web-app', 'language' => 'TypeScript', 'private' => false],
-        ], 200),
+        ], Response::HTTP_OK),
     ]);
 
     $response = $this->actingAs($this->user)

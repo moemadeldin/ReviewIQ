@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Services\GitHubApiService;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function (): void {
@@ -23,7 +24,7 @@ it('gets user repositories', function (): void {
                 'full_name' => 'test/repo2',
                 'language' => 'JavaScript',
             ],
-        ], 200),
+        ], Response::HTTP_OK),
     ]);
 
     $repos = $this->github->getUserRepos('test-token');
@@ -40,7 +41,7 @@ it('registers webhook and returns webhook id', function (): void {
     Http::fake([
         'https://api.github.com/repos/test/repo/hooks' => Http::response([
             'id' => 123,
-        ], 201),
+        ], Response::HTTP_CREATED),
     ]);
 
     $webhookId = $this->github->registerWebhook('test-token', 'test/repo');
@@ -54,7 +55,7 @@ it('registers webhook and returns webhook id', function (): void {
 
 it('deletes webhook', function (): void {
     Http::fake([
-        'https://api.github.com/repos/test/repo/hooks/webhook_123' => Http::response(null, 204),
+        'https://api.github.com/repos/test/repo/hooks/webhook_123' => Http::response(null, Response::HTTP_NO_CONTENT),
     ]);
 
     $this->github->deleteWebhook('test-token', 'test/repo', 'webhook_123');
@@ -68,7 +69,7 @@ it('throws on get user repos failure', function (): void {
     Http::fake([
         'https://api.github.com/user/repos*' => Http::response([
             'message' => 'Bad credentials',
-        ], 401),
+        ], Response::HTTP_UNAUTHORIZED),
     ]);
 
     expect(fn () => $this->github->getUserRepos('invalid-token'))
@@ -79,7 +80,7 @@ it('throws on register webhook failure', function (): void {
     Http::fake([
         'https://api.github.com/repos/test/repo/hooks' => Http::response([
             'message' => 'Not Found',
-        ], 404),
+        ], Response::HTTP_NOT_FOUND),
     ]);
 
     expect(fn () => $this->github->registerWebhook('test-token', 'test/repo'))
@@ -88,7 +89,7 @@ it('throws on register webhook failure', function (): void {
 
 it('posts review body only when no line numbers are present', function (): void {
     Http::fake([
-        'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::response([], 200),
+        'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::response([], Response::HTTP_OK),
     ]);
 
     $posted = $this->github->postReviewComments(
@@ -115,7 +116,7 @@ it('posts review body only when no line numbers are present', function (): void 
 
 it('posts review with inline comments for issues with line numbers', function (): void {
     Http::fake([
-        'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::response([], 200),
+        'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::response([], Response::HTTP_OK),
     ]);
 
     $posted = $this->github->postReviewComments(
@@ -143,12 +144,12 @@ it('handles 422 fallback: posts body-only review then individual comments', func
     Http::fake([
         // First call fails with 422
         'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::sequence()
-            ->push(['message' => 'Validation Failed'], 422)
-            ->push([], 200),
+            ->push(['message' => 'Validation Failed'], Response::HTTP_UNPROCESSABLE_ENTITY)
+            ->push([], Response::HTTP_OK),
         // Individual comment calls
         'https://api.github.com/repos/test/repo/pulls/42/comments' => Http::sequence()
-            ->push([], 201)
-            ->push([], 201),
+            ->push([], Response::HTTP_CREATED)
+            ->push([], Response::HTTP_CREATED),
     ]);
 
     $posted = $this->github->postReviewComments(
@@ -184,12 +185,12 @@ it('returns actual posted count when some individual comments fail', function ()
     Http::fake([
         // First call fails with 422
         'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::sequence()
-            ->push(['message' => 'Validation Failed'], 422)
-            ->push([], 200),
+            ->push(['message' => 'Validation Failed'], Response::HTTP_UNPROCESSABLE_ENTITY)
+            ->push([], Response::HTTP_OK),
         // First comment succeeds, second fails
         'https://api.github.com/repos/test/repo/pulls/42/comments' => Http::sequence()
-            ->push([], 201)
-            ->push(['message' => 'Not Found'], 404),
+            ->push([], Response::HTTP_CREATED)
+            ->push(['message' => 'Not Found'], Response::HTTP_NOT_FOUND),
     ]);
 
     $posted = $this->github->postReviewComments(
@@ -210,8 +211,8 @@ it('returns actual posted count when some individual comments fail', function ()
 it('retries only on connection exception, 429, or 5xx', function (): void {
     Http::fake([
         'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::sequence()
-            ->push('Server Error', 500)
-            ->push('', 200),
+            ->push('Server Error', Response::HTTP_INTERNAL_SERVER_ERROR)
+            ->push('', Response::HTTP_OK),
     ]);
 
     $posted = $this->github->postReviewComments(
@@ -231,10 +232,10 @@ it('retries only on connection exception, 429, or 5xx', function (): void {
 it('does not retry on 422', function (): void {
     Http::fake([
         'https://api.github.com/repos/test/repo/pulls/42/reviews' => Http::sequence()
-            ->push('Validation Failed', 422)
-            ->push([], 200),
+            ->push('Validation Failed', Response::HTTP_UNPROCESSABLE_ENTITY)
+            ->push([], Response::HTTP_OK),
         'https://api.github.com/repos/test/repo/pulls/42/comments' => Http::sequence()
-            ->push([], 201),
+            ->push([], Response::HTTP_CREATED),
     ]);
 
     $posted = $this->github->postReviewComments(

@@ -6,6 +6,7 @@ use App\Enums\Roles;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
+use Illuminate\Http\Response;
 
 beforeEach(function (): void {
     $this->owner = User::factory()->create();
@@ -71,7 +72,7 @@ it('returns gone for an expired invitation', function (): void {
     $response = $this->actingAs($user)
         ->post(route('invitations.accept-as-member', ['token' => 'expired-bell-token']));
 
-    $response->assertStatus(410);
+    $response->assertStatus(Response::HTTP_GONE);
 });
 
 it('returns conflict for an already accepted invitation', function (): void {
@@ -83,5 +84,5 @@ it('returns conflict for an already accepted invitation', function (): void {
     $response = $this->actingAs($user)
         ->post(route('invitations.accept-as-member', ['token' => 'accepted-bell-token']));
 
-    $response->assertStatus(409);
+    $response->assertStatus(Response::HTTP_CONFLICT);
 });

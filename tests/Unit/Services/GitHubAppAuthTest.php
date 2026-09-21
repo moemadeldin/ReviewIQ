@@ -6,6 +6,7 @@ use App\Services\GitHubAppAuth;
 use App\Services\GitHubHttp;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -85,7 +86,7 @@ it('fetches and caches installation token', function (): void {
     $installationId = (string) config('services.github_app.installation_id');
 
     Http::fake([
-        sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(['token' => 'ghs_test_token'], 201),
+        sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(['token' => 'ghs_test_token'], Response::HTTP_CREATED),
     ]);
 
     $auth = app()->make(GitHubAppAuth::class);
@@ -124,7 +125,7 @@ it('refreshToken clears cache and fetches new token', function (): void {
     Cache::put(sprintf('github:installation_token:%s', $installationId), 'stale_token', 55 * 60);
 
     Http::fake([
-        sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(['token' => 'fresh_token'], 201),
+        sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(['token' => 'fresh_token'], Response::HTTP_CREATED),
     ]);
 
     $auth = app()->make(GitHubAppAuth::class);
@@ -140,7 +141,7 @@ it('throws on empty token from API', function (): void {
     $installationId = (string) config('services.github_app.installation_id');
 
     Http::fake([
-        sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(['token' => ''], 200),
+        sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(['token' => ''], Response::HTTP_OK),
     ]);
 
     $auth = app()->make(GitHubAppAuth::class);
@@ -153,7 +154,7 @@ it('throws and clears cache on 401', function (): void {
     $installationId = (string) config('services.github_app.installation_id');
 
     Http::fake([
-        sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(null, 401),
+        sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response(null, Response::HTTP_UNAUTHORIZED),
     ]);
 
     $auth = app()->make(GitHubAppAuth::class);
@@ -196,7 +197,7 @@ it('throws when GitHub API returns no token key', function (): void {
     $installationId = (string) config('services.github_app.installation_id');
 
     Http::fake([
-        sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response([], 200),
+        sprintf('api.github.com/app/installations/%s/access_tokens', $installationId) => Http::response([], Response::HTTP_OK),
     ]);
 
     $auth = app()->make(GitHubAppAuth::class);

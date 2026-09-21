@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Services\GitHubDiffService;
 use App\Services\GitHubHttp;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 
@@ -13,7 +14,7 @@ beforeEach(function (): void {
 
 it('fetches diff successfully', function (): void {
     Http::fake([
-        'api.github.com/repos/owner/repo/pulls/42' => Http::response('diff --git a/file.php b/file.php', 200),
+        'api.github.com/repos/owner/repo/pulls/42' => Http::response('diff --git a/file.php b/file.php', Response::HTTP_OK),
     ]);
 
     $service = app()->make(GitHubDiffService::class);
@@ -28,7 +29,7 @@ it('fetches diff successfully', function (): void {
 
 it('throws on failed response', function (): void {
     Http::fake([
-        'api.github.com/repos/owner/repo/pulls/42' => Http::response('Not Found', 404),
+        'api.github.com/repos/owner/repo/pulls/42' => Http::response('Not Found', Response::HTTP_NOT_FOUND),
     ]);
 
     $service = app()->make(GitHubDiffService::class);

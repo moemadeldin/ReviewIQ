@@ -49,7 +49,7 @@ function openRouterValidJsonResponse(): string
 }
 
 it('performs non-streaming review successfully', function (): void {
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => openRouterValidJsonResponse()]],
         ],
@@ -128,7 +128,7 @@ it('throws on http failure during review', function (): void {
 });
 
 it('throws on invalid json response', function (): void {
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => 'not valid json']],
         ],
@@ -146,7 +146,7 @@ it('throws on invalid json response', function (): void {
 });
 
 it('throws with max tokens hint and logs details when content is truncated empty', function (): void {
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             [
                 'message' => ['content' => null],
@@ -170,7 +170,7 @@ it('throws with max tokens hint and logs details when content is truncated empty
 });
 
 it('throws on missing required fields', function (): void {
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => json_encode(['summary' => 'test'])]],
         ],
@@ -188,7 +188,7 @@ it('throws on missing required fields', function (): void {
 });
 
 it('sanitizes score to int', function (): void {
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => json_encode([
                 'summary' => 'test',
@@ -209,7 +209,7 @@ it('sanitizes score to int', function (): void {
 });
 
 it('provides defaults for missing optional fields', function (): void {
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => json_encode([
                 'summary' => 'test',
@@ -232,7 +232,7 @@ it('provides defaults for missing optional fields', function (): void {
 });
 
 it('parses json with markdown fences', function (): void {
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => "```json\n".openRouterValidJsonResponse()."\n```"]],
         ],
@@ -249,7 +249,7 @@ it('parses json with markdown fences', function (): void {
 });
 
 it('sanitizes issues severity', function (): void {
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => json_encode([
                 'summary' => 'test',
@@ -330,7 +330,7 @@ it('converts string highlights to object format', function (): void {
         'recommendation' => 'approve',
     ]);
 
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => $raw]],
         ],
@@ -362,7 +362,7 @@ it('repairs trailing comma with stray quote before closing brace', function (): 
   ],
  "}';
 
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => $raw]],
         ],
@@ -383,7 +383,7 @@ it('repairs trailing comma with stray quote before closing brace', function (): 
 it('repairs trailing comma before closing brace', function (): void {
     $raw = '{"summary": "test", "score": 75, "issues": [],}';
 
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => $raw]],
         ],
@@ -411,7 +411,7 @@ it('rejects constructor with empty base url', function (): void {
 it('repairs missing colon before bracket key', function (): void {
     $raw = '{"score":70,"issues [{"severity":"high"}],"summary": "test"}';
 
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => $raw]],
         ],
@@ -443,7 +443,7 @@ it('repairs common json malformations', function (): void {
  "recommendation": "request_changes"
 }';
 
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => $raw]],
         ],
@@ -476,7 +476,7 @@ it('parses valid json without corrupting string bodies', function (): void {
         'recommendation' => 'request_changes',
     ], flags: JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => $raw]],
         ],
@@ -498,13 +498,13 @@ it('parses valid json without corrupting string bodies', function (): void {
 });
 
 it('falls back to the next model when parsing fails', function (): void {
-    $invalid = new Response(200, [], json_encode([
+    $invalid = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => 'User Safety: safe']],
         ],
     ]));
 
-    $valid = new Response(200, [], json_encode([
+    $valid = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => openRouterValidJsonResponse()]],
         ],
@@ -522,7 +522,7 @@ it('falls back to the next model when parsing fails', function (): void {
 });
 
 it('throws the last error when every fallback model fails', function (): void {
-    $invalid = new Response(200, [], json_encode([
+    $invalid = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => 'not valid json']],
         ],
@@ -540,7 +540,7 @@ it('throws the last error when every fallback model fails', function (): void {
 });
 
 it('reports the decoding error truthfully when json is invalid', function (): void {
-    $response = new Response(200, [], json_encode([
+    $response = new Response(Illuminate\Http\Response::HTTP_OK, [], json_encode([
         'choices' => [
             ['message' => ['content' => '{ this is not json "']],
         ],

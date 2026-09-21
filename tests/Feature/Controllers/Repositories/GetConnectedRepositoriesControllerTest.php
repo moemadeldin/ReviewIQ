@@ -10,12 +10,12 @@ it('returns connected repositories for workspace', function (): void {
     $user = User::factory()->create();
     $workspace = Workspace::factory()->withOwner($user)->create();
 
-    $repo1 = Repository::factory()->create([
+    Repository::factory()->create([
         'workspace_id' => $workspace->id,
         'full_name' => 'owner/repo1',
         'is_active' => true,
     ]);
-    $repo2 = Repository::factory()->create([
+    Repository::factory()->create([
         'workspace_id' => $workspace->id,
         'full_name' => 'owner/repo2',
         'is_active' => true,

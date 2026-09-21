@@ -29,7 +29,7 @@ it('passes through when user has no workspaces', function (): void {
     $response = $middleware->handle($request, fn ($req): Response => new Response());
 
     expect($request->attributes->get('current_workspace'))->toBeNull();
-    expect($response->getStatusCode())->toBe(200);
+    expect($response->getStatusCode())->toBe(Illuminate\Http\Response::HTTP_OK);
 });
 
 it('require workspace passes through when user is guest', function (): void {
@@ -38,7 +38,7 @@ it('require workspace passes through when user is guest', function (): void {
     $request = Request::create('/', 'GET');
     $response = $middleware->handle($request, fn ($req): Response => new Response());
 
-    expect($response->getStatusCode())->toBe(200);
+    expect($response->getStatusCode())->toBe(Illuminate\Http\Response::HTTP_OK);
 });
 
 it('require workspace passes through for excepted routes', function (): void {
@@ -56,7 +56,7 @@ it('require workspace passes through for excepted routes', function (): void {
 
     $response = $middleware->handle($request, fn ($req): Response => new Response());
 
-    expect($response->getStatusCode())->toBe(200);
+    expect($response->getStatusCode())->toBe(Illuminate\Http\Response::HTTP_OK);
 });
 
 it('require workspace redirects to create when user has no workspaces', function (): void {

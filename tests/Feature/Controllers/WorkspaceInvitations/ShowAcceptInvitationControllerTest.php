@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
+use Illuminate\Http\Response;
 
 it('shows accept invitation page for valid token', function (): void {
     $workspace = Workspace::factory()->create();
@@ -43,7 +44,7 @@ it('shows accept invitation page for existing user email', function (): void {
 it('returns 404 for invalid token', function (): void {
     $response = $this->get(route('invitations.accept.page', ['token' => 'non-existent-token']));
 
-    $response->assertStatus(404)
+    $response->assertStatus(Response::HTTP_NOT_FOUND)
         ->assertJsonPath('message', 'Invalid invitation');
 });
 
@@ -53,7 +54,7 @@ it('returns 410 for expired invitation', function (): void {
 
     $response = $this->get(route('invitations.accept.page', ['token' => 'expired-token']));
 
-    $response->assertStatus(410)
+    $response->assertStatus(Response::HTTP_GONE)
         ->assertJsonPath('message', 'Invitation has expired');
 });
 
@@ -63,6 +64,6 @@ it('returns 409 for already accepted invitation', function (): void {
 
     $response = $this->get(route('invitations.accept.page', ['token' => 'accepted-token']));
 
-    $response->assertStatus(409)
+    $response->assertStatus(Response::HTTP_CONFLICT)
         ->assertJsonPath('message', 'Invitation already used');
 });

@@ -27,13 +27,13 @@ final class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(GitHubApiService::class, fn (): GitHubApiService => new GitHubApiService(
-            baseUrl: config('services.github.base_url'),
             http: $this->app->make(GitHubHttp::class),
+            baseUrl: config('services.github.base_url'),
         ));
 
         $this->app->singleton(GitHubDiffService::class, fn (): GitHubDiffService => new GitHubDiffService(
-            baseUrl: config('services.github.base_url'),
             http: $this->app->make(GitHubHttp::class),
+            baseUrl: config('services.github.base_url'),
         ));
 
         $this->app->singleton(GitHubAppAuthService::class, fn (): GitHubAppAuthService => new GitHubAppAuthService(

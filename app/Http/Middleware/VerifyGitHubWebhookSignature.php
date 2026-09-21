@@ -23,7 +23,7 @@ final readonly class VerifyGitHubWebhookSignature
 
         /** @var string $body */
         $body = $request->getContent();
-        $computed = 'sha256='.hash_hmac('sha256', $body, $secret);
+        $computed = 'sha256='.hash_hmac('sha256', $body, (string) $secret);
 
         throw_unless(hash_equals($computed, $signature), AccessDeniedHttpException::class, 'Invalid signature.');
 
