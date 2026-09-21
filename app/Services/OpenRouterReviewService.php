@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Contracts\AIReviewer;
 use App\Exceptions\ReviewParseException;
+use App\Utilities\Constants;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
@@ -18,8 +19,6 @@ use Throwable;
 
 final readonly class OpenRouterReviewService implements AIReviewer
 {
-    private const int MAX_FALLBACK_RETRIES = 2;
-
     /**
      * @param  array<int, string>  $fallbackModels
      */
@@ -45,7 +44,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
         $parser = new ReviewResponseParser();
 
         foreach ($this->models() as $model) {
-            for ($attempt = 0; $attempt <= self::MAX_FALLBACK_RETRIES; $attempt++) {
+            for ($attempt = 0; $attempt <= Constants::AI_MAX_FALLBACK_RETRIES; $attempt++) {
                 try {
                     $result = $this->attemptReview($model, $systemPrompt, $userPrompt, $parser);
 
@@ -59,8 +58,8 @@ final readonly class OpenRouterReviewService implements AIReviewer
                     $status = $this->extractStatus($error);
                     $isRetryable = $this->isRetryableStatus($status);
 
-                    if ($attempt < self::MAX_FALLBACK_RETRIES && $isRetryable) {
-                        $delay = 1000 * 2 ** $attempt; // 1s, 2s
+                    if ($attempt < Constants::AI_MAX_FALLBACK_RETRIES && $isRetryable) {
+                        $delay = Constants::AI_RETRY_DELAY_BASE_MS * 2 ** $attempt; // 1s, 2s
                         Log::warning('OpenRouter request failed, retrying', [
                             'model' => $model,
                             'attempt' => $attempt + 1,

@@ -9,6 +9,7 @@ use App\Contracts\GitHubAppAuth;
 use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\Review;
+use App\Utilities\Constants;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
-#[Tries(3)]
+#[Tries(Constants::REVIEW_JOB_TRIES)]
 final class PostReviewComments implements ShouldQueue
 {
     use Dispatchable;
@@ -56,7 +57,7 @@ final class PostReviewComments implements ShouldQueue
         $issues = $review->issues;
 
         $body = sprintf(
-            "## ReviewIQ Review — Score: %d/100\n\n%s",
+            '## ReviewIQ Review — Score: %d/'.Constants::AI_SCORE_MAX."\n\n%s",
             $review->score ?? 0,
             $review->summary ?? '',
         );

@@ -10,6 +10,7 @@ use App\Enums\PullRequestStatus;
 use App\Jobs\ProcessPullRequestReview;
 use App\Models\PullRequest;
 use App\Models\Repository;
+use App\Utilities\Constants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -99,7 +100,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
         }
 
         if ($deliveryId) {
-            Cache::put('github:webhook:'.$deliveryId, true, 86400); // 24h TTL
+            Cache::put('github:webhook:'.$deliveryId, true, Constants::GITHUB_WEBHOOK_DEDUP_TTL_SECONDS);
         }
     }
 

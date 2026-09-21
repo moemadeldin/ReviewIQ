@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Contracts\GitHubApi;
+use App\Utilities\Constants;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Response;
@@ -14,8 +15,6 @@ use RuntimeException;
 
 final readonly class GitHubApiService implements GitHubApi
 {
-    private const int REPOS_CACHE_TTL = 300;
-
     public function __construct(
         private GitHubHttp $http,
     ) {}
@@ -25,11 +24,11 @@ final readonly class GitHubApiService implements GitHubApi
      */
     public function getUserRepos(string $token, int $page = 1, int $perPage = 0): array
     {
-        $perPage = $perPage > 0 ? $perPage : (int) config('services.github.repos_per_page', 10);
+        $perPage = $perPage > 0 ? $perPage : (int) config('services.github.repos_per_page', Constants::PAGE_LIMIT);
 
         $cacheKey = sprintf('github:repos:%s:page:%d:per:%d', hash('sha256', $token), $page, $perPage);
 
-        return Cache::remember($cacheKey, self::REPOS_CACHE_TTL, function () use ($token, $page, $perPage): array {
+        return Cache::remember($cacheKey, Constants::GITHUB_REPOS_CACHE_TTL_SECONDS, function () use ($token, $page, $perPage): array {
             $response = $this->http->json($token)->get('/user/repos', [
                 'page' => $page,
                 'per_page' => $perPage,
@@ -68,7 +67,7 @@ final readonly class GitHubApiService implements GitHubApi
         $webhookUrl = GitHubWebhookHelper::webhookUrl();
 
         $response = $this->http->json($token)->get('/repos/'.$fullName.'/hooks', [
-            'per_page' => 100,
+            'per_page' => Constants::GITHUB_API_REPOS_PER_PAGE,
         ]);
 
         if ($response->failed()) {
@@ -122,7 +121,7 @@ final readonly class GitHubApiService implements GitHubApi
         // First attempt: post review with inline comments (if any)
         try {
             $this->http->json($token)
-                ->retry(2, 200, function (RequestException $e): bool {
+                ->retry(Constants::GITHUB_API_RETRIES, Constants::GITHUB_API_RETRY_DELAY_MS, function (RequestException $e): bool {
                     $status = $e->response?->status();
 
                     return $e instanceof ConnectionException
