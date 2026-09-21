@@ -143,30 +143,36 @@ final class ProcessPullRequestReview implements ShouldBeUnique, ShouldQueue
             'truncated_length' => mb_strlen($truncatedDiff),
         ]);
 
+        // Fetch previous review (if any) for incremental context.
+        $previousReview = Review::query()
+            ->where('pull_request_id', $this->pullRequest->id)
+            ->latest('created_at')
+            ->first();
+
         /** @var array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, array{}>, highlights?: array<int, string>, recommendation?: string} $reviewResult */
         $reviewResult = $aiReviewer->review(
-            systemPrompt: $promptBuilder->buildSystemPrompt(),
+            systemPrompt: $promptBuilder->buildSystemPrompt($previousReview),
             userPrompt: $promptBuilder->buildUserPrompt(
                 diff: $truncatedDiff,
                 prTitle: $this->pullRequest->title ?? '',
                 prDescription: $this->pullRequest->description,
                 repoLanguage: $repository->language,
                 customRules: $repository->custom_rules,
+                previousReview: $previousReview,
             ),
         );
 
-        Review::query()->updateOrCreate(
-            ['pull_request_id' => $this->pullRequest->id],
-            [
-                'summary' => $reviewResult['summary'] ?? '',
-                'score' => $reviewResult['score'] ?? 0,
-                'score_rationale' => $reviewResult['score_rationale'] ?? '',
-                'issues' => $this->validateIssues($diffLineMapper, $diff, $reviewResult['issues'] ?? []),
-                'highlights' => $reviewResult['highlights'] ?? [],
-                'recommendation' => $reviewResult['recommendation'] ?? 'comment',
-                'raw_response' => json_encode($reviewResult),
-            ],
-        );
+        Review::query()->create([
+            'pull_request_id' => $this->pullRequest->id,
+            'previous_review_id' => $previousReview?->id,
+            'summary' => $reviewResult['summary'] ?? '',
+            'score' => $reviewResult['score'] ?? 0,
+            'score_rationale' => $reviewResult['score_rationale'] ?? '',
+            'issues' => $this->validateIssues($diffLineMapper, $diff, $reviewResult['issues'] ?? []),
+            'highlights' => $reviewResult['highlights'] ?? [],
+            'recommendation' => $reviewResult['recommendation'] ?? 'comment',
+            'raw_response' => json_encode($reviewResult),
+        ]);
 
         event(new ReviewCompleted(
             prId: $this->pullRequest->id,

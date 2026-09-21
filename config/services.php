@@ -68,5 +68,7 @@ return [
     'prompt' => [
         'max_diff_chars' => env('PROMPT_MAX_DIFF_CHARS', 100000),
         'ignore_patterns' => env('PROMPT_IGNORE_PATTERNS', ''),
+        'enable_incremental_reviews' => env('PROMPT_ENABLE_INCREMENTAL_REVIEWS', true),
+        'max_previous_review_chars' => env('PROMPT_MAX_PREVIOUS_REVIEW_CHARS', 4000),
     ],
 ];

@@ -38,8 +38,8 @@ final class PostReviewComments implements ShouldQueue
     {
         $review = $this->pullRequest->review;
 
-        if (! $review instanceof Review || empty($review->issues)) {
-            Log::info('No issues to post as comments for PR #'.$this->pullRequest->number);
+        if (! $review instanceof Review) {
+            Log::info('No review to post comments for PR #'.$this->pullRequest->number);
 
             return;
         }
@@ -59,7 +59,7 @@ final class PostReviewComments implements ShouldQueue
         $body = sprintf(
             '## ReviewIQ Review — Score: %d/'.Constants::AI_SCORE_MAX."\n\n%s",
             $review->score ?? 0,
-            $review->summary ?? '',
+            empty($review->issues) ? Constants::REVIEW_NO_ISSUES_MESSAGE : ($review->summary ?? ''),
         );
 
         $token = $this->resolveToken($githubApp);

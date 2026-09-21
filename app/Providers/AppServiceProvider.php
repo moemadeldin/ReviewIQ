@@ -15,6 +15,7 @@ use App\Services\GitHubDiffService;
 use App\Services\GitHubHttp;
 use App\Services\GitHubWebhookService;
 use App\Services\OpenRouterReviewService;
+use App\Services\PromptBuilder;
 use GuzzleHttp\Client;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,12 +29,10 @@ final class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(GitHubApiService::class, fn (): GitHubApiService => new GitHubApiService(
             http: $this->app->make(GitHubHttp::class),
-            baseUrl: config('services.github.base_url'),
         ));
 
         $this->app->singleton(GitHubDiffService::class, fn (): GitHubDiffService => new GitHubDiffService(
             http: $this->app->make(GitHubHttp::class),
-            baseUrl: config('services.github.base_url'),
         ));
 
         $this->app->singleton(GitHubAppAuthService::class, fn (): GitHubAppAuthService => new GitHubAppAuthService(
@@ -64,5 +63,14 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(DiffProvider::class, GitHubDiffService::class);
         $this->app->bind(AIReviewer::class, OpenRouterReviewService::class);
         $this->app->bind(WebhookProvider::class, GitHubWebhookService::class);
+
+        $this->app->singleton(PromptBuilder::class, fn (): PromptBuilder => new PromptBuilder(
+            maxDiffChars: (int) config('services.prompt.max_diff_chars'),
+            ignorePatterns: array_values(array_filter(
+                array_map(trim(...), explode(',', (string) config('services.prompt.ignore_patterns', ''))),
+            )),
+            enableIncrementalReviews: (bool) config('services.prompt.enable_incremental_reviews'),
+            maxPreviousReviewChars: (int) config('services.prompt.max_previous_review_chars'),
+        ));
     }
 }

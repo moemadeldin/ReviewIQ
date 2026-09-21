@@ -30,6 +30,8 @@ final class Constants
 
     public const int REVIEW_STALE_MINUTES = 10;
 
+    public const string REVIEW_NO_ISSUES_MESSAGE = 'No issues found — ready to merge.';
+
     // Pagination / dashboard
     public const int PAGE_LIMIT = 10;
 
@@ -61,6 +63,12 @@ final class Constants
     public const int PROMPT_MAX_DIFF_CHARS_DEFAULT = 100000;
 
     public const int PROMPT_MAX_CUSTOM_RULES_LENGTH = 5000;
+
+    public const int PROMPT_MAX_PREVIOUS_REVIEW_CHARS_DEFAULT = 4000;
+
+    public const int PROMPT_PREVIOUS_REVIEW_MAX_ISSUES_DEFAULT = 5;
+
+    public const int PROMPT_PREVIOUS_REVIEW_ISSUE_DETAIL_CHARS_DEFAULT = 300;
 
     public const int PROMPT_PRIORITY_BASE = 100;
 
