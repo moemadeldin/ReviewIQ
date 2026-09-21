@@ -24,7 +24,7 @@ final class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(GitHubHttp::class, fn (): GitHubHttp => new GitHubHttp(
-            baseUrl: config('services.github.base_url'),
+            baseUrl: $this->stringConfig('services.github.base_url'),
         ));
 
         $this->app->singleton(GitHubApiService::class, fn (): GitHubApiService => new GitHubApiService(
@@ -36,7 +36,7 @@ final class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(GitHubAppAuthService::class, fn (): GitHubAppAuthService => new GitHubAppAuthService(
-            baseUrl: config('services.github.base_url'),
+            baseUrl: $this->stringConfig('services.github.base_url'),
             http: $this->app->make(GitHubHttp::class),
         ));
         $this->app->bind(GitHubAppAuth::class, GitHubAppAuthService::class);
@@ -46,15 +46,15 @@ final class AppServiceProvider extends ServiceProvider
                 'timeout' => config('services.openrouter.timeout'),
                 'connect_timeout' => config('services.openrouter.connect_timeout', 10),
             ]),
-            baseUrl: config('services.openrouter.base_url'),
-            apiKey: config('services.openrouter.api_key'),
-            model: config('services.openrouter.model'),
-            temperature: (float) config('services.openrouter.temperature'),
-            maxTokens: (int) config('services.openrouter.max_tokens'),
-            timeout: (int) config('services.openrouter.timeout'),
-            connectTimeout: (int) config('services.openrouter.connect_timeout', 10),
+            baseUrl: $this->stringConfig('services.openrouter.base_url'),
+            apiKey: $this->stringConfig('services.openrouter.api_key'),
+            model: $this->stringConfig('services.openrouter.model'),
+            temperature: $this->floatConfig('services.openrouter.temperature', 0.2),
+            maxTokens: $this->intConfig('services.openrouter.max_tokens', 12000),
+            timeout: $this->intConfig('services.openrouter.timeout', 600),
+            connectTimeout: $this->intConfig('services.openrouter.connect_timeout', 10),
             fallbackModels: array_values(array_filter(
-                array_map(trim(...), explode(',', (string) config('services.openrouter.fallback_models', ''))),
+                array_map(trim(...), explode(',', $this->stringConfig('services.openrouter.fallback_models'))),
             )),
             jsonObjectFormat: (bool) config('services.openrouter.json_object_format'),
         ));
@@ -65,12 +65,33 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(WebhookProvider::class, GitHubWebhookService::class);
 
         $this->app->singleton(PromptBuilder::class, fn (): PromptBuilder => new PromptBuilder(
-            maxDiffChars: (int) config('services.prompt.max_diff_chars'),
+            maxDiffChars: $this->intConfig('services.prompt.max_diff_chars', 100000),
             ignorePatterns: array_values(array_filter(
-                array_map(trim(...), explode(',', (string) config('services.prompt.ignore_patterns', ''))),
+                array_map(trim(...), explode(',', $this->stringConfig('services.prompt.ignore_patterns'))),
             )),
             enableIncrementalReviews: (bool) config('services.prompt.enable_incremental_reviews'),
-            maxPreviousReviewChars: (int) config('services.prompt.max_previous_review_chars'),
+            maxPreviousReviewChars: $this->intConfig('services.prompt.max_previous_review_chars', 4000),
         ));
+    }
+
+    private function stringConfig(string $key, string $default = ''): string
+    {
+        $value = config($key);
+
+        return is_scalar($value) ? (string) $value : $default;
+    }
+
+    private function intConfig(string $key, int $default = 0): int
+    {
+        $value = config($key);
+
+        return is_numeric($value) ? (int) $value : $default;
+    }
+
+    private function floatConfig(string $key, float $default = 0.0): float
+    {
+        $value = config($key);
+
+        return is_numeric($value) ? (float) $value : $default;
     }
 }

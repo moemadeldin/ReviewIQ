@@ -52,9 +52,9 @@ final class HandleInertiaRequests extends Middleware
                 'height' => config('app.og_image_height'),
             ],
             'auth' => [
-                'user' => $request->user(),
+                'user' => fn (): ?User => $request->user(),
                 'workspaces' => fn (): array => $request->user()?->workspaces->toArray() ?? [],
-                'currentWorkspace' => fn (): ?Workspace => $request->attributes->get('current_workspace'),
+                'currentWorkspace' => fn (): ?Workspace => $this->currentWorkspace($request),
                 'role' => fn (): ?Roles => $this->currentRole($request, $user),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
@@ -62,9 +62,23 @@ final class HandleInertiaRequests extends Middleware
     }
 
     /**
+     * Resolve the workspace that is current for the request.
+     */
+    protected function currentWorkspace(Request $request): ?Workspace
+    {
+        $workspace = $request->attributes->get('current_workspace');
+
+        if ($workspace instanceof Workspace) {
+            return $workspace;
+        }
+
+        return null;
+    }
+
+    /**
      * Resolve the current user's role within the current workspace.
      */
-    private function currentRole(Request $request, ?User $user): ?Roles
+    protected function currentRole(Request $request, ?User $user): ?Roles
     {
         $workspace = $request->attributes->get('current_workspace');
 
