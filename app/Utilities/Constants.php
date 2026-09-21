@@ -30,6 +30,8 @@ final class Constants
 
     public const int REVIEW_STALE_MINUTES = 10;
 
+    public const string REVIEW_NO_ISSUES_MESSAGE = 'No issues found — ready to merge.';
+
     // Pagination / dashboard
     public const int PAGE_LIMIT = 10;
 

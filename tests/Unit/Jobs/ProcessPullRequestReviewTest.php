@@ -6,6 +6,7 @@ use App\Contracts\AIReviewer;
 use App\Contracts\DiffProvider;
 use App\Contracts\GitHubAppAuth;
 use App\Enums\PullRequestStatus;
+use App\Jobs\PostReviewComments;
 use App\Jobs\ProcessPullRequestReview;
 use App\Models\PullRequest;
 use App\Models\Repository;
@@ -15,9 +16,12 @@ use App\Models\Workspace;
 use App\Services\DiffLineMapper;
 use App\Services\PromptBuilder;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 
 beforeEach(function (): void {
     Log::spy();
+
+    Queue::fake();
 });
 
 it('processes pull request review successfully', function (): void {
@@ -78,6 +82,8 @@ it('processes pull request review successfully', function (): void {
         ->and($review->score)->toBe(85)
         ->and($review->summary)->toBe('Good code')
         ->and($review->recommendation)->toBe('approve');
+
+    Queue::assertPushed(PostReviewComments::class);
 });
 
 it('creates a linked review when a previous review exists', function (): void {
