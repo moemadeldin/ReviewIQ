@@ -93,7 +93,7 @@
             "rector --dry-run",
             "bun run test:lint"
         ],
-        "test:unit": "pest --parallel --coverage --exactly=85",
+        "test:unit": "pest --parallel --coverage --min=85",
         "test:types": [
             "phpstan",
             "bun run test:types"
