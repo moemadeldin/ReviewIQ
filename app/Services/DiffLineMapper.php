@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-final class DiffLineMapper
+final readonly class DiffLineMapper
 {
     /**
      * Parse a unified diff and extract valid right-side line numbers per file.

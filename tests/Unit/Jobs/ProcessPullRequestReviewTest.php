@@ -51,17 +51,7 @@ it('processes pull request review successfully', function (): void {
 
     $promptBuilder = new PromptBuilder();
 
-    $diffLineMapper = $this->mock(DiffLineMapper::class);
-    $diffLineMapper->shouldReceive('annotate')
-        ->once()
-        ->andReturn('annotated diff');
-    $diffLineMapper->shouldReceive('map')
-        ->once()
-        ->andReturn([]);
-    $diffLineMapper->shouldReceive('validateIssue')
-        ->andReturn(['file' => '', 'line' => null, 'valid' => true]);
-    $diffLineMapper->shouldReceive('findFileKey')
-        ->andReturn(null);
+    $diffLineMapper = new DiffLineMapper();
 
     $reviewContent = [
         'summary' => 'Good code',
@@ -90,6 +80,132 @@ it('processes pull request review successfully', function (): void {
         ->and($review->recommendation)->toBe('approve');
 });
 
+it('creates a linked review when a previous review exists', function (): void {
+    $owner = User::factory()->create(['github_token' => 'test-token']);
+    $workspace = Workspace::factory()->create(['owner_id' => $owner->id]);
+
+    $repo = Repository::factory()->create([
+        'workspace_id' => $workspace->id,
+        'full_name' => 'owner/repo',
+        'language' => 'PHP',
+    ]);
+
+    $pr = PullRequest::factory()->create([
+        'repository_id' => $repo->id,
+        'status' => PullRequestStatus::Pending,
+        'number' => 43,
+        'title' => 'Test PR',
+        'head_sha' => '51738a50db7241299cae62d372eef1c03886c96d',
+    ]);
+
+    $previous = Review::factory()->create([
+        'pull_request_id' => $pr->id,
+        'score' => 62,
+        'summary' => 'Previous review summary',
+        'issues' => [['file' => 'foo.php', 'line' => 1, 'severity' => 'high', 'description' => 'Bug', 'category' => 'correctness', 'suggestion' => 'Fix']],
+        'recommendation' => 'request_changes',
+        'created_at' => now()->subMinute(),
+        'updated_at' => now()->subMinute(),
+    ]);
+
+    $githubApp = $this->mock(GitHubAppAuth::class);
+    $githubApp->shouldReceive('getInstallationToken')->once()->andReturn('test-token');
+
+    $diffService = $this->mock(DiffProvider::class);
+    $diffService->shouldReceive('getDiff')
+        ->once()
+        ->with('test-token', 'owner/repo', 43, '51738a50db7241299cae62d372eef1c03886c96d')
+        ->andReturn('diff content');
+
+    $promptBuilder = new PromptBuilder();
+
+    $diffLineMapper = new DiffLineMapper();
+
+    $mockAIReviewer = $this->mock(AIReviewer::class);
+    $mockAIReviewer->shouldReceive('review')
+        ->once()
+        ->withArgs(function (string $systemPrompt, string $userPrompt): bool {
+            $containsIncremental = str_contains($systemPrompt, 'INCREMENTAL REVIEW MODE');
+            $containsPrevious = str_contains($userPrompt, '<previous_review>')
+                && str_contains($userPrompt, 'Previous review summary');
+
+            return $containsIncremental && $containsPrevious;
+        })
+        ->andReturn([
+            'summary' => 'Improved code',
+            'score' => 85,
+            'score_rationale' => 'Issues fixed',
+            'issues' => [],
+            'highlights' => ['Good'],
+            'recommendation' => 'approve',
+        ]);
+
+    $job = new ProcessPullRequestReview($pr);
+    $job->handle($diffService, $promptBuilder, $diffLineMapper, $mockAIReviewer, $githubApp);
+
+    $latest = Review::query()
+        ->where('pull_request_id', $pr->id)
+        ->latest('created_at')
+        ->first();
+
+    expect($latest)->not->toBeNull()
+        ->and($latest->score)->toBe(85)
+        ->and($latest->previous_review_id)->toBe($previous->id)
+        ->and($latest->summary)->toBe('Improved code');
+});
+
+it('passes no previous review to the prompt on first review', function (): void {
+    $owner = User::factory()->create(['github_token' => 'test-token']);
+    $workspace = Workspace::factory()->create(['owner_id' => $owner->id]);
+
+    $repo = Repository::factory()->create([
+        'workspace_id' => $workspace->id,
+        'full_name' => 'owner/repo',
+        'language' => 'PHP',
+    ]);
+
+    $pr = PullRequest::factory()->create([
+        'repository_id' => $repo->id,
+        'status' => PullRequestStatus::Pending,
+        'number' => 44,
+        'title' => 'Test PR',
+        'head_sha' => '51738a50db7241299cae62d372eef1c03886c96d',
+    ]);
+
+    $githubApp = $this->mock(GitHubAppAuth::class);
+    $githubApp->shouldReceive('getInstallationToken')->once()->andReturn('test-token');
+
+    $diffService = $this->mock(DiffProvider::class);
+    $diffService->shouldReceive('getDiff')->once()->andReturn('diff content');
+
+    $promptBuilder = new PromptBuilder();
+
+    $diffLineMapper = new DiffLineMapper();
+
+    $mockAIReviewer = $this->mock(AIReviewer::class);
+    $mockAIReviewer->shouldReceive('review')
+        ->once()
+        ->withArgs(function (string $systemPrompt, string $userPrompt): bool {
+            return ! str_contains($systemPrompt, 'INCREMENTAL REVIEW MODE')
+                && ! str_contains($userPrompt, '<previous_review>');
+        })
+        ->andReturn([
+            'summary' => 'First review',
+            'score' => 70,
+            'score_rationale' => 'OK',
+            'issues' => [],
+            'highlights' => [],
+            'recommendation' => 'comment',
+        ]);
+
+    $job = new ProcessPullRequestReview($pr);
+    $job->handle($diffService, $promptBuilder, $diffLineMapper, $mockAIReviewer, $githubApp);
+
+    $latest = Review::query()->where('pull_request_id', $pr->id)->latest('created_at')->first();
+    expect($latest)->not->toBeNull()
+        ->and($latest->previous_review_id)->toBeNull();
+});
+
 it('skips processing when PR is not pending', function (PullRequestStatus $status): void {
     $pr = PullRequest::factory()->create([
         'status' => $status,
@@ -100,9 +216,7 @@ it('skips processing when PR is not pending', function (PullRequestStatus $statu
 
     $promptBuilder = new PromptBuilder();
 
-    $diffLineMapper = $this->mock(DiffLineMapper::class);
-    $diffLineMapper->shouldNotReceive('annotate');
-    $diffLineMapper->shouldNotReceive('map');
+    $diffLineMapper = new DiffLineMapper();
 
     $mockAIReviewer = $this->mock(AIReviewer::class);
     $mockAIReviewer->shouldNotReceive('review');

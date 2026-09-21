@@ -45,7 +45,7 @@ final class PullRequest extends Model
      */
     public function review(): HasOne
     {
-        return $this->hasOne(Review::class);
+        return $this->hasOne(Review::class)->latest('created_at');
     }
 
     /**

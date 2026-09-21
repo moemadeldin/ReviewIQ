@@ -62,6 +62,8 @@ final class Constants
 
     public const int PROMPT_MAX_CUSTOM_RULES_LENGTH = 5000;
 
+    public const int PROMPT_MAX_PREVIOUS_REVIEW_CHARS_DEFAULT = 4000;
+
     public const int PROMPT_PRIORITY_BASE = 100;
 
     public const int PROMPT_PRIORITY_PENALTY_LOCKFILE = 50;
