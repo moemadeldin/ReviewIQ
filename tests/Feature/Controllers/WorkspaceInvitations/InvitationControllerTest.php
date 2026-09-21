@@ -140,50 +140,46 @@ describe('WorkspaceInvitationController', function (): void {
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->deleteJson(route('workspaces.invitations.destroy', [
+            ->delete(route('workspaces.invitations.destroy', [
                 'workspace' => $this->workspace->id,
                 'invitation' => $invitation->id,
-            ]), [
-                'password' => 'password',
-            ]);
+            ]));
 
-        $response->assertOk()
-            ->assertJsonPath('data.message', 'Invitation cancelled');
+        $response->assertRedirect(route('workspaces.invitations.page', $this->workspace->id));
 
         expect(WorkspaceInvitation::query()->find($invitation->id))->toBeNull();
     });
 
-    it('returns 403 when invitation belongs to different workspace', function (): void {
+    it('redirects when invitation belongs to different workspace', function (): void {
         $otherUser = User::factory()->create();
         $otherWorkspace = Workspace::factory()->withOwner($otherUser)->create();
         $invitation = WorkspaceInvitation::factory()->forWorkspace($otherWorkspace)->create();
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->deleteJson(route('workspaces.invitations.destroy', [
+            ->delete(route('workspaces.invitations.destroy', [
                 'workspace' => $this->workspace->id,
                 'invitation' => $invitation->id,
-            ]), [
-                'password' => 'password',
-            ]);
+            ]));
 
-        $response->assertStatus(Response::HTTP_FORBIDDEN);
+        $response->assertRedirect(route('workspaces.invitations.page', $this->workspace->id));
+
+        expect(WorkspaceInvitation::query()->find($invitation->id))->not->toBeNull();
     });
 
-    it('returns 409 when trying to delete accepted invitation', function (): void {
+    it('redirects when trying to delete accepted invitation', function (): void {
         $invitation = WorkspaceInvitation::factory()->forWorkspace($this->workspace)->accepted()->create();
 
         $response = $this->actingAs($this->user)
             ->withSession(['current_workspace_id' => $this->workspace->id])
-            ->deleteJson(route('workspaces.invitations.destroy', [
+            ->delete(route('workspaces.invitations.destroy', [
                 'workspace' => $this->workspace->id,
                 'invitation' => $invitation->id,
-            ]), [
-                'password' => 'password',
-            ]);
+            ]));
 
-        $response->assertStatus(Response::HTTP_CONFLICT)
-            ->assertJsonPath('message', 'Cannot cancel accepted invitation');
+        $response->assertRedirect(route('workspaces.invitations.page', $this->workspace->id));
+
+        expect(WorkspaceInvitation::query()->find($invitation->id))->not->toBeNull();
     });
 });
 
@@ -196,11 +192,9 @@ describe('AcceptInvitationController', function (): void {
 
         $existingUser = User::factory()->create(['email' => 'existing@example.com']);
 
-        $response = $this->postJson(route('invitations.accept', ['token' => 'existing-accept-token']));
+        $response = $this->post(route('invitations.accept', ['token' => 'existing-accept-token']));
 
-        $response->assertStatus(Response::HTTP_OK)
-            ->assertJsonPath('status', 'Success')
-            ->assertJsonPath('message', 'Invitation accepted');
+        $response->assertRedirect(route('dashboard'));
 
         $this->assertDatabaseHas('workspace_users', [
             'workspace_id' => $this->workspace->id,
@@ -222,9 +216,7 @@ describe('AcceptInvitationController', function (): void {
         $response = $this->actingAs($existingUser)
             ->post(route('invitations.accept', ['token' => 'logged-in-accept-token']));
 
-        $response->assertStatus(Response::HTTP_OK)
-            ->assertJsonPath('status', 'Success')
-            ->assertJsonPath('message', 'Invitation accepted');
+        $response->assertRedirect(route('dashboard'));
 
         $this->assertDatabaseHas('workspace_users', [
             'workspace_id' => $this->workspace->id,
@@ -240,14 +232,13 @@ describe('AcceptInvitationController', function (): void {
             'role' => Roles::Admin->value,
         ]);
 
-        $response = $this->postJson(route('invitations.accept', ['token' => 'new-user-accept-token']), [
+        $response = $this->post(route('invitations.accept', ['token' => 'new-user-accept-token']), [
             'name' => 'New User',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ]);
 
-        $response->assertStatus(Response::HTTP_OK)
-            ->assertJsonPath('status', 'Success');
+        $response->assertRedirect(route('dashboard'));
 
         $newUser = User::query()->whereEmail('newuser@example.com')->first();
         expect($newUser)->not->toBeNull();

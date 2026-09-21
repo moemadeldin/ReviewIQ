@@ -20,9 +20,13 @@ final class WorkspaceFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (Workspace $workspace): void {
-            $workspace->users()->syncWithoutDetaching([
-                $workspace->owner_id => ['role' => 'owner'],
-            ]);
+            $ownerId = $workspace->owner_id;
+
+            if (is_string($ownerId) && $ownerId !== '') {
+                $workspace->users()->syncWithoutDetaching([
+                    $ownerId => ['role' => 'owner'],
+                ]);
+            }
         });
     }
 

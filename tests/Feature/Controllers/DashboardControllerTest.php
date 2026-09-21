@@ -48,3 +48,18 @@ it('scopes dashboard data to the authenticated user workspaces', function (): vo
             ->has('recentPullRequests', 1)
             ->where('recentPullRequests.0.workspace_id', $workspace->id));
 });
+
+it('resets the current workspace so the dashboard shows the workspace selector', function (): void {
+    $user = User::factory()->create();
+    Workspace::factory()->withOwner($user)->create(['name' => 'First']);
+    $second = Workspace::factory()->withOwner($user)->create(['name' => 'Second']);
+
+    $response = $this->actingAs($user)
+        ->withSession(['current_workspace_id' => $second->id])
+        ->get(route('dashboard'));
+
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page->where('auth.currentWorkspace', null));
+
+    expect(session('current_workspace_id'))->toBeNull();
+});

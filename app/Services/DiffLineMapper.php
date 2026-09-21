@@ -34,7 +34,13 @@ final readonly class DiffLineMapper
                 }
 
                 // Strip a/ or b/ prefix
-                $currentFile = preg_replace('/^(?:a|b)\//', '', $filePath);
+                $currentFile = preg_replace('/^(?:a|b)\//', '', $filePath) ?? '';
+                if ($currentFile === '') {
+                    $inHunk = false;
+
+                    continue;
+                }
+
                 $validLines[$currentFile] = [];
                 $rightLine = 0;
                 $inHunk = false;
@@ -156,6 +162,8 @@ final readonly class DiffLineMapper
 
     /**
      * Find the actual key in the map for a given file path.
+     *
+     * @param  array<string, array<int, true>>  $map
      */
     public function findFileKey(array $map, string $file): ?string
     {
@@ -178,7 +186,7 @@ final readonly class DiffLineMapper
 
         // Try without a/ or b/ prefix
         $withoutPrefix = preg_replace('/^(?:a|b)\//', '', $file);
-        if (isset($map[$withoutPrefix])) {
+        if ($withoutPrefix !== null && isset($map[$withoutPrefix])) {
             return $withoutPrefix;
         }
 

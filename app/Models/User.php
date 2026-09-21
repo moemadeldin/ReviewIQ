@@ -101,11 +101,21 @@ final class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    /**
+     * @return Attribute<string|null, never>
+     */
     protected function avatar(): Attribute
     {
-        return Attribute::get(fn (): ?string => $this->getAttributes()['github_avatar'] ?? null);
+        return Attribute::get(function (): ?string {
+            $value = $this->getAttributes()['github_avatar'] ?? null;
+
+            return is_string($value) ? $value : null;
+        });
     }
 
+    /**
+     * @return Attribute<bool, never>
+     */
     protected function githubConnected(): Attribute
     {
         return Attribute::get(

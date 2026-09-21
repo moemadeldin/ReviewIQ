@@ -14,7 +14,7 @@ it('switches the current workspace', function (): void {
         ->from(route('workspaces.show', $first))
         ->post(route('workspaces.switch', $second));
 
-    $response->assertRedirect(route('workspaces.show', $first));
+    $response->assertRedirect(route('workspaces.show', $second));
 
     expect(session('current_workspace_id'))->toBe($second->id);
 });

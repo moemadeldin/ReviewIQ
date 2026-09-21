@@ -12,6 +12,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 final readonly class GitHubApiService implements GitHubApi
 {
@@ -24,7 +25,7 @@ final readonly class GitHubApiService implements GitHubApi
      */
     public function getUserRepos(string $token, int $page = 1, int $perPage = 0): array
     {
-        $perPage = $perPage > 0 ? $perPage : (int) config('services.github.repos_per_page', Constants::PAGE_LIMIT);
+        $perPage = $perPage > 0 ? $perPage : Constants::reposPerPage();
 
         $cacheKey = sprintf('github:repos:%s:page:%d:per:%d', hash('sha256', $token), $page, $perPage);
 
@@ -78,7 +79,7 @@ final readonly class GitHubApiService implements GitHubApi
         $hooks = $response->json();
 
         foreach ($hooks as $hook) {
-            if (($hook['config']['url'] ?? '') === $webhookUrl) {
+            if ($hook['config']['url'] === $webhookUrl) {
                 return $hook['id'];
             }
         }
@@ -121,12 +122,18 @@ final readonly class GitHubApiService implements GitHubApi
         // First attempt: post review with inline comments (if any)
         try {
             $this->http->json($token)
-                ->retry(Constants::GITHUB_API_RETRIES, Constants::GITHUB_API_RETRY_DELAY_MS, function (RequestException $e): bool {
-                    $status = $e->response?->status();
+                ->retry(Constants::GITHUB_API_RETRIES, Constants::GITHUB_API_RETRY_DELAY_MS, function (Throwable $e): bool {
+                    if ($e instanceof ConnectionException) {
+                        return true;
+                    }
 
-                    return $e instanceof ConnectionException
-                        || $status === Response::HTTP_TOO_MANY_REQUESTS
-                        || ($status !== null && $status >= 500);
+                    if (! $e instanceof RequestException) {
+                        return false;
+                    }
+
+                    $status = $e->response->status();
+
+                    return $status === Response::HTTP_TOO_MANY_REQUESTS || $status >= 500;
                 })
                 ->post('/repos/'.$fullName.'/pulls/'.$prNumber.'/reviews', $payload)
                 ->throw();
@@ -209,8 +216,8 @@ final readonly class GitHubApiService implements GitHubApi
         $comments = [];
 
         foreach ($issues as $issue) {
-            $line = $issue['line'] ?? null;
-            $file = $issue['file'] ?? '';
+            $line = $issue['line'];
+            $file = $issue['file'];
             if ($line === null) {
                 continue;
             }
@@ -225,7 +232,7 @@ final readonly class GitHubApiService implements GitHubApi
                 'side' => 'RIGHT',
                 'body' => sprintf(
                     '**%s**: %s',
-                    $issue['severity'] ?? 'medium',
+                    $issue['severity'],
                     $issue['description'] ?? $issue['title'] ?? $issue['message'] ?? '',
                 ),
             ];

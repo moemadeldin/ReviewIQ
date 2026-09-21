@@ -9,7 +9,6 @@ use App\Models\PullRequest;
 use App\Models\User;
 use App\Notifications\ReviewCompletedNotification;
 use Illuminate\Support\Facades\Log;
-use RuntimeException;
 
 final readonly class SendReviewCompletedNotification
 {
@@ -32,7 +31,6 @@ final readonly class SendReviewCompletedNotification
         }
 
         $workspace = $pr->repository->workspace;
-        throw_unless(is_string($workspace->slug), RuntimeException::class, 'Workspace slug is missing');
 
         $reviewUrl = url()->route('reviews.show', [$workspace, $pr], absolute: false);
         $score = (int) ($event->review['score'] ?? 0);

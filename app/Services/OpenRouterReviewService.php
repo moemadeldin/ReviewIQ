@@ -38,6 +38,17 @@ final readonly class OpenRouterReviewService implements AIReviewer
         throw_if($this->apiKey === '' || $this->apiKey === '0', InvalidArgumentException::class, 'API key cannot be empty.');
     }
 
+    /**
+     * @return array{
+     *     summary: string,
+     *     score: int,
+     *     score_rationale: string,
+     *     issues: array<int, array{file: string, line: int|null, severity: string, description: string, category: string}>,
+     *     highlights: array<int, array{file: string, line: int|null, content: string}>,
+     *     recommendation: string,
+     *     meta: array{model: string, usage: array<mixed>|null},
+     * }
+     */
     public function review(string $systemPrompt, string $userPrompt): array
     {
         $lastError = null;
@@ -67,7 +78,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
                             'error' => $error->getMessage(),
                             'delay_ms' => $delay,
                         ]);
-                        Sleep::msleep($delay);
+                        Sleep::for($delay)->milliseconds();
 
                         continue;
                     }
@@ -87,6 +98,17 @@ final readonly class OpenRouterReviewService implements AIReviewer
         throw $lastError ?? new ReviewParseException('No OpenRouter model configured');
     }
 
+    /**
+     * @return array{
+     *     summary: string,
+     *     score: int,
+     *     score_rationale: string,
+     *     issues: array<int, array{file: string, line: int|null, severity: string, description: string, category: string}>,
+     *     highlights: array<int, array{file: string, line: int|null, content: string}>,
+     *     recommendation: string,
+     *     meta: array{model: string, usage: array<mixed>|null},
+     * }
+     */
     public function stream(string $systemPrompt, string $userPrompt, callable $onChunk): array
     {
         $fullContent = '';
@@ -118,7 +140,17 @@ final readonly class OpenRouterReviewService implements AIReviewer
                     }
 
                     $json = json_decode($data, associative: true);
-                    $chunk = $json['choices'][0]['delta']['content'] ?? '';
+                    $chunk = '';
+
+                    if (is_array($json)) {
+                        $choices = $json['choices'] ?? null;
+                        $firstChoice = is_array($choices) ? ($choices[0] ?? null) : null;
+                        $delta = is_array($firstChoice) ? ($firstChoice['delta'] ?? null) : null;
+
+                        if (is_array($delta) && is_string($delta['content'] ?? null)) {
+                            $chunk = $delta['content'];
+                        }
+                    }
 
                     if ($chunk === '') {
                         return;
@@ -135,7 +167,7 @@ final readonly class OpenRouterReviewService implements AIReviewer
 
                 return array_merge($parsed, ['meta' => [
                     'model' => $model,
-                    'usage' => $parsed['usage'] ?? null,
+                    'usage' => $parsed['meta']['usage'] ?? null,
                 ]]);
 
             } catch (GuzzleException|ReviewParseException|JsonException $guzzleException) {
@@ -165,13 +197,29 @@ final readonly class OpenRouterReviewService implements AIReviewer
         throw new ReviewParseException('All OpenRouter models failed');
     }
 
+    /**
+     * @return array{
+     *     summary: string,
+     *     score: int,
+     *     score_rationale: string,
+     *     issues: array<int, array{file: string, line: int|null, severity: string, description: string, category: string}>,
+     *     highlights: array<int, array{file: string, line: int|null, content: string}>,
+     *     recommendation: string,
+     *     usage?: array<mixed>|null,
+     *     meta: array{model: string, usage?: array<mixed>|null},
+     * }
+     */
     private function attemptReview(string $model, string $systemPrompt, string $userPrompt, ReviewResponseParser $parser): array
     {
         $response = $this->send($systemPrompt, $userPrompt, $model);
-        $raw = $response['choices'][0]['message']['content'] ?? '';
+
+        $choices = is_array($response['choices'] ?? null) ? $response['choices'] : [];
+        $firstChoice = is_array($choices[0] ?? null) ? $choices[0] : null;
+        $message = is_array($firstChoice) ? ($firstChoice['message'] ?? null) : null;
+        $raw = is_array($message) && is_string($message['content'] ?? null) ? $message['content'] : '';
 
         if ($raw === '') {
-            $finishReason = $response['choices'][0]['finish_reason'] ?? null;
+            $finishReason = is_array($firstChoice) ? ($firstChoice['finish_reason'] ?? null) : null;
             $error = $response['error'] ?? null;
 
             Log::error('OpenRouter returned empty response', [
@@ -209,6 +257,9 @@ final readonly class OpenRouterReviewService implements AIReviewer
         ])));
     }
 
+    /**
+     * @return array<mixed>
+     */
     private function send(string $systemPrompt, string $userPrompt, string $model): array
     {
         try {
@@ -226,9 +277,14 @@ final readonly class OpenRouterReviewService implements AIReviewer
             );
         }
 
-        return json_decode((string) $response->getBody(), associative: true);
+        $decoded = json_decode((string) $response->getBody(), associative: true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function buildRequestBody(string $model, string $systemPrompt, string $userPrompt, bool $stream): array
     {
         $body = [
@@ -250,6 +306,9 @@ final readonly class OpenRouterReviewService implements AIReviewer
         return $body;
     }
 
+    /**
+     * @return array<string, string>
+     */
     private function buildHeaders(): array
     {
         return ['Authorization' => 'Bearer '.$this->apiKey];

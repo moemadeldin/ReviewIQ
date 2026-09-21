@@ -71,16 +71,17 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
 
         /** @var array{token: string}|null $data */
         $data = $response->json();
+        $token = $data['token'] ?? null;
 
         throw_unless(
-            isset($data['token']) && is_string($data['token']) && $data['token'] !== '',
+            is_string($token) && $token !== '',
             RuntimeException::class,
             'Failed to get a valid GitHub App installation token',
         );
 
-        Cache::put($this->cacheKey(), $data['token'], Constants::GITHUB_INSTALLATION_TOKEN_TTL_SECONDS);
+        Cache::put($this->cacheKey(), $token, Constants::GITHUB_INSTALLATION_TOKEN_TTL_SECONDS);
 
-        return $data['token'];
+        return $token;
     }
 
     private function cacheKey(): string

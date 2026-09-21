@@ -191,10 +191,8 @@ it('passes no previous review to the prompt on first review', function (): void 
     $mockAIReviewer = $this->mock(AIReviewer::class);
     $mockAIReviewer->shouldReceive('review')
         ->once()
-        ->withArgs(function (string $systemPrompt, string $userPrompt): bool {
-            return ! str_contains($systemPrompt, 'INCREMENTAL REVIEW MODE')
-                && ! str_contains($userPrompt, '<previous_review>');
-        })
+        ->withArgs(fn (string $systemPrompt, string $userPrompt): bool => ! str_contains($systemPrompt, 'INCREMENTAL REVIEW MODE')
+            && ! str_contains($userPrompt, '<previous_review>'))
         ->andReturn([
             'summary' => 'First review',
             'score' => 70,

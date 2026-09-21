@@ -16,6 +16,6 @@ final readonly class UpdateWorkspace
         $pattern = sprintf('workspace:role:%s:*', $workspace->id);
         Cache::forget($pattern);
 
-        return $workspace->fresh();
+        return $workspace->refresh();
     }
 }

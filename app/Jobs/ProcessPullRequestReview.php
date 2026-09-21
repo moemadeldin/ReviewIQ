@@ -149,7 +149,7 @@ final class ProcessPullRequestReview implements ShouldBeUnique, ShouldQueue
             ->latest('created_at')
             ->first();
 
-        /** @var array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, array{}>, highlights?: array<int, string>, recommendation?: string} $reviewResult */
+        /** @var array{summary?: string, score?: int, score_rationale?: string, issues?: array<int, array{file: string, line: int|null, severity: string, description: string, category: string, suggestion?: string}>, highlights?: array<int, string>, recommendation?: string} $reviewResult */
         $reviewResult = $aiReviewer->review(
             systemPrompt: $promptBuilder->buildSystemPrompt($previousReview),
             userPrompt: $promptBuilder->buildUserPrompt(
@@ -195,7 +195,7 @@ final class ProcessPullRequestReview implements ShouldBeUnique, ShouldQueue
                 'pr' => $this->pullRequest->number,
                 'new_head_sha' => $newHeadSha,
             ]);
-            dispatch(new self($this->pullRequest->fresh()));
+            dispatch(new self($this->pullRequest->fresh() ?? $this->pullRequest));
 
             return;
         }
@@ -214,7 +214,7 @@ final class ProcessPullRequestReview implements ShouldBeUnique, ShouldQueue
      * Validate issues against the diff line map.
      * Invalid lines are set to null (kept in summary instead of inline).
      *
-     * @param  array<int, array{file: string, line: int|null, severity: string, description: string, category: string, suggestion: string}>  $issues
+     * @param  array<int, array{file: string, line: int|null, severity: string, description: string, category: string, suggestion?: string}>  $issues
      * @return array<int, array{file: string, line: int|null, severity: string, description: string, category: string, suggestion: string}>
      */
     private function validateIssues(DiffLineMapper $diffLineMapper, string $originalDiff, array $issues): array
@@ -223,25 +223,27 @@ final class ProcessPullRequestReview implements ShouldBeUnique, ShouldQueue
         $validated = [];
 
         foreach ($issues as $issue) {
-            $file = $issue['file'] ?? '';
-            $line = $issue['line'] ?? null;
+            $file = $issue['file'];
+            $line = $issue['line'];
 
             $validation = $diffLineMapper->validateIssue($map, $file, $line);
 
             $validated[] = [
                 'file' => $validation['file'],
                 'line' => $validation['line'],
-                'severity' => $issue['severity'] ?? 'medium',
-                'description' => $issue['description'] ?? '',
-                'category' => $issue['category'] ?? 'maintainability',
+                'severity' => $issue['severity'],
+                'description' => $issue['description'],
+                'category' => $issue['category'],
                 'suggestion' => $issue['suggestion'] ?? '',
             ];
 
             if (! $validation['valid'] && $line !== null) {
+                $fileKey = $diffLineMapper->findFileKey($map, $file);
+
                 Log::warning('Issue line invalid, moved to summary', [
                     'file' => $file,
                     'original_line' => $line,
-                    'valid_lines' => array_keys($map[$diffLineMapper->findFileKey($map, $file)] ?? []),
+                    'valid_lines' => $fileKey !== null ? array_keys($map[$fileKey] ?? []) : [],
                 ]);
             }
         }

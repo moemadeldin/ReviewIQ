@@ -14,15 +14,7 @@ import {
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { Button } from '@/components/ui/button';
-import {
-    contact,
-    dashboard,
-    home,
-    login,
-    privacy,
-    register,
-    terms,
-} from '@/routes';
+import { dashboard, home, login, register } from '@/routes';
 
 interface OGSettings {
     url: string;
@@ -307,24 +299,6 @@ export default function Welcome({
                     <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-4 sm:flex-row">
                         <span className="text-sm font-medium">ReviewIQ</span>
                         <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-                            <Link
-                                href={privacy()}
-                                className="transition-colors hover:text-foreground"
-                            >
-                                Privacy policy
-                            </Link>
-                            <Link
-                                href={terms()}
-                                className="transition-colors hover:text-foreground"
-                            >
-                                Terms
-                            </Link>
-                            <Link
-                                href={contact()}
-                                className="transition-colors hover:text-foreground"
-                            >
-                                Contact
-                            </Link>
                             <a
                                 href="https://github.com"
                                 target="_blank"

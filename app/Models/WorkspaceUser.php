@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
@@ -17,8 +16,6 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  */
 final class WorkspaceUser extends Pivot
 {
-    use HasFactory;
-
     protected $casts = [
         'workspace_id' => 'string',
         'user_id' => 'string',
