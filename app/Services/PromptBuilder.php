@@ -14,6 +14,8 @@ final readonly class PromptBuilder
         private array $ignorePatterns = [],
         private bool $enableIncrementalReviews = true,
         private int $maxPreviousReviewChars = Constants::PROMPT_MAX_PREVIOUS_REVIEW_CHARS_DEFAULT,
+        private int $maxPreviousReviewIssues = Constants::PROMPT_PREVIOUS_REVIEW_MAX_ISSUES_DEFAULT,
+        private int $issueDetailChars = Constants::PROMPT_PREVIOUS_REVIEW_ISSUE_DETAIL_CHARS_DEFAULT,
     ) {}
 
     public function buildSystemPrompt(?Review $previousReview = null): string
@@ -215,11 +217,8 @@ PROMPT;
             'recommendation' => $previousReview->recommendation,
         ];
 
-        $json = json_encode($previous, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-
-        if (mb_strlen($json) > $this->maxPreviousReviewChars) {
-            $json = mb_substr($json, 0, $this->maxPreviousReviewChars).'...';
-        }
+        $payload = $this->fitPreviousReviewWithinBudget($previous);
+        $json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
         return <<<PROMPT
 <previous_review>
@@ -227,6 +226,64 @@ PROMPT;
 </previous_review>
 
 PROMPT;
+    }
+
+    /**
+     * Shrink a previous review payload down to fit the character budget
+     * without ever producing structurally invalid JSON.
+     *
+     * @param  array{score?: int|null, score_rationale?: string|null, summary?: string|null, issues?: array<int, array<string, mixed>>|null, highlights?: array<int, array<string, mixed>>|null, recommendation?: string|null}  $previous
+     * @return array{score?: int|null, score_rationale?: string|null, summary?: string|null, issues?: array<int, array<string, mixed>>|null, highlights?: array<int, array<string, mixed>>|null, recommendation?: string|null}
+     */
+    private function fitPreviousReviewWithinBudget(array $previous): array
+    {
+        $payload = $previous;
+        $issues = $previous['issues'] ?? [];
+
+        // Reduce structural complexity first: cap the issue count.
+        if (is_array($issues) && count($issues) > $this->maxPreviousReviewIssues) {
+            $issues = array_slice($issues, 0, $this->maxPreviousReviewIssues);
+            $payload['issues'] = $issues;
+        }
+
+        // Shrink verbose text fields to keep each issue comfortably under the budget.
+        $payload['issues'] = array_map(
+            fn (array $issue): array => [
+                ...$issue,
+                'description' => $this->clip((string) ($issue['description'] ?? ''), $this->issueDetailChars),
+                'suggestion' => $this->clip((string) ($issue['suggestion'] ?? ''), $this->issueDetailChars),
+            ],
+            is_array($issues) ? $issues : [],
+        );
+
+        $payload['summary'] = $this->clip((string) ($payload['summary'] ?? ''), $this->maxPreviousReviewChars / 2);
+        $payload['score_rationale'] = $this->clip((string) ($payload['score_rationale'] ?? ''), $this->maxPreviousReviewChars / 2);
+
+        // If still too large, drop non-essential keys progressively.
+        foreach (['highlights', 'issues', 'summary', 'score_rationale', 'recommendation'] as $key) {
+            if ((is_string($payload[$key] ?? null) || is_array($payload[$key] ?? null)) && $this->jsonLength($payload) > $this->maxPreviousReviewChars) {
+                unset($payload[$key]);
+            }
+        }
+
+        return $payload;
+    }
+
+    private function clip(string $value, int $maxChars): string
+    {
+        if (mb_strlen($value) <= $maxChars) {
+            return $value;
+        }
+
+        return mb_substr($value, 0, $maxChars).'...';
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function jsonLength(array $payload): int
+    {
+        return mb_strlen((string) json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
     private function getIgnorePatterns(): array

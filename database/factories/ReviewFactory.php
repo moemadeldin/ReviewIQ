@@ -32,11 +32,4 @@ final class ReviewFactory extends Factory
             'raw_response' => null,
         ];
     }
-
-    public function withPreviousReview(): static
-    {
-        return $this->state(fn (): array => [
-            'previous_review_id' => Review::factory(),
-        ]);
-    }
 }

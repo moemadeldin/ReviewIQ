@@ -64,6 +64,10 @@ final class Constants
 
     public const int PROMPT_MAX_PREVIOUS_REVIEW_CHARS_DEFAULT = 4000;
 
+    public const int PROMPT_PREVIOUS_REVIEW_MAX_ISSUES_DEFAULT = 5;
+
+    public const int PROMPT_PREVIOUS_REVIEW_ISSUE_DETAIL_CHARS_DEFAULT = 300;
+
     public const int PROMPT_PRIORITY_BASE = 100;
 
     public const int PROMPT_PRIORITY_PENALTY_LOCKFILE = 50;
