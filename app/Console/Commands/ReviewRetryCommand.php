@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Enums\PullRequestStatus;
 use App\Jobs\ProcessPullRequestReview;
 use App\Models\PullRequest;
+use App\Utilities\Constants;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -30,7 +31,7 @@ final class ReviewRetryCommand extends Command
         $this->info(sprintf('Found %d reviews to retry.', $prs->count()));
 
         foreach ($prs as $pr) {
-            if ($pr->status === PullRequestStatus::Reviewing && $pr->updated_at->diffInMinutes(now()) > 10) {
+            if ($pr->status === PullRequestStatus::Reviewing && $pr->updated_at->diffInMinutes(now()) > Constants::REVIEW_STALE_MINUTES) {
                 $pr->update(['status' => PullRequestStatus::Pending]);
             }
 

@@ -8,6 +8,7 @@ use App\Http\Resources\NotificationResource;
 use App\Models\User;
 use App\Queries\GetUserNotifications;
 use App\Traits\APIResponder;
+use App\Utilities\Constants;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,14 +18,12 @@ final readonly class NotificationController
 {
     use APIResponder;
 
-    private const int LIMIT_PER_PAGE = 10;
-
     public function __construct(private GetUserNotifications $getNotifications) {}
 
     public function index(#[CurrentUser()] User $user, Request $request): JsonResponse
     {
         $page = (int) $request->query('page', 1);
-        $limit = (int) $request->query('limit', self::LIMIT_PER_PAGE);
+        $limit = (int) $request->query('limit', Constants::PAGE_LIMIT);
 
         $paginator = $this->getNotifications->handle($user, $page, $limit);
 

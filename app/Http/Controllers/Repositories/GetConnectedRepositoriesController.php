@@ -8,6 +8,7 @@ use App\Http\Resources\RepositoryResource;
 use App\Models\Workspace;
 use App\Queries\GetConnectedRepositories;
 use App\Traits\APIResponder;
+use App\Utilities\Constants;
 use Illuminate\Http\JsonResponse;
 
 final readonly class GetConnectedRepositoriesController
@@ -20,7 +21,7 @@ final readonly class GetConnectedRepositoriesController
         Workspace $workspace,
     ): JsonResponse {
         $page = (int) request()->query('page', 1);
-        $limit = (int) request()->query('limit', 10);
+        $limit = (int) request()->query('limit', Constants::PAGE_LIMIT);
         $paginator = $this->getRepos->handle($workspace, $page, $limit);
 
         return $this->success([

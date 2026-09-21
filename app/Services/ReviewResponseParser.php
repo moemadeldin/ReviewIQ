@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Exceptions\ReviewParseException;
+use App\Utilities\Constants;
 
 final readonly class ReviewResponseParser
 {
@@ -85,7 +86,7 @@ final readonly class ReviewResponseParser
         $allowedRecommendations = ['approve', 'request_changes', 'comment'];
         $allowedCategories = ['security', 'performance', 'error_handling', 'correctness', 'maintainability', 'style', 'testing'];
 
-        $score = is_numeric($parsed['score'] ?? null) ? max(0, min(100, (int) $parsed['score'])) : 0;
+        $score = is_numeric($parsed['score'] ?? null) ? max(Constants::AI_SCORE_MIN, min(Constants::AI_SCORE_MAX, (int) $parsed['score'])) : Constants::AI_SCORE_MIN;
 
         $issues = array_values(array_map(
             function (array $issue) use ($allowedSeverities, $allowedCategories): array {

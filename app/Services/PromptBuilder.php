@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Utilities\Constants;
+
 final readonly class PromptBuilder
 {
-    private const int MAX_CUSTOM_RULES_LENGTH = 5000;
-
     public function __construct(
-        private int $maxDiffChars = 100000,
+        private int $maxDiffChars = Constants::PROMPT_MAX_DIFF_CHARS_DEFAULT,
         private array $ignorePatterns = [],
     ) {}
 
@@ -106,7 +106,7 @@ PROMPT;
 
         $rules = '';
         if ($customRules !== null && mb_trim($customRules) !== '') {
-            $rules = "Custom rules for this repository (override your defaults if they conflict):\n".mb_trim(mb_substr($customRules, 0, self::MAX_CUSTOM_RULES_LENGTH))."\n\n";
+            $rules = "Custom rules for this repository (override your defaults if they conflict):\n".mb_trim(mb_substr($customRules, 0, Constants::PROMPT_MAX_CUSTOM_RULES_LENGTH))."\n\n";
         }
 
         return <<<PROMPT
@@ -248,44 +248,44 @@ PROMPT;
         $priorities = [];
 
         foreach (array_keys($files) as $path) {
-            $priority = 100;
+            $priority = Constants::PROMPT_PRIORITY_BASE;
             // base priority
             // Lower priority for generated/low-value files
             if ($this->isLockfile($path)) {
-                $priority -= 50;
+                $priority -= Constants::PROMPT_PRIORITY_PENALTY_LOCKFILE;
             }
 
             if ($this->isGenerated($path)) {
-                $priority -= 40;
+                $priority -= Constants::PROMPT_PRIORITY_PENALTY_GENERATED;
             }
 
             if ($this->isMinified($path)) {
-                $priority -= 30;
+                $priority -= Constants::PROMPT_PRIORITY_PENALTY_MINIFIED;
             }
 
             if ($this->isVendor($path)) {
-                $priority -= 60;
+                $priority -= Constants::PROMPT_PRIORITY_PENALTY_VENDOR;
             }
 
             if ($this->isBinary($path)) {
-                $priority -= 80;
+                $priority -= Constants::PROMPT_PRIORITY_PENALTY_BINARY;
             }
 
             if ($this->isSnapshot($path)) {
-                $priority -= 20;
+                $priority -= Constants::PROMPT_PRIORITY_PENALTY_SNAPSHOT;
             }
 
             // Higher priority for source files
             if ($this->isSourceFile($path)) {
-                $priority += 20;
+                $priority += Constants::PROMPT_PRIORITY_BONUS_SOURCE;
             }
 
             if ($this->isTestFile($path)) {
-                $priority += 15;
+                $priority += Constants::PROMPT_PRIORITY_BONUS_TEST;
             }
 
             if ($this->isConfigFile($path)) {
-                $priority += 10;
+                $priority += Constants::PROMPT_PRIORITY_BONUS_CONFIG;
             }
 
             $priorities[$path] = $priority;
@@ -298,7 +298,7 @@ PROMPT;
 
     private function isIgnored(string $path): bool
     {
-        return array_any($this->getIgnorePatterns(), fn ($pattern): int|false => preg_match($pattern, $path));
+        return array_any($this->getIgnorePatterns(), fn (string $pattern): int|false => preg_match($pattern, $path));
     }
 
     private function isLockfile(string $path): bool

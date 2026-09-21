@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Utilities\Constants;
 use Illuminate\Support\Sleep;
 use Psr\Http\Message\StreamInterface;
 
@@ -26,10 +27,10 @@ final readonly class SseStreamReader
     private function readPsrStream(StreamInterface $stream, callable $onLine, string &$buffer): void
     {
         while (! $stream->eof()) {
-            $chunk = $stream->read(8192);
+            $chunk = $stream->read(Constants::STREAM_CHUNK_SIZE);
 
             if ($chunk === '') {
-                Sleep::usleep(10_000);
+                Sleep::usleep(Constants::STREAM_YIELD_MICROSECONDS);
 
                 continue;
             }
@@ -70,10 +71,10 @@ final readonly class SseStreamReader
     private function readResource(mixed $stream, callable $onLine, string &$buffer): void
     {
         while (! feof($stream)) {
-            $chunk = fread($stream, 8192);
+            $chunk = fread($stream, Constants::STREAM_CHUNK_SIZE);
 
             if ($chunk === '') {
-                Sleep::usleep(10_000);
+                Sleep::usleep(Constants::STREAM_YIELD_MICROSECONDS);
 
                 continue;
             }

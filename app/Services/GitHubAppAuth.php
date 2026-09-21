@@ -5,17 +5,15 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Contracts\GitHubAppAuth as GitHubAppAuthContract;
+use App\Utilities\Constants;
 use Firebase\JWT\JWT;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 final readonly class GitHubAppAuth implements GitHubAppAuthContract
 {
-    private const int TOKEN_TTL_SECONDS = 55 * 60;
-
-    private const int JWT_TTL_SECONDS = 600;
-
     public function __construct(
         private string $baseUrl,
         private GitHubHttp $http,
@@ -46,7 +44,7 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
         return JWT::encode(
             payload: [
                 'iat' => $now,
-                'exp' => $now + self::JWT_TTL_SECONDS,
+                'exp' => $now + Constants::GITHUB_JWT_TTL_SECONDS,
                 'iss' => $this->appId(),
             ],
             key: $this->privateKey(),
@@ -59,7 +57,7 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
         $response = $this->http->appAuth($this->getJwt())
             ->post('/app/installations/'.$this->installationId().'/access_tokens');
 
-        if ($response->status() === 401) {
+        if ($response->status() === Response::HTTP_UNAUTHORIZED) {
             /** @var string|null $error */
             $error = $response->json('message');
             $detail = is_string($error) && $error !== '' ? $error : $response->body();
@@ -80,7 +78,7 @@ final readonly class GitHubAppAuth implements GitHubAppAuthContract
             'Failed to get a valid GitHub App installation token',
         );
 
-        Cache::put($this->cacheKey(), $data['token'], self::TOKEN_TTL_SECONDS);
+        Cache::put($this->cacheKey(), $data['token'], Constants::GITHUB_INSTALLATION_TOKEN_TTL_SECONDS);
 
         return $data['token'];
     }

@@ -84,7 +84,7 @@ it('stores a repository successfully', function (): void {
         'https://api.github.com/user/repos*' => Http::response([
             ['id' => 123, 'full_name' => 'owner/repo', 'language' => 'PHP'],
         ], Response::HTTP_OK),
-        'https://api.github.com/repos/*/hooks' => Http::response(['id' => 999], 201),
+        'https://api.github.com/repos/*/hooks' => Http::response(['id' => 999], Response::HTTP_CREATED),
     ]);
 
     $response = $this->actingAs($this->user)

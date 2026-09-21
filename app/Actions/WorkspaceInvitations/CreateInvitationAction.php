@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use App\Notifications\WorkspaceInvitationNotification;
+use App\Utilities\Constants;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -17,10 +18,6 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 final readonly class CreateInvitationAction
 {
-    private const int TOKEN_EXPIRY_HOURS = 48;
-
-    private const int TOKEN_NUMBER_OF_CHARS = 64;
-
     public function handle(Workspace $workspace, User $invitedBy, string $email, string|Roles|null $role): WorkspaceInvitation
     {
         $existingUser = User::query()->whereEmail($email)->first();
@@ -35,14 +32,14 @@ final readonly class CreateInvitationAction
 
         throw_if($existingInvitation && ! $existingInvitation->isExpired(), HttpException::class, Response::HTTP_CONFLICT, 'Invitation already sent to this email');
 
-        $token = Str::random(self::TOKEN_NUMBER_OF_CHARS);
+        $token = Str::random(Constants::INVITATION_TOKEN_LENGTH);
 
         $invitation = WorkspaceInvitation::query()->create([
             'workspace_id' => $workspace->id,
             'email' => $email,
             'token' => WorkspaceInvitation::hashToken($token),
             'role' => ($role instanceof Roles ? $role : Roles::from($role))->value,
-            'expires_at' => now()->addHours(self::TOKEN_EXPIRY_HOURS),
+            'expires_at' => now()->addHours(Constants::INVITATION_TOKEN_EXPIRY_HOURS),
             'created_at' => now(),
         ]);
 

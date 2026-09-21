@@ -3,12 +3,8 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Utilities\Constants;
 use Illuminate\Http\Response;
-
-final class Responses
-{
-    public const int HTTP_PAGE_EXPIRED = 419;
-}
 
 it('exists for every supported error status view', function (): void {
     foreach ([
@@ -19,7 +15,7 @@ it('exists for every supported error status view', function (): void {
         Response::HTTP_METHOD_NOT_ALLOWED,
         Response::HTTP_CONFLICT,
         Response::HTTP_REQUEST_ENTITY_TOO_LARGE,
-        Responses::HTTP_PAGE_EXPIRED,
+        Constants::HTTP_PAGE_EXPIRED,
         Response::HTTP_UNPROCESSABLE_ENTITY,
         Response::HTTP_TOO_MANY_REQUESTS,
         Response::HTTP_INTERNAL_SERVER_ERROR,

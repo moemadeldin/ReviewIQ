@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Contracts\DiffProvider;
+use App\Utilities\Constants;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 final readonly class GitHubDiffService implements DiffProvider
 {
-    private const int DIFF_CACHE_TTL = 86400; // 24h - SHA-keyed diff is immutable
-
     public function __construct(
         private GitHubHttp $http,
     ) {}
@@ -21,7 +20,7 @@ final readonly class GitHubDiffService implements DiffProvider
     {
         $cacheKey = sprintf('github:diff:%s:%d:%s', $repoFullName, $prNumber, $headSha);
 
-        return Cache::remember($cacheKey, self::DIFF_CACHE_TTL, function () use ($token, $repoFullName, $prNumber): string {
+        return Cache::remember($cacheKey, Constants::GITHUB_DIFF_CACHE_TTL_SECONDS, function () use ($token, $repoFullName, $prNumber): string {
             $response = $this->http->diff($token)->get(sprintf('/repos/%s/pulls/%d', $repoFullName, $prNumber));
 
             if ($response->failed()) {

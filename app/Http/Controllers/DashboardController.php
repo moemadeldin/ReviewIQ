@@ -9,6 +9,7 @@ use App\Models\PullRequest;
 use App\Models\Repository;
 use App\Models\Review;
 use App\Models\User;
+use App\Utilities\Constants;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Database\Eloquent\Builder;
 use Inertia\Inertia;
@@ -24,7 +25,7 @@ final readonly class DashboardController
             ->whereHas('repository', fn (Builder $query) => $query->whereIn('workspace_id', $workspaceIds))
             ->with(['repository', 'review'])
             ->latest('updated_at')
-            ->limit(8)
+            ->limit(Constants::DASHBOARD_RECENT_PULL_REQUESTS)
             ->get();
 
         $stats = [

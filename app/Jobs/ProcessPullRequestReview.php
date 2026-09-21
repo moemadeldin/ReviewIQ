@@ -15,6 +15,7 @@ use App\Models\Review;
 use App\Models\Workspace;
 use App\Services\DiffLineMapper;
 use App\Services\PromptBuilder;
+use App\Utilities\Constants;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -27,8 +28,8 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
-#[Tries(3)]
-#[Timeout(600)]
+#[Tries(Constants::REVIEW_JOB_TRIES)]
+#[Timeout(Constants::REVIEW_JOB_TIMEOUT_SECONDS)]
 final class ProcessPullRequestReview implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable;
@@ -48,7 +49,7 @@ final class ProcessPullRequestReview implements ShouldBeUnique, ShouldQueue
     /** @return array<int, int> */
     public function backoff(): array
     {
-        return [30, 120, 300];
+        return Constants::REVIEW_JOB_BACKOFF_SECONDS;
     }
 
     public function handle(
@@ -87,7 +88,7 @@ final class ProcessPullRequestReview implements ShouldBeUnique, ShouldQueue
             'attempts' => $this->attempts(),
         ]);
 
-        $maxTries = $this->job?->maxTries() ?? 3;
+        $maxTries = $this->job?->maxTries() ?? Constants::REVIEW_JOB_TRIES;
 
         $status = $this->attempts() >= $maxTries
             ? PullRequestStatus::Failed
