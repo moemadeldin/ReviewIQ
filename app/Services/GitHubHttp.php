@@ -6,12 +6,15 @@ namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
 final readonly class GitHubHttp
 {
     public function __construct(
         private string $baseUrl,
-    ) {}
+    ) {
+        throw_if($this->baseUrl === '' || $this->baseUrl === '0', RuntimeException::class, 'Invalid GitHub base URL configuration');
+    }
 
     /**
      * Create a request for JSON API endpoints (repos, webhooks, reviews, etc.)

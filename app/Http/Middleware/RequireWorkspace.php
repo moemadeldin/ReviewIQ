@@ -66,7 +66,7 @@ final readonly class RequireWorkspace
             return to_route('workspaces.create');
         }
 
-        if ($request->attributes->get('current_workspace') === null) {
+        if ($request->attributes->get('current_workspace') === null && $route?->getName() !== 'dashboard') {
             return to_route('workspaces.index');
         }
 

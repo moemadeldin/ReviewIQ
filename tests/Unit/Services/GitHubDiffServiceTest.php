@@ -41,10 +41,6 @@ it('throws on failed response', function (): void {
 it('throws when base url config is missing', function (): void {
     Config::set('services.github.base_url', '');
 
-    // Need to create a new instance since container has singleton with valid URL
-    $http = new GitHubHttp('');
-    $service = new GitHubDiffService('', $http);
-
-    expect(fn (): string => $service->getDiff('test-token', 'owner/repo', 42, 'abc123'))
-        ->toThrow(RuntimeException::class);
+    expect(fn (): GitHubHttp => new GitHubHttp(''))
+        ->toThrow(RuntimeException::class, 'Invalid GitHub base URL configuration');
 });

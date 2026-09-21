@@ -22,6 +22,15 @@ final readonly class SetCurrentWorkspace
             return $next($request);
         }
 
+        if ($request->route()?->getName() === 'dashboard') {
+            if ($request->hasSession()) {
+                $request->session()->forget('current_workspace_id');
+            }
+
+            /** @var Response */
+            return $next($request);
+        }
+
         $workspaceId = null;
 
         if ($request->hasSession()) {

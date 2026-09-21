@@ -21,14 +21,4 @@ return new class extends Migration
                 ->nullOnDelete();
         });
     }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('reviews', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('previous_review_id');
-        });
-    }
 };

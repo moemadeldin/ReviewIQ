@@ -20,6 +20,6 @@ final readonly class SwitchWorkspaceController
 
         $request->session()->put('current_workspace_id', $workspace->id);
 
-        return back();
+        return to_route('workspaces.show', $workspace);
     }
 }

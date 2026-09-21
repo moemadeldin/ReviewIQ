@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\WorkspaceInvitations;
 
+use App\Enums\Roles;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
@@ -35,7 +36,11 @@ final readonly class AcceptInvitationForUser
 
             throw_unless($workspace instanceof Workspace, HttpException::class, Response::HTTP_INTERNAL_SERVER_ERROR, 'Workspace not found');
 
-            $workspace->addUser($user, $invitation->role);
+            $roleValue = $invitation->getRawOriginal('role');
+
+            throw_unless(is_string($roleValue), HttpException::class, Response::HTTP_INTERNAL_SERVER_ERROR, 'Invalid invitation role');
+
+            $workspace->addUser($user, Roles::from($roleValue));
 
             $invitation->update(['accepted_at' => now()]);
 

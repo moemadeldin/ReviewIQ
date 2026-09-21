@@ -16,5 +16,5 @@ return new class extends Migration
         Schema::table('reviews', function (Blueprint $table): void {
             $table->index(['pull_request_id', 'created_at']);
         });
-    } 
+    }
 };

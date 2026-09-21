@@ -276,7 +276,10 @@ it('handles streaming edge cases', function (): void {
 
     $readCallCount = 0;
     $stream = $this->createMock(StreamInterface::class);
-    $stream->method('eof')->willReturn(false);
+    $stream->method('eof')
+        ->willReturnCallback(function () use (&$readCallCount): bool {
+            return $readCallCount >= 1;
+        });
     $stream->method('read')
         ->willReturnCallback(function () use ($rawSse, &$readCallCount): string {
             $readCallCount++;

@@ -50,7 +50,7 @@ it('creates invitation with role as string', function (): void {
         role: 'admin',
     );
 
-    expect($invitation->role)->toBe(Roles::Member);
+    expect($invitation->role)->toBe(Roles::Admin);
 });
 
 it('throws if user is already a member', function (): void {

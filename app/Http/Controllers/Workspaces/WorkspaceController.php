@@ -40,7 +40,7 @@ final readonly class WorkspaceController
 
         $workspace = $action->handle(
             user: $user,
-            name: $request->validated()['name'],
+            name: $request->string('name')->toString(),
         );
 
         $request->session()->put('current_workspace_id', $workspace->id);
@@ -67,7 +67,7 @@ final readonly class WorkspaceController
     public function update(StoreWorkspaceRequest $request, Workspace $workspace, UpdateWorkspace $action): RedirectResponse
     {
 
-        $action->handle($workspace, $request->validated()['name']);
+        $action->handle($workspace, $request->string('name')->toString());
 
         return to_route('workspaces.show', $workspace);
     }

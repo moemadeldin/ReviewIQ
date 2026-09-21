@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\PullRequestStatus;
 use Carbon\CarbonInterface;
+use Database\Factories\PullRequestFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 final class PullRequest extends Model
 {
+    /** @use HasFactory<PullRequestFactory> */
     use HasFactory;
     use HasUuids;
 

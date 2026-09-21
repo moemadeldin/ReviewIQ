@@ -185,6 +185,8 @@ final readonly class ReviewResponseParser
         $json = (string) preg_replace('/(?<=[\s,{])(\w+)":/', '"$1":', $json);
         // Fix unquoted key before colon: key" -> "key" (when followed by colon)
         $json = (string) preg_replace('/(?<=[\s,{])(\w+)"(?=\s*:)/', '"$1', $json);
+        // Fix unquoted key directly before colon: key: -> "key":
+        $json = (string) preg_replace('/(?<=[\s,{])(\w+)(?=\s*:)/', '"$1"', $json);
         // Fix missing colon before bracket (quoted key): "issues"[ -> "issues": [
         $json = (string) preg_replace('/"(\w+)"\s*\[/', '"$1": [', $json);
         // Fix unquoted key + quoted value: key "value" -> "key": "value"

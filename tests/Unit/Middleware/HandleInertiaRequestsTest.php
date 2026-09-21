@@ -27,9 +27,9 @@ it('shares null user when guest', function (): void {
 
     expect($shared)->toHaveKey('auth')
         ->and($shared['auth'])->toHaveKey('user')
-        ->and($shared['auth']['user'])->toBeNull()
-        ->and($shared['auth']['workspaces'])->toBe([])
-        ->and($shared['auth']['currentWorkspace'])->toBeNull();
+        ->and($shared['auth']['user']())->toBeNull()
+        ->and($shared['auth']['workspaces']())->toBe([])
+        ->and($shared['auth']['currentWorkspace']())->toBeNull();
 });
 
 it('shares authenticated user data', function (): void {
@@ -45,10 +45,10 @@ it('shares authenticated user data', function (): void {
 
     $shared = $middleware->share($request);
 
-    expect($shared['auth']['user'])->not->toBeNull()
-        ->and($shared['auth']['user']->id)->toBe($user->id)
-        ->and($shared['auth']['user']->name)->toBe('Test User')
-        ->and($shared['auth']['user']->email)->toBe('test@example.com');
+    expect($shared['auth']['user']())->not->toBeNull()
+        ->and($shared['auth']['user']()->id)->toBe($user->id)
+        ->and($shared['auth']['user']()->name)->toBe('Test User')
+        ->and($shared['auth']['user']()->email)->toBe('test@example.com');
 });
 
 it('defaults sidebarOpen to true when no cookie', function (): void {
@@ -107,6 +107,6 @@ it('shares user role in current workspace', function (): void {
 
     $shared = $middleware->share($request);
 
-    expect($shared['auth']['role'])->not->toBeNull()
-        ->and($shared['auth']['role']->value)->toBe('owner');
+    expect($shared['auth']['role']())->not->toBeNull()
+        ->and($shared['auth']['role']()->value)->toBe('owner');
 });
