@@ -52,7 +52,7 @@ final class HandleInertiaRequests extends Middleware
                 'height' => config('app.og_image_height'),
             ],
             'auth' => [
-                'user' => $request->user(...),
+                'user' => $request->user(),
                 'workspaces' => fn (): array => $request->user()?->workspaces->toArray() ?? [],
                 'currentWorkspace' => fn (): ?Workspace => $request->attributes->get('current_workspace'),
                 'role' => fn (): ?Roles => $this->currentRole($request, $user),
