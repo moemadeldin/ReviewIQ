@@ -260,7 +260,8 @@ PROMPT;
         $payload['score_rationale'] = $this->clip((string) ($payload['score_rationale'] ?? ''), $this->maxPreviousReviewChars / 2);
 
         // If still too large, drop non-essential keys progressively.
-        foreach (['highlights', 'issues', 'summary', 'score_rationale', 'recommendation'] as $key) {
+        // Order: least critical for incremental review first.
+        foreach (['highlights', 'recommendation', 'summary', 'score_rationale', 'issues'] as $key) {
             if ((is_string($payload[$key] ?? null) || is_array($payload[$key] ?? null)) && $this->jsonLength($payload) > $this->maxPreviousReviewChars) {
                 unset($payload[$key]);
             }
@@ -275,7 +276,7 @@ PROMPT;
             return $value;
         }
 
-        return mb_substr($value, 0, $maxChars).'...';
+        return mb_substr($value, 0, max(0, $maxChars - 3)).'...';
     }
 
     /**

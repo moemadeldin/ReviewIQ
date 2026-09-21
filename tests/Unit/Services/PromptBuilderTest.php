@@ -146,16 +146,16 @@ it('truncates oversized previous review while keeping valid JSON', function (): 
         previousReview: $previous,
     );
 
-    expect($prompt)->toContain('<previous_review>')
-        ->and($prompt)->toContain('...');
+    expect($prompt)->toContain('<previous_review>');
 
     preg_match('/<previous_review>\s*(.*?)\s*<\/previous_review>/s', $prompt, $matches);
-    $decoded = json_decode($matches[1], true, flags: JSON_THROW_ON_ERROR);
+    $json = $matches[1];
+
+    $decoded = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
 
     expect(is_array($decoded))->toBeTrue()
         ->and($decoded)->toHaveKey('score')
-        ->and($decoded)->toHaveKey('summary')
-        ->and($decoded)->toHaveKey('recommendation');
+        ->and(mb_strlen($json))->toBeLessThanOrEqual(200);
 });
 
 it('drops non-essential previous review keys to fit budget', function (): void {
