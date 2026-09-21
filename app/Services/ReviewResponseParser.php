@@ -17,7 +17,7 @@ final readonly class ReviewResponseParser
      *     issues: array<int, array{file: string, line: int|null, severity: string, description: string, category: string}>,
      *     highlights: array<int, array{file: string, line: int|null, content: string}>,
      *     recommendation: string,
-     *     meta?: array{model: string, usage?: array{prompt_tokens: int, completion_tokens: int, total_tokens: int}>
+     *     meta: array{model: string, usage?: array<mixed>|null},
      * }
      */
     public function parse(string $raw, string $model): array
@@ -58,6 +58,9 @@ final readonly class ReviewResponseParser
         return $clean;
     }
 
+    /**
+     * @param  array<mixed>  $parsed
+     */
     private function validateRequiredFields(array $parsed): void
     {
         $missing = array_diff(['summary', 'score', 'issues'], array_keys($parsed));
@@ -70,6 +73,7 @@ final readonly class ReviewResponseParser
     }
 
     /**
+     * @param  array<mixed>  $parsed
      * @return array{
      *     summary: string,
      *     score: int,
@@ -77,7 +81,7 @@ final readonly class ReviewResponseParser
      *     issues: array<int, array{file: string, line: int|null, severity: string, description: string, category: string}>,
      *     highlights: array<int, array{file: string, line: int|null, content: string}>,
      *     recommendation: string,
-     *     meta?: array{model: string, usage?: array{prompt_tokens: int, completion_tokens: int, total_tokens: int}>
+     *     meta: array{model: string, usage?: array<mixed>|null},
      * }
      */
     private function sanitize(array $parsed, string $model): array
@@ -88,8 +92,14 @@ final readonly class ReviewResponseParser
 
         $score = is_numeric($parsed['score'] ?? null) ? max(Constants::AI_SCORE_MIN, min(Constants::AI_SCORE_MAX, (int) $parsed['score'])) : Constants::AI_SCORE_MIN;
 
+        $rawIssues = is_array($parsed['issues'] ?? null) ? $parsed['issues'] : [];
+
         $issues = array_values(array_map(
-            function (array $issue) use ($allowedSeverities, $allowedCategories): array {
+            function (mixed $issue) use ($allowedSeverities, $allowedCategories): array {
+                if (! is_array($issue)) {
+                    return ['file' => '', 'line' => null, 'severity' => 'medium', 'description' => '', 'category' => 'maintainability'];
+                }
+
                 $line = isset($issue['line']) && is_numeric($issue['line']) ? (int) $issue['line'] : null;
                 $severity = in_array($issue['severity'] ?? null, $allowedSeverities, true)
                     ? $issue['severity']
@@ -97,31 +107,33 @@ final readonly class ReviewResponseParser
 
                 // Move praise to highlights
                 if ($severity === 'praise') {
-                    return ['_move_to_highlights' => true, 'content' => $issue['description'] ?? $issue['title'] ?? ''];
+                    return ['_move_to_highlights' => true, 'content' => $this->toString($issue['description'] ?? $issue['title'] ?? null)];
                 }
 
                 $category = in_array($issue['category'] ?? null, $allowedCategories, true)
                     ? $issue['category']
                     : 'maintainability';
 
-                $description = $issue['description'] ?? $issue['title'] ?? $issue['message'] ?? '';
+                $description = $this->toString($issue['description'] ?? $issue['title'] ?? $issue['message'] ?? null);
                 // Normalize: only 'description' field, no 'message' or 'title'
                 unset($issue['message'], $issue['title']);
 
                 return [
-                    'file' => $issue['file'] ?? '',
+                    'file' => $this->toString($issue['file'] ?? null),
                     'line' => $line,
                     'severity' => $severity,
                     'description' => $description,
                     'category' => $category,
                 ];
             },
-            $parsed['issues'] ?? []
+            $rawIssues,
         ));
 
         // Extract praise items to highlights
         $praiseItems = array_filter($issues, fn (array $i): bool => isset($i['_move_to_highlights']));
         $issues = array_values(array_filter($issues, fn (array $i): bool => ! isset($i['_move_to_highlights'])));
+
+        $rawHighlights = is_array($parsed['highlights'] ?? null) ? $parsed['highlights'] : [];
 
         $highlights = array_values(array_filter(
             array_map(function (mixed $highlight): ?array {
@@ -138,7 +150,7 @@ final readonly class ReviewResponseParser
                     'line' => isset($highlight['line']) && is_numeric($highlight['line']) ? (int) $highlight['line'] : null,
                     'content' => isset($highlight['content']) && is_string($highlight['content']) ? $highlight['content'] : '',
                 ];
-            }, $parsed['highlights'] ?? []),
+            }, $rawHighlights),
             fn (?array $h): bool => $h !== null && $h['content'] !== '',
         ));
 
@@ -155,9 +167,9 @@ final readonly class ReviewResponseParser
             : 'comment';
 
         $result = [
-            'summary' => (string) ($parsed['summary'] ?? ''),
+            'summary' => $this->toString($parsed['summary'] ?? null),
             'score' => $score,
-            'score_rationale' => (string) ($parsed['score_rationale'] ?? ''),
+            'score_rationale' => $this->toString($parsed['score_rationale'] ?? null),
             'issues' => $issues,
             'highlights' => $highlights,
             'recommendation' => $recommendation,
@@ -173,6 +185,15 @@ final readonly class ReviewResponseParser
         }
 
         return $result;
+    }
+
+    private function toString(mixed $value): string
+    {
+        if (is_string($value) || is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
+
+        return '';
     }
 
     private function repairJson(string $json): string

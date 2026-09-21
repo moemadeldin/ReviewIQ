@@ -8,6 +8,7 @@ use App\Contracts\GitHubApi;
 use App\Models\Repository;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Utilities\Constants;
 
 final readonly class GetRepositoriesData
 {
@@ -39,10 +40,10 @@ final readonly class GetRepositoriesData
         }
 
         if ($workspace instanceof Workspace) {
-            $connectedRepos = Repository::query()
-                ->where('workspace_id', $workspace->id)
-                ->get()
-                ->keyBy('full_name');
+            $connectedRepos = [];
+            foreach (Repository::query()->where('workspace_id', $workspace->id)->get() as $repository) {
+                $connectedRepos[$repository->full_name] = $repository;
+            }
 
             $allActiveFullNames = Repository::query()
                 ->where('is_active', true)
@@ -56,13 +57,13 @@ final readonly class GetRepositoriesData
                 ->values()
                 ->all();
         } else {
-            $connectedRepos = Repository::query()
-                ->whereIn('workspace_id', $user->workspaces()->pluck('workspace_id'))
-                ->get()
-                ->keyBy('full_name');
+            $connectedRepos = [];
+            foreach (Repository::query()->whereIn('workspace_id', $user->workspaces()->pluck('workspace_id'))->get() as $repository) {
+                $connectedRepos[$repository->full_name] = $repository;
+            }
         }
 
-        $perPage = (int) config('services.github.repos_per_page', 10);
+        $perPage = Constants::reposPerPage();
 
         if ($hasFilters) {
             $githubRepos = array_values(array_filter(
@@ -92,7 +93,7 @@ final readonly class GetRepositoriesData
     {
         if ($search !== null && $search !== '') {
             $needle = mb_strtolower($search);
-            $haystack = mb_strtolower(mb_trim(($repo['full_name'] ?? '').' '.($repo['name'] ?? '')));
+            $haystack = mb_strtolower(mb_trim($repo['full_name'].' '.$repo['name']));
 
             if (! str_contains($haystack, $needle)) {
                 return false;
@@ -104,7 +105,7 @@ final readonly class GetRepositoriesData
         }
 
         if ($visibility !== null && $visibility !== '') {
-            $isPrivate = (bool) ($repo['private'] ?? false);
+            $isPrivate = $repo['private'];
 
             if ($visibility === 'public' && $isPrivate) {
                 return false;

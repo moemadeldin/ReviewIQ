@@ -58,7 +58,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
             return;
         }
 
-        /** @var array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}, body: string|null, draft: bool} $prPayload */
+        /** @var array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}, body: string|null, draft?: bool} $prPayload */
         $prPayload = $payload['pull_request'];
 
         if ($this->shouldSkipPr($prPayload)) {
@@ -93,7 +93,11 @@ final readonly class GitHubWebhookService implements WebhookProvider
 
         if ($shouldDispatch) {
             $pr->update(['status' => PullRequestStatus::Pending, 'head_sha' => $headSha]);
-            dispatch(new ProcessPullRequestReview($pr->fresh()));
+
+            $freshPr = $pr->fresh();
+            if ($freshPr !== null) {
+                dispatch(new ProcessPullRequestReview($freshPr));
+            }
         } elseif ($pr->head_sha !== $headSha) {
             // PR is already being reviewed - check if head_sha changed
             $pr->update(['head_sha' => $headSha, 'pending_head_sha' => $headSha]);
@@ -108,12 +112,15 @@ final readonly class GitHubWebhookService implements WebhookProvider
     {
         $configuredActions = array_merge(
             [PullRequestAction::Opened->value, PullRequestAction::Synchronize->value],
-            config('github.webhook_extra_actions', ['reopened', 'ready_for_review'])
+            (array) config('github.webhook_extra_actions', ['reopened', 'ready_for_review'])
         );
 
         return in_array($action, $configuredActions, true);
     }
 
+    /**
+     * @param  array{user: array{login?: string}, draft?: bool}  $prPayload
+     */
     private function shouldSkipPr(array $prPayload): bool
     {
         if (($prPayload['draft'] ?? false) === true) {
@@ -121,7 +128,7 @@ final readonly class GitHubWebhookService implements WebhookProvider
         }
 
         $author = $prPayload['user']['login'] ?? '';
-        $skipBots = config('github.webhook_skip_bots', ['dependabot[bot]', 'renovate[bot]']);
+        $skipBots = (array) config('github.webhook_skip_bots', ['dependabot[bot]', 'renovate[bot]']);
 
         return in_array($author, $skipBots, true);
     }

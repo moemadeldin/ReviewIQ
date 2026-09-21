@@ -32,6 +32,7 @@ final class PullRequest extends Model
 {
     /** @use HasFactory<PullRequestFactory> */
     use HasFactory;
+
     use HasUuids;
 
     /**

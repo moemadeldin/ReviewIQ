@@ -16,6 +16,9 @@ final class GitHubWebhookHelper
         $appUrl = config('app.url');
         throw_unless(is_string($appUrl), RuntimeException::class, 'Invalid app URL configuration');
 
-        return config('services.github.webhook_url', $appUrl.'/api/v1/webhooks/github');
+        $webhookUrl = config('services.github.webhook_url', $appUrl.'/api/v1/webhooks/github');
+        throw_unless(is_string($webhookUrl), RuntimeException::class, 'Invalid webhook URL configuration');
+
+        return $webhookUrl;
     }
 }

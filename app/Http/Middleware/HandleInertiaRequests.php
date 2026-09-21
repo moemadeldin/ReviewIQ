@@ -52,7 +52,7 @@ final class HandleInertiaRequests extends Middleware
                 'height' => config('app.og_image_height'),
             ],
             'auth' => [
-                'user' => fn (): ?User => $request->user(),
+                'user' => $request->user(...),
                 'workspaces' => fn (): array => $request->user()?->workspaces->toArray() ?? [],
                 'currentWorkspace' => fn (): ?Workspace => $this->currentWorkspace($request),
                 'role' => fn (): ?Roles => $this->currentRole($request, $user),
@@ -64,7 +64,7 @@ final class HandleInertiaRequests extends Middleware
     /**
      * Resolve the workspace that is current for the request.
      */
-    protected function currentWorkspace(Request $request): ?Workspace
+    private function currentWorkspace(Request $request): ?Workspace
     {
         $workspace = $request->attributes->get('current_workspace');
 
@@ -78,7 +78,7 @@ final class HandleInertiaRequests extends Middleware
     /**
      * Resolve the current user's role within the current workspace.
      */
-    protected function currentRole(Request $request, ?User $user): ?Roles
+    private function currentRole(Request $request, ?User $user): ?Roles
     {
         $workspace = $request->attributes->get('current_workspace');
 

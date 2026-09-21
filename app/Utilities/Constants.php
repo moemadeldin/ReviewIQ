@@ -92,4 +92,11 @@ final class Constants
 
     // HTTP (not present in Symfony constant set)
     public const int HTTP_PAGE_EXPIRED = 419;
+
+    public static function reposPerPage(): int
+    {
+        $configured = config('services.github.repos_per_page', self::PAGE_LIMIT);
+
+        return is_int($configured) ? $configured : self::PAGE_LIMIT;
+    }
 }

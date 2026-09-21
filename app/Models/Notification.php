@@ -23,6 +23,7 @@ final class Notification extends Model
 {
     /** @use HasFactory<NotificationFactory> */
     use HasFactory;
+
     use HasUuids;
 
     protected $casts = [

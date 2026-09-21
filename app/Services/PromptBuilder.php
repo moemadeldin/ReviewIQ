@@ -9,6 +9,9 @@ use App\Utilities\Constants;
 
 final readonly class PromptBuilder
 {
+    /**
+     * @param  array<int, string>  $ignorePatterns
+     */
     public function __construct(
         private int $maxDiffChars = Constants::PROMPT_MAX_DIFF_CHARS_DEFAULT,
         private array $ignorePatterns = [],
@@ -232,8 +235,8 @@ PROMPT;
      * Shrink a previous review payload down to fit the character budget
      * without ever producing structurally invalid JSON.
      *
-     * @param  array{score?: int|null, score_rationale?: string|null, summary?: string|null, issues?: array<int, array<string, mixed>>|null, highlights?: array<int, array<string, mixed>>|null, recommendation?: string|null}  $previous
-     * @return array{score?: int|null, score_rationale?: string|null, summary?: string|null, issues?: array<int, array<string, mixed>>|null, highlights?: array<int, array<string, mixed>>|null, recommendation?: string|null}
+     * @param  array<string, mixed>  $previous
+     * @return array<string, mixed>
      */
     private function fitPreviousReviewWithinBudget(array $previous): array
     {
@@ -248,16 +251,16 @@ PROMPT;
 
         // Shrink verbose text fields to keep each issue comfortably under the budget.
         $payload['issues'] = array_map(
-            fn (array $issue): array => [
+            fn (mixed $issue): array => is_array($issue) ? [
                 ...$issue,
-                'description' => $this->clip((string) ($issue['description'] ?? ''), $this->issueDetailChars),
-                'suggestion' => $this->clip((string) ($issue['suggestion'] ?? ''), $this->issueDetailChars),
-            ],
+                'description' => $this->clip($this->toString($issue['description'] ?? null), $this->issueDetailChars),
+                'suggestion' => $this->clip($this->toString($issue['suggestion'] ?? null), $this->issueDetailChars),
+            ] : [],
             is_array($issues) ? $issues : [],
         );
 
-        $payload['summary'] = $this->clip((string) ($payload['summary'] ?? ''), $this->maxPreviousReviewChars / 2);
-        $payload['score_rationale'] = $this->clip((string) ($payload['score_rationale'] ?? ''), $this->maxPreviousReviewChars / 2);
+        $payload['summary'] = $this->clip($this->toString($payload['summary'] ?? null), $this->maxPreviousReviewChars / 2);
+        $payload['score_rationale'] = $this->clip($this->toString($payload['score_rationale'] ?? null), $this->maxPreviousReviewChars / 2);
 
         // If still too large, drop non-essential keys progressively.
         // Order: least critical for incremental review first.
@@ -279,6 +282,15 @@ PROMPT;
         return mb_substr($value, 0, max(0, $maxChars - 3)).'...';
     }
 
+    private function toString(mixed $value): string
+    {
+        if (is_string($value) || is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
+
+        return '';
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      */
@@ -287,6 +299,9 @@ PROMPT;
         return mb_strlen(json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
+    /**
+     * @return array<int, string>
+     */
     private function getIgnorePatterns(): array
     {
         $defaults = [
@@ -403,12 +418,19 @@ PROMPT;
 
         arsort($priorities);
 
-        return array_replace($files, $priorities);
+        $sorted = [];
+        foreach (array_keys($priorities) as $path) {
+            if (array_key_exists($path, $files)) {
+                $sorted[$path] = $files[$path];
+            }
+        }
+
+        return $sorted;
     }
 
     private function isIgnored(string $path): bool
     {
-        return array_any($this->getIgnorePatterns(), fn (string $pattern): int|false => preg_match($pattern, $path));
+        return array_any($this->getIgnorePatterns(), fn (string $pattern): bool => preg_match($pattern, $path) === 1);
     }
 
     private function isLockfile(string $path): bool

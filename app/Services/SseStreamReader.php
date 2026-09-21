@@ -70,6 +70,10 @@ final readonly class SseStreamReader
 
     private function readResource(mixed $stream, callable $onLine, string &$buffer): void
     {
+        if (! is_resource($stream)) {
+            return;
+        }
+
         while (! feof($stream)) {
             $chunk = fread($stream, Constants::STREAM_CHUNK_SIZE);
 
