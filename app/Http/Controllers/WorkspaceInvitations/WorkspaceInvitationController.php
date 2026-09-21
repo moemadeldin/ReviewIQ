@@ -16,6 +16,7 @@ use App\Queries\GetWorkspaceInvitations;
 use App\Traits\APIResponder;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 

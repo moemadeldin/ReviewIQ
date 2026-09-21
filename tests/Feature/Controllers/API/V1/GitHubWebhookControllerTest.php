@@ -13,7 +13,7 @@ it('accepts valid github webhook and returns 202', function (): void {
         ->once()
         ->with(Mockery::type(Request::class));
 
-    $response = $this->postJson(route('api.v1.webhooks.github'), [
+    $payload = [
         'action' => 'opened',
         'repository' => ['id' => 12345],
         'pull_request' => [
@@ -24,7 +24,14 @@ it('accepts valid github webhook and returns 202', function (): void {
             'diff_url' => 'https://github.com/test/repo/pull/1.diff',
             'head' => ['sha' => 'abc123'],
         ],
-    ], ['X-GitHub-Event' => 'pull_request']);
+    ];
+
+    $signature = 'sha256='.hash_hmac('sha256', json_encode($payload), (string) config('services.github.webhook_secret'));
+
+    $response = $this->postJson(route('api.v1.webhooks.github'), $payload, [
+        'X-GitHub-Event' => 'pull_request',
+        'X-Hub-Signature-256' => $signature,
+    ]);
 
     $response->assertStatus(Response::HTTP_ACCEPTED)
         ->assertJsonPath('status', 'Success')
@@ -37,9 +44,14 @@ it('returns 500 on webhook exception', function (): void {
         ->once()
         ->andThrow(new Exception('Webhook processing failed'));
 
-    $response = $this->postJson(route('api.v1.webhooks.github'), [
-        'action' => 'opened',
-    ], ['X-GitHub-Event' => 'pull_request']);
+    $payload = ['action' => 'opened'];
+
+    $signature = 'sha256='.hash_hmac('sha256', json_encode($payload), (string) config('services.github.webhook_secret'));
+
+    $response = $this->postJson(route('api.v1.webhooks.github'), $payload, [
+        'X-GitHub-Event' => 'pull_request',
+        'X-Hub-Signature-256' => $signature,
+    ]);
 
     $response->assertStatus(Response::HTTP_INTERNAL_SERVER_ERROR)
         ->assertJsonPath('status', 'Failed')
@@ -52,9 +64,14 @@ it('returns 500 on http exception', function (): void {
         ->once()
         ->andThrow(new AccessDeniedHttpException('Invalid signature'));
 
-    $response = $this->postJson(route('api.v1.webhooks.github'), [
-        'action' => 'opened',
-    ], ['X-GitHub-Event' => 'pull_request']);
+    $payload = ['action' => 'opened'];
+
+    $signature = 'sha256='.hash_hmac('sha256', json_encode($payload), (string) config('services.github.webhook_secret'));
+
+    $response = $this->postJson(route('api.v1.webhooks.github'), $payload, [
+        'X-GitHub-Event' => 'pull_request',
+        'X-Hub-Signature-256' => $signature,
+    ]);
 
     $response->assertStatus(Response::HTTP_FORBIDDEN)
         ->assertJsonPath('status', 'Failed')

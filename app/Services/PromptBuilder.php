@@ -99,7 +99,7 @@ Scoring guide:
 Order issues by severity: critical first, praise last (praise only in highlights).
 PROMPT;
 
-        if ($previousReview !== null) {
+        if ($previousReview instanceof Review) {
             $prompt .= <<<'PROMPT'
 
 INCREMENTAL REVIEW MODE:
@@ -204,7 +204,7 @@ PROMPT;
 
     private function buildPreviousReviewSection(?Review $previousReview): string
     {
-        if (! $this->enableIncrementalReviews || $previousReview === null) {
+        if (! $this->enableIncrementalReviews || ! $previousReview instanceof Review) {
             return '';
         }
 
@@ -284,7 +284,7 @@ PROMPT;
      */
     private function jsonLength(array $payload): int
     {
-        return mb_strlen((string) json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        return mb_strlen(json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
     private function getIgnorePatterns(): array
