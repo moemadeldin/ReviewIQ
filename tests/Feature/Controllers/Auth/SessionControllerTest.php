@@ -29,6 +29,7 @@ it('may create a session', function (): void {
         ->post(route('login.store'), [
             'email' => 'test@example.com',
             'password' => 'password',
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirectToRoute('dashboard');
@@ -47,6 +48,7 @@ it('may create a session with remember me', function (): void {
             'email' => 'test@example.com',
             'password' => 'password',
             'remember' => true,
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirectToRoute('dashboard');
@@ -67,6 +69,7 @@ it('redirects to two-factor challenge when enabled', function (): void {
         ->post(route('login.store'), [
             'email' => 'test@example.com',
             'password' => 'password',
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirectToRoute('two-factor.login');
@@ -84,6 +87,7 @@ it('fails with invalid credentials', function (): void {
         ->post(route('login.store'), [
             'email' => 'test@example.com',
             'password' => 'wrong-password',
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirectToRoute('login')
@@ -146,6 +150,7 @@ it('throttles login attempts after too many failures', function (): void {
             ->post(route('login.store'), [
                 'email' => 'test@example.com',
                 'password' => 'wrong-password',
+                'turnstile_token' => turnstileToken(),
             ]);
     }
 
@@ -154,6 +159,7 @@ it('throttles login attempts after too many failures', function (): void {
         ->post(route('login.store'), [
             'email' => 'test@example.com',
             'password' => 'wrong-password',
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirectToRoute('login')
@@ -175,6 +181,7 @@ it('clears rate limit after successful login', function (): void {
             ->post(route('login.store'), [
                 'email' => 'test@example.com',
                 'password' => 'wrong-password',
+                'turnstile_token' => turnstileToken(),
             ]);
     }
 
@@ -183,6 +190,7 @@ it('clears rate limit after successful login', function (): void {
         ->post(route('login.store'), [
             'email' => 'test@example.com',
             'password' => 'password',
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirectToRoute('dashboard');
@@ -204,6 +212,7 @@ it('dispatches lockout event when rate limit is reached', function (): void {
             ->post(route('login.store'), [
                 'email' => 'test@example.com',
                 'password' => 'wrong-password',
+                'turnstile_token' => turnstileToken(),
             ]);
     }
 

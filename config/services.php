@@ -36,6 +36,7 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
     'github' => [
         'client_id' => env('GITHUB_CLIENT_ID'),
         'client_secret' => env('GITHUB_CLIENT_SECRET'),
@@ -54,6 +55,7 @@ return [
         'installation_id' => env('GITHUB_APP_INSTALLATION_ID', ''),
         'private_key_path' => env('GITHUB_APP_PRIVATE_KEY_PATH', storage_path('oauth/reviewiq-pr-reviewer.pem')),
     ],
+
     'openrouter' => [
         'api_key' => env('OPENROUTER_API_KEY'),
         'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1/'),
@@ -65,10 +67,16 @@ return [
         'fallback_models' => env('OPENROUTER_FALLBACK_MODELS', ''),
         'json_object_format' => env('OPENROUTER_JSON_OBJECT_FORMAT', true),
     ],
+
     'prompt' => [
         'max_diff_chars' => env('PROMPT_MAX_DIFF_CHARS', 100000),
         'ignore_patterns' => env('PROMPT_IGNORE_PATTERNS', ''),
         'enable_incremental_reviews' => env('PROMPT_ENABLE_INCREMENTAL_REVIEWS', true),
         'max_previous_review_chars' => env('PROMPT_MAX_PREVIOUS_REVIEW_CHARS', 4000),
+    ],
+
+    'turnstile' => [
+        'key' => env('TURNSTILE_SITE_KEY'),
+        'secret' => env('TURNSTILE_SECRET_KEY'),
     ],
 ];

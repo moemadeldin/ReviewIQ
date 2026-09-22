@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\WorkspaceInvitation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
+use RyanChandler\LaravelCloudflareTurnstile\Rules\Turnstile;
 
 final class AcceptInvitationRequest extends FormRequest
 {
@@ -29,6 +30,7 @@ final class AcceptInvitationRequest extends FormRequest
             'name' => [$mode, 'string', 'max:255'],
             'password' => [$mode, Password::defaults()],
             'password_confirmation' => [$mode, 'same:password'],
+            'turnstile_token' => ['required', new Turnstile],
         ];
     }
 }

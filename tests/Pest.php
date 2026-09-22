@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Sleep;
 use Illuminate\Support\Str;
+use RyanChandler\LaravelCloudflareTurnstile\Facades\Turnstile;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)
@@ -19,6 +20,7 @@ pest()->extend(TestCase::class)
         Http::preventStrayRequests();
         Process::preventStrayProcesses();
         Sleep::fake();
+        Turnstile::fake();
 
         $this->freezeTime();
     })
@@ -29,6 +31,11 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 function something(): void
 {
     // ..
+}
+
+function turnstileToken(): string
+{
+    return 'dummy-turnstile-token';
 }
 
 function createWorkspaceForUser(User $user): Workspace

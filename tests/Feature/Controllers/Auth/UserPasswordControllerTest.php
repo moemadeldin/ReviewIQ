@@ -34,6 +34,7 @@ it('may reset password', function (): void {
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
             'token' => $token,
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirectToRoute('login')
@@ -55,6 +56,7 @@ it('fails with invalid token', function (): void {
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
             'token' => 'invalid-token',
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirect(route('password.reset', ['token' => 'invalid-token']))
@@ -68,6 +70,7 @@ it('fails with non-existent email', function (): void {
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
             'token' => 'fake-token',
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirect(route('password.reset', ['token' => 'fake-token']))
