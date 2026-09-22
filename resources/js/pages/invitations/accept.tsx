@@ -1,6 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import Turnstile from '@/components/turnstile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,14 +60,18 @@ export default function AcceptInvitation({
                     className="flex flex-col gap-6"
                 >
                     {({ processing }) => (
-                        <Button
-                            type="submit"
-                            className="w-full cursor-pointer"
-                            disabled={processing}
-                        >
-                            {processing && <Spinner />}
-                            Accept Invitation
-                        </Button>
+                        <>
+                            <Turnstile />
+
+                            <Button
+                                type="submit"
+                                className="w-full cursor-pointer"
+                                disabled={processing}
+                            >
+                                {processing && <Spinner />}
+                                Accept Invitation
+                            </Button>
+                        </>
                     )}
                 </Form>
             ) : (
@@ -119,6 +124,8 @@ export default function AcceptInvitation({
                                     message={errors.password_confirmation}
                                 />
                             </div>
+
+                            <Turnstile />
 
                             <Button
                                 type="submit"

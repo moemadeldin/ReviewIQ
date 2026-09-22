@@ -25,7 +25,7 @@ final readonly class UserController
     public function store(CreateUserRequest $request, CreateUser $action): RedirectResponse
     {
         /** @var array<string, mixed> $attributes */
-        $attributes = $request->safe()->except('password');
+        $attributes = $request->safe()->except(['password', 'turnstile_token']);
 
         $user = $action->handle(
             $attributes,

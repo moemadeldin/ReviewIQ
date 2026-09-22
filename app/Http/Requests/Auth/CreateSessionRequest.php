@@ -10,17 +10,19 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use RyanChandler\LaravelCloudflareTurnstile\Rules\Turnstile;
 
 final class CreateSessionRequest extends FormRequest
 {
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, list<string|Turnstile>>
      */
     public function rules(): array
     {
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+            'turnstile_token' => ['required', new Turnstile],
         ];
     }
 

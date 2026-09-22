@@ -24,6 +24,7 @@ it('may register a new user', function (): void {
             'email' => 'test@example.com',
             'password' => 'password1234',
             'password_confirmation' => 'password1234',
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirectToRoute('dashboard');

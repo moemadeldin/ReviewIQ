@@ -192,7 +192,9 @@ describe('AcceptInvitationController', function (): void {
 
         $existingUser = User::factory()->create(['email' => 'existing@example.com']);
 
-        $response = $this->post(route('invitations.accept', ['token' => 'existing-accept-token']));
+        $response = $this->post(route('invitations.accept', ['token' => 'existing-accept-token']), [
+            'turnstile_token' => turnstileToken(),
+        ]);
 
         $response->assertRedirect(route('dashboard'));
 
@@ -214,7 +216,9 @@ describe('AcceptInvitationController', function (): void {
         ]);
 
         $response = $this->actingAs($existingUser)
-            ->post(route('invitations.accept', ['token' => 'logged-in-accept-token']));
+            ->post(route('invitations.accept', ['token' => 'logged-in-accept-token']), [
+                'turnstile_token' => turnstileToken(),
+            ]);
 
         $response->assertRedirect(route('dashboard'));
 
@@ -236,6 +240,7 @@ describe('AcceptInvitationController', function (): void {
             'name' => 'New User',
             'password' => 'password123',
             'password_confirmation' => 'password123',
+            'turnstile_token' => turnstileToken(),
         ]);
 
         $response->assertRedirect(route('dashboard'));
@@ -251,7 +256,9 @@ describe('AcceptInvitationController', function (): void {
     });
 
     it('returns error for invalid token', function (): void {
-        $response = $this->postJson(route('invitations.accept', ['token' => 'invalid-token']));
+        $response = $this->postJson(route('invitations.accept', ['token' => 'invalid-token']), [
+            'turnstile_token' => turnstileToken(),
+        ]);
 
         $response->assertStatus(Response::HTTP_NOT_FOUND)
             ->assertJsonPath('status', 'Failed')
@@ -264,7 +271,9 @@ describe('AcceptInvitationController', function (): void {
             'email' => 'test@example.com',
         ]);
 
-        $response = $this->postJson(route('invitations.accept', ['token' => 'expired-accept-token']));
+        $response = $this->postJson(route('invitations.accept', ['token' => 'expired-accept-token']), [
+            'turnstile_token' => turnstileToken(),
+        ]);
 
         $response->assertStatus(Response::HTTP_GONE)
             ->assertJsonPath('status', 'Failed')
@@ -277,7 +286,9 @@ describe('AcceptInvitationController', function (): void {
             'email' => 'test@example.com',
         ]);
 
-        $response = $this->postJson(route('invitations.accept', ['token' => 'accepted-accept-token']));
+        $response = $this->postJson(route('invitations.accept', ['token' => 'accepted-accept-token']), [
+            'turnstile_token' => turnstileToken(),
+        ]);
 
         $response->assertStatus(Response::HTTP_CONFLICT)
             ->assertJsonPath('status', 'Failed')

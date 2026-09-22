@@ -46,6 +46,7 @@ final class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'turnstileSiteKey' => config('services.turnstile.key'),
             'og' => [
                 'url' => config('app.og_image'),
                 'width' => config('app.og_image_width'),

@@ -26,6 +26,7 @@ it('may send password reset notification', function (): void {
     $response = $this->fromRoute('password.request')
         ->post(route('password.email'), [
             'email' => 'test@example.com',
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirectToRoute('password.request')
@@ -40,6 +41,7 @@ it('returns generic message for non-existent email', function (): void {
     $response = $this->fromRoute('password.request')
         ->post(route('password.email'), [
             'email' => 'nonexistent@example.com',
+            'turnstile_token' => turnstileToken(),
         ]);
 
     $response->assertRedirectToRoute('password.request')

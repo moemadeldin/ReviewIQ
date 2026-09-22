@@ -9,6 +9,7 @@ use App\Rules\ValidEmail;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use RyanChandler\LaravelCloudflareTurnstile\Rules\Turnstile;
 
 final class CreateUserRequest extends FormRequest
 {
@@ -33,6 +34,7 @@ final class CreateUserRequest extends FormRequest
                 'confirmed',
                 Password::defaults(),
             ],
+            'turnstile_token' => ['required', new Turnstile],
         ];
     }
 }

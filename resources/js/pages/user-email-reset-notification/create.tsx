@@ -3,6 +3,7 @@ import { LoaderCircle } from 'lucide-react';
 // Components
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
+import Turnstile from '@/components/turnstile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +42,8 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
                                 <InputError message={errors.email} />
                             </div>
+
+                            <Turnstile />
 
                             <div className="my-6 flex items-center justify-start">
                                 <Button
