@@ -8,6 +8,7 @@ use App\Actions\Workspaces\CreateWorkspace;
 use App\Actions\Workspaces\DeleteWorkspace;
 use App\Actions\Workspaces\UpdateWorkspace;
 use App\Http\Requests\Workspaces\StoreWorkspaceRequest;
+use App\Http\Requests\Workspaces\UpdateWorkspaceRequest;
 use App\Http\Requests\Workspaces\WorkspaceOwnerRequest;
 use App\Models\User;
 use App\Models\Workspace;
@@ -64,7 +65,7 @@ final readonly class WorkspaceController
         ]);
     }
 
-    public function update(StoreWorkspaceRequest $request, Workspace $workspace, UpdateWorkspace $action): RedirectResponse
+    public function update(UpdateWorkspaceRequest $request, Workspace $workspace, UpdateWorkspace $action): RedirectResponse
     {
 
         $action->handle($workspace, $request->string('name')->toString());
