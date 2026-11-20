@@ -17,10 +17,20 @@ use App\Services\GitHubWebhookService;
 use App\Services\OpenRouterReviewService;
 use App\Services\PromptBuilder;
 use GuzzleHttp\Client;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 final class AppServiceProvider extends ServiceProvider
 {
+    public function boot(): void
+    {
+        RateLimiter::for('webhook', fn (Request $request): Limit => Limit::perMinute(
+            $this->intConfig('services.github.webhook_rate_limit_per_minute', 300),
+        )->by($this->webhookKey($request)));
+    }
+
     public function register(): void
     {
         $this->app->singleton(GitHubHttp::class, fn (): GitHubHttp => new GitHubHttp(
@@ -72,6 +82,19 @@ final class AppServiceProvider extends ServiceProvider
             enableIncrementalReviews: (bool) config('services.prompt.enable_incremental_reviews'),
             maxPreviousReviewChars: $this->intConfig('services.prompt.max_previous_review_chars', 4000),
         ));
+    }
+
+    private function webhookKey(Request $request): string
+    {
+        foreach (['installation.id', 'repository.id'] as $key) {
+            $value = $request->json($key);
+
+            if (is_int($value) || is_string($value)) {
+                return (string) $value;
+            }
+        }
+
+        return $request->ip() ?? 'unknown';
     }
 
     private function stringConfig(string $key, string $default = ''): string

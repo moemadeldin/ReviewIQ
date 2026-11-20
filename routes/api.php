@@ -8,5 +8,5 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function (): void {
     Route::post('/webhooks/github', GitHubWebhookController::class)
         ->name('api.v1.webhooks.github')
-        ->middleware('verify_github_webhook');
+        ->middleware(['verify_github_webhook', 'throttle:webhook']);
 });

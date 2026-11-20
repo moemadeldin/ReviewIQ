@@ -16,6 +16,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Middleware\ThrottleRequestsWithRedis;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -37,6 +39,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace_access' => EnsureWorkspaceAccess::class,
             'verify_github_webhook' => VerifyGitHubWebhookSignature::class,
         ]);
+
+        $middleware->prependToPriorityList([
+            ThrottleRequests::class,
+            ThrottleRequestsWithRedis::class,
+        ], VerifyGitHubWebhookSignature::class);
 
         $middleware->web(append: [
             HandleAppearance::class,
