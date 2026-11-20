@@ -246,6 +246,20 @@ php artisan tinker
 - `GET /invitations/{token}/accept`, `POST /invitations/{token}/accept` — workspace invitation acceptance
 - `GET /workspaces/{workspace}/reviews/{pullRequest}/data` — review details
 
+## Recording a demo
+
+Use a throwaway repository and never show real pull requests or secrets.
+
+1. Start the full local stack: `composer dev` (web server, queue worker, Vite, Reverb, scheduler).
+2. Expose the webhook locally with `ngrok http 8000` and set `GITHUB_WEBHOOK_URL` to that URL, as described under Webhook Setup.
+3. Open the review page for a test PR in a browser at 100% zoom; close unrelated tabs and notifications.
+4. Start a screen recorder (for example OBS Studio, or Windows Game Bar with Win+G). A 1–2 minute MP4 is enough; a GIF is optional.
+5. Open or re-review a small PR on the throwaway repo. Capture the "AI is analyzing this pull request" panel, the notification, and the page reload that shows the score, issues, and highlights.
+6. Switch to the GitHub PR to show the posted review and inline comments, then stop the recording.
+7. Trim to 1–2 minutes. If you want a GIF and `ffmpeg` is available:
+   `ffmpeg -i demo.mp4 -vf "fps=12,scale=1000:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" demo.gif`
+8. Review the recording frame by frame for API keys, tokens, `.env` contents, or real PR content before sharing it.
+
 ## Measurement
 
 For local-only review metrics and the test-PR checklist, see [docs/MEASUREMENT.md](docs/MEASUREMENT.md). Do not present local measurements as production results.
