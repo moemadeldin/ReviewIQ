@@ -173,7 +173,7 @@ it('skips dispatch when pr is already reviewing', function (): void {
     Bus::assertNotDispatched(ProcessPullRequestReview::class);
 });
 
-it('deduplicates webhook deliveries via X-GitHub-Delivery header', function (): void {
+it('processes only one of two identical webhook deliveries', function (): void {
     $workspace = Workspace::factory()->create();
     Repository::factory()->create([
         'github_repo_id' => '12345',
@@ -184,13 +184,56 @@ it('deduplicates webhook deliveries via X-GitHub-Delivery header', function (): 
 
     $service = new GitHubWebhookService();
     $service->handle($request);
-
-    Bus::assertDispatched(ProcessPullRequestReview::class);
-
-    // Second call with same delivery ID should be ignored
     $service->handle($request);
 
-    Bus::assertDispatched(ProcessPullRequestReview::class);
+    Bus::assertDispatched(ProcessPullRequestReview::class, 1);
+
+    Log::shouldHaveReceived('info')
+        ->with('Duplicate webhook delivery ignored', Mockery::any())
+        ->once();
+});
+
+it('marks ignored deliveries too so duplicates are not reprocessed', function (): void {
+    $request = makeWebhookRequest('push', '');
+
+    $service = new GitHubWebhookService();
+    $service->handle($request);
+    $service->handle($request);
+
+    Log::shouldHaveReceived('info')
+        ->with('Duplicate webhook delivery ignored', Mockery::any())
+        ->once();
+});
+
+it('releases the delivery marker when processing throws', function (): void {
+    $workspace = Workspace::factory()->create();
+    Repository::factory()->create([
+        'github_repo_id' => '12345',
+        'workspace_id' => $workspace->id,
+    ]);
+
+    $service = new GitHubWebhookService();
+
+    $brokenRequest = makeWebhookRequest('pull_request', 'opened', [
+        'pull_request' => [
+            'id' => 999,
+            'title' => 'Test PR',
+            'number' => 42,
+            'user' => ['login' => 'testuser'],
+            'diff_url' => 'https://api.github.com/repos/owner/repo/pulls/42',
+            'head' => 'invalid-head-sha',
+        ],
+    ]);
+
+    try {
+        $service->handle($brokenRequest);
+    } catch (Throwable) {
+        // Expected: malformed payload makes processing fail.
+    }
+
+    $service->handle(makeWebhookRequest('pull_request', 'opened'));
+
+    Bus::assertDispatched(ProcessPullRequestReview::class, 1);
 });
 
 it('skips draft PRs', function (): void {

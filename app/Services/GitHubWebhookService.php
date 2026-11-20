@@ -14,18 +14,36 @@ use App\Utilities\Constants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final readonly class GitHubWebhookService implements WebhookProvider
 {
     public function handle(Request $request): void
     {
         $deliveryId = $request->header('X-GitHub-Delivery');
-        if ($deliveryId && Cache::has('github:webhook:'.$deliveryId)) {
+        $deliveryKey = is_string($deliveryId) && $deliveryId !== ''
+            ? 'github:webhook:'.$deliveryId
+            : null;
+
+        if ($deliveryKey !== null && ! Cache::add($deliveryKey, true, Constants::GITHUB_WEBHOOK_DEDUP_TTL_SECONDS)) {
             Log::info('Duplicate webhook delivery ignored', ['delivery_id' => $deliveryId]);
 
             return;
         }
 
+        try {
+            $this->process($request, $deliveryId);
+        } catch (Throwable $throwable) {
+            if ($deliveryKey !== null) {
+                Cache::forget($deliveryKey);
+            }
+
+            throw $throwable;
+        }
+    }
+
+    private function process(Request $request, mixed $deliveryId): void
+    {
         /** @var array{id?: int, action?: string, repository?: array{id?: int}, pull_request?: array{id: int, title: string, number: int, user: array{login: string}, diff_url: string, head: array{sha: string}, draft: bool}} $payload */
         $payload = json_decode($request->getContent(), true) ?? [];
         $event = $request->header('X-GitHub-Event');
@@ -101,10 +119,6 @@ final readonly class GitHubWebhookService implements WebhookProvider
         } elseif ($pr->head_sha !== $headSha) {
             // PR is already being reviewed - check if head_sha changed
             $pr->update(['head_sha' => $headSha, 'pending_head_sha' => $headSha]);
-        }
-
-        if ($deliveryId) {
-            Cache::put('github:webhook:'.$deliveryId, true, Constants::GITHUB_WEBHOOK_DEDUP_TTL_SECONDS);
         }
     }
 
