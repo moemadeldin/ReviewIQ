@@ -211,6 +211,10 @@ php artisan tinker
 - `GET /invitations/{token}/accept`, `POST /invitations/{token}/accept` — workspace invitation acceptance
 - `GET /workspaces/{workspace}/reviews/{pullRequest}/data` — review details
 
+## Measurement
+
+For local-only review metrics and the test-PR checklist, see [docs/MEASUREMENT.md](docs/MEASUREMENT.md). Do not present local measurements as production results.
+
 ## Known limitations
 
 - Token-level streaming was removed; only the completed review is broadcast live.
