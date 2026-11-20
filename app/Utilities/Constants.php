@@ -6,11 +6,6 @@ namespace App\Utilities;
 
 final class Constants
 {
-    // Streaming
-    public const int STREAM_CHUNK_SIZE = 8192;
-
-    public const int STREAM_YIELD_MICROSECONDS = 10_000;
-
     // AI / Reviews
     public const int AI_MAX_FALLBACK_RETRIES = 2;
 

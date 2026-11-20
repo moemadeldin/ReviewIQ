@@ -9,12 +9,15 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RequireWorkspace;
 use App\Http\Middleware\SetCurrentWorkspace;
 use App\Http\Middleware\VerifyGitHubWebhookSignature;
+use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Middleware\ThrottleRequestsWithRedis;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -37,6 +40,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'verify_github_webhook' => VerifyGitHubWebhookSignature::class,
         ]);
 
+        $middleware->prependToPriorityList([
+            ThrottleRequests::class,
+            ThrottleRequestsWithRedis::class,
+        ], VerifyGitHubWebhookSignature::class);
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
@@ -44,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->group('auth', [
+            Authenticate::class,
             'current_workspace',
             'require_workspace',
             'workspace_access',

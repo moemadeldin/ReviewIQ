@@ -43,6 +43,7 @@ return [
         'redirect' => env('GITHUB_REDIRECT_URI'),
         'webhook_secret' => env('GITHUB_WEBHOOK_SECRET'),
         'webhook_url' => env('GITHUB_WEBHOOK_URL'),
+        'webhook_rate_limit_per_minute' => env('GITHUB_WEBHOOK_RATE_LIMIT_PER_MINUTE', 300),
         'base_url' => env('GITHUB_BASE_URL'),
         'scopes' => ['read:user', 'repo'],
         'repos_per_page' => env('GITHUB_REPOS_PER_PAGE', 10),

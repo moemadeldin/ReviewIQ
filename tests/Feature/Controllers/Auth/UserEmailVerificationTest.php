@@ -25,6 +25,11 @@ it('may verify email', function (): void {
     $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
 });
 
+it('redirects guests away from the verification notice page', function (): void {
+    $this->get(route('verification.notice'))
+        ->assertRedirect(route('login'));
+});
+
 it('redirects to dashboard if already verified', function (): void {
     $user = User::factory()->create([
         'email_verified_at' => now(),

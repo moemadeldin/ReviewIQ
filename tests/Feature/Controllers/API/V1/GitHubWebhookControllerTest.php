@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Contracts\WebhookProvider;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Config;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 it('accepts valid github webhook and returns 202', function (): void {
@@ -76,4 +77,57 @@ it('returns 500 on http exception', function (): void {
     $response->assertStatus(Response::HTTP_FORBIDDEN)
         ->assertJsonPath('status', 'Failed')
         ->assertJsonPath('message', 'Invalid signature');
+});
+
+it('throttles signed webhook deliveries per installation', function (): void {
+    Config::set('services.github.webhook_rate_limit_per_minute', 1);
+
+    $mockService = $this->mock(WebhookProvider::class);
+    $mockService->shouldReceive('handle')->twice();
+
+    $payload = [
+        'action' => 'opened',
+        'repository' => ['id' => 12345],
+        'installation' => ['id' => 987],
+    ];
+    $signature = 'sha256='.hash_hmac('sha256', json_encode($payload), (string) config('services.github.webhook_secret'));
+    $headers = [
+        'X-GitHub-Event' => 'pull_request',
+        'X-Hub-Signature-256' => $signature,
+    ];
+
+    $this->postJson(route('api.v1.webhooks.github'), $payload, $headers)
+        ->assertStatus(Response::HTTP_ACCEPTED);
+
+    $this->postJson(route('api.v1.webhooks.github'), $payload, $headers)
+        ->assertStatus(Response::HTTP_TOO_MANY_REQUESTS);
+
+    $otherPayload = [...$payload, 'installation' => ['id' => 988]];
+    $otherSignature = 'sha256='.hash_hmac('sha256', json_encode($otherPayload), (string) config('services.github.webhook_secret'));
+
+    $this->postJson(route('api.v1.webhooks.github'), $otherPayload, [
+        'X-GitHub-Event' => 'pull_request',
+        'X-Hub-Signature-256' => $otherSignature,
+    ])->assertStatus(Response::HTTP_ACCEPTED);
+});
+
+it('rejects unsigned webhooks before consuming the rate limit', function (): void {
+    Config::set('services.github.webhook_rate_limit_per_minute', 1);
+
+    $mockService = $this->mock(WebhookProvider::class);
+    $mockService->shouldReceive('handle')->once();
+
+    $payload = ['action' => 'opened', 'repository' => ['id' => 12345]];
+
+    $this->postJson(route('api.v1.webhooks.github'), $payload, [
+        'X-GitHub-Event' => 'pull_request',
+        'X-Hub-Signature-256' => 'sha256=invalid',
+    ])->assertForbidden();
+
+    $signature = 'sha256='.hash_hmac('sha256', json_encode($payload), (string) config('services.github.webhook_secret'));
+
+    $this->postJson(route('api.v1.webhooks.github'), $payload, [
+        'X-GitHub-Event' => 'pull_request',
+        'X-Hub-Signature-256' => $signature,
+    ])->assertStatus(Response::HTTP_ACCEPTED);
 });

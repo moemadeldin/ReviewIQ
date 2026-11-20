@@ -301,3 +301,35 @@ it('auto-generates slug from workspace name', function (): void {
         'owner_id' => $user->id,
     ]);
 });
+
+it('allows a workspace owner to rename the workspace', function (): void {
+    $owner = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($owner)->create(['name' => 'Old Name']);
+
+    $response = $this->actingAs($owner)
+        ->put(route('workspaces.update', $workspace), ['name' => 'New Name']);
+
+    $response->assertRedirectToRoute('workspaces.show', $workspace);
+
+    $this->assertDatabaseHas('workspaces', [
+        'id' => $workspace->id,
+        'name' => 'New Name',
+    ]);
+});
+
+it('forbids a workspace member from renaming the workspace', function (): void {
+    $owner = User::factory()->create();
+    $workspace = Workspace::factory()->withOwner($owner)->create(['name' => 'Old Name']);
+    $member = User::factory()->create();
+    $workspace->addUser($member, Roles::Member);
+
+    $response = $this->actingAs($member)
+        ->put(route('workspaces.update', $workspace), ['name' => 'Renamed By Member']);
+
+    $response->assertForbidden();
+
+    $this->assertDatabaseHas('workspaces', [
+        'id' => $workspace->id,
+        'name' => 'Old Name',
+    ]);
+});
