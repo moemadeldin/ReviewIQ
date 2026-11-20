@@ -7,23 +7,24 @@
     <img src="https://img.shields.io/badge/Inertia-3-FFFFFF?style=flat&logoColor=white" alt="Inertia Version">
     <img src="https://img.shields.io/badge/TypeScript-6-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript Version">
     <img src="https://img.shields.io/badge/License-MIT-28A745?style=flat" alt="License">
+    <a href="https://github.com/moemadeldin/ReviewIQ/actions/workflows/tests.yml"><img src="https://github.com/moemadeldin/ReviewIQ/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
 </p>
 
 ReviewIQ is an AI-powered pull request review tool. It watches your GitHub repositories via webhooks, analyzes code changes with an LLM, and posts structured feedback back onto the PR — score, per-issue severity and suggestions, highlights, and a merge recommendation.
 
 ## Features
 
-- **AI Code Review** — Structured JSON review via OpenRouter (DeepSeek V4 Flash by default, with automatic fallback models): score + rationale, categorized issues (severity, category, suggestion), highlights, and recommendation
+- **AI Code Review** — Structured JSON review via OpenRouter (DeepSeek V4 Flash by default, with configurable fallback models): score + rationale, categorized issues (severity, category, suggestion), highlights, and recommendation
 - **Smart Diff Analysis** — Diffs are line-annotated before prompting; every issue is validated against the diff map so inline comments always point at real changed lines (invalid ones fall back to the summary)
 - **Inline Comments on GitHub** — Issues are posted as review comments on the PR, with automatic individual-comment fallback if a batched post is rejected (HTTP 422)
-- **Webhook Integration** — Auto-detects opened and updated PRs via `/api/v1/webhooks/github` (HMAC-verified); a push arriving mid-review immediately re-queues a fresh review of the new head
-- **GitHub App Authentication** — Fetches diffs and posts comments as the bot using JWT + installation tokens, with automatic token refresh on 401
+- **Webhook Integration** — Auto-detects opened and updated PRs via `/api/v1/webhooks/github` (HMAC-verified, rate-limited); a push arriving mid-review is recorded and a fresh review of the new head is queued when the current one finishes
+- **GitHub App Authentication** — Fetches diffs and posts comments as the bot using JWT + installation tokens (cached for 55 minutes)
 - **GitHub OAuth Sign-In** — Login and workspace account linking through GitHub OAuth (Socialite)
 - **Manual & Automatic Re-review** — One-click re-review from the review page, plus a `reviews:retry` scheduler that retries pending/failed reviews and resets stale "reviewing" PRs (every 5 minutes)
-- **Custom Review Rules** — Per-repository custom rules injected into the AI prompt
+- **Custom Review Rules** — Per-repository custom rules are injected into the AI prompt (no UI write path yet)
 - **Multi-tenant Workspaces** — Team workspaces with roles, member management, and email invitations
 - **In-App Notifications** — Broadcasts completion live to a React/TypeScript frontend (Laravel Reverb + Echo) with a real-time notification bell and deep links to the review page
-- **Full Authentication** — Fortify-based headless auth: registration, login, password reset, email verification, and two-factor authentication
+- **Authentication** — Session login, registration, password reset and email verification via app controllers; two-factor authentication via Laravel Fortify; GitHub OAuth via Socialite
 
 ## Tech Stack
 
@@ -35,6 +36,40 @@ ReviewIQ is an AI-powered pull request review tool. It watches your GitHub repos
 - **Queue**: Laravel Queue (database driver) with retries and backoff
 - **Database**: SQLite by default; PostgreSQL supported
 - **Testing**: Pest 5, Larastan (PHPStan), Pint, Rector, `tsc --noEmit`, enhanced-compiler/oxc linting
+
+## Architecture
+
+```mermaid
+flowchart TD
+    GH[GitHub PR webhook] --> V[HMAC verify then throttle]
+    V --> C[WebhookController returns 202]
+    C --> S[GitHubWebhookService: atomic dedup + PR upsert]
+    S -->|new or reviewed PR| J[ProcessPullRequestReview: unique, 3 tries, 600s]
+    S -->|push during review| P[pending_head_sha]
+    P --> J
+    J --> CAS[Pending to Reviewing conditional update]
+    CAS --> D[GitHub diff, cached per SHA]
+    D --> B[PromptBuilder: annotate and truncate]
+    B --> L[OpenRouter review: primary then fallbacks]
+    L --> R[ReviewResponseParser: repair and sanitize]
+    R --> M[DiffLineMapper: null invalid lines]
+    M --> DB[(reviews row)]
+    DB --> PC[PostReviewComments job]
+    PC --> GH2[GitHub review and inline comments]
+    DB --> EV[ReviewCompleted event]
+    EV --> REV[Reverb private channel]
+    REV --> UI[React review page and notification bell]
+    J -->|new head detected| J
+    SCH[reviews:retry every 5 minutes] --> J
+```
+
+## Design decisions
+
+- **Async boundary**: the webhook returns 202 immediately; review work runs in a unique queued job (3 tries, exponential backoff, 600s timeout, `retry_after` 660s so a running job is not redelivered).
+- **Idempotency in layers**: webhook delivery ID via atomic `Cache::add` (24h, released on failure), unique `github_pr_id`, unique job lock, and a conditional `pending → reviewing` state change.
+- **LLM output is untrusted**: fences/JSON are repaired, enums and score are sanitized, and every issue line is checked against the annotated diff; invalid lines become `null` and are not posted inline.
+- **Cost and latency controls**: priority-based diff truncation with ignore patterns, capped incremental-review context, low temperature, token cap, sequential fallback models, and no LLM response cache.
+- **Live feedback**: only the completed review is broadcast over Reverb; token-level streaming was deliberately removed.
 
 ## Getting Started
 
@@ -218,6 +253,14 @@ For local-only review metrics and the test-PR checklist, see [docs/MEASUREMENT.m
 ## Known limitations
 
 - Token-level streaming was removed; only the completed review is broadcast live.
+- Eloquent mass-assignment protection is globally disabled (`config/essentials.php`); controllers rely on validated FormRequests instead. This was left unchanged by decision.
+- The signed webhook throttle defaults to 300 requests/minute per installation (or repository), tunable via `GITHUB_WEBHOOK_RATE_LIMIT_PER_MINUTE`.
+- The 401 token-refresh branch in `PostReviewComments` cannot trigger for token-fetch 401s, which surface as `RuntimeException` from `GitHubAppAuth`.
+- Custom review rules are stored and injected into prompts, but there is no UI write path yet.
+- Token usage is stored in `reviews.raw_response` and is not aggregated; dollar cost is not measured (see [docs/MEASUREMENT.md](docs/MEASUREMENT.md)).
+- There is no automated deployment step in this repository; images are built and pushed to GHCR only.
+- CI tests use SQLite in-memory and the sync queue, so real queue concurrency is not exercised there.
+- Local measurements are not production measurements; always quote the printed sample size.
 
 ## License
 
