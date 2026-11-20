@@ -173,6 +173,28 @@ it('skips dispatch when pr is already reviewing', function (): void {
     Bus::assertNotDispatched(ProcessPullRequestReview::class);
 });
 
+it('records a new head sha while a review is running without dispatching', function (): void {
+    $workspace = Workspace::factory()->create();
+    $repo = Repository::factory()->create([
+        'github_repo_id' => '12345',
+        'workspace_id' => $workspace->id,
+    ]);
+    PullRequest::factory()->create([
+        'github_pr_id' => '999',
+        'repository_id' => $repo->id,
+        'head_sha' => 'old-head-sha',
+        'status' => PullRequestStatus::Reviewing,
+    ]);
+
+    (new GitHubWebhookService())->handle(makeWebhookRequest('pull_request', 'synchronize'));
+
+    Bus::assertNotDispatched(ProcessPullRequestReview::class);
+
+    $pr = PullRequest::query()->where('github_pr_id', '999')->first();
+    expect($pr->pending_head_sha)->toBe('abc123')
+        ->and($pr->head_sha)->toBe('old-head-sha');
+});
+
 it('processes only one of two identical webhook deliveries', function (): void {
     $workspace = Workspace::factory()->create();
     Repository::factory()->create([

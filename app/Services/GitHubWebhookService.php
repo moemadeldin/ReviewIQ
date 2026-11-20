@@ -90,15 +90,20 @@ final readonly class GitHubWebhookService implements WebhookProvider
         }
 
         $headSha = $prPayload['head']['sha'];
+        $githubPrId = (string) $prPayload['id'];
+        $existingHeadSha = PullRequest::query()
+            ->where('github_pr_id', $githubPrId)
+            ->value('head_sha');
+
         $pr = PullRequest::query()->updateOrCreate(
-            ['github_pr_id' => (string) $prPayload['id']],
+            ['github_pr_id' => $githubPrId],
             [
                 'repository_id' => $repository->id,
                 'title' => $prPayload['title'],
                 'number' => $prPayload['number'],
                 'author' => $prPayload['user']['login'],
                 'diff_url' => $prPayload['diff_url'],
-                'head_sha' => $headSha,
+                'head_sha' => $existingHeadSha ?? $headSha,
                 'description' => $prPayload['body'] ?? null,
             ]
         );
@@ -116,9 +121,9 @@ final readonly class GitHubWebhookService implements WebhookProvider
             if ($freshPr !== null) {
                 dispatch(new ProcessPullRequestReview($freshPr));
             }
-        } elseif ($pr->head_sha !== $headSha) {
-            // PR is already being reviewed - check if head_sha changed
-            $pr->update(['head_sha' => $headSha, 'pending_head_sha' => $headSha]);
+        } elseif ($existingHeadSha !== null && $existingHeadSha !== $headSha) {
+            // Keep head_sha at the reviewed commit so the job can detect the new push.
+            $pr->update(['pending_head_sha' => $headSha]);
         }
     }
 

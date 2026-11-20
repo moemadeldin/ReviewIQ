@@ -86,6 +86,58 @@ it('processes pull request review successfully', function (): void {
     Queue::assertPushed(PostReviewComments::class);
 });
 
+it('re-dispatches the review for a head sha received mid-review', function (): void {
+    $owner = User::factory()->create(['github_token' => 'test-token']);
+    $workspace = Workspace::factory()->create(['owner_id' => $owner->id]);
+    $repo = Repository::factory()->create([
+        'workspace_id' => $workspace->id,
+        'full_name' => 'owner/repo',
+        'language' => 'PHP',
+    ]);
+    $pr = PullRequest::factory()->create([
+        'repository_id' => $repo->id,
+        'status' => PullRequestStatus::Pending,
+        'number' => 42,
+        'title' => 'Test PR',
+        'head_sha' => 'old-head-sha',
+        'pending_head_sha' => 'new-head-sha',
+    ]);
+
+    $githubApp = $this->mock(GitHubAppAuth::class);
+    $githubApp->shouldReceive('getInstallationToken')
+        ->once()
+        ->andReturn('test-token');
+
+    $diffService = $this->mock(DiffProvider::class);
+    $diffService->shouldReceive('getDiff')
+        ->once()
+        ->with('test-token', 'owner/repo', 42, 'new-head-sha')
+        ->andReturn('diff content');
+
+    $mockAIReviewer = $this->mock(AIReviewer::class);
+    $mockAIReviewer->shouldReceive('review')
+        ->once()
+        ->andReturn([
+            'summary' => 'Good code',
+            'score' => 85,
+            'score_rationale' => 'Well written',
+            'issues' => [],
+            'highlights' => ['Clean code'],
+            'recommendation' => 'approve',
+        ]);
+
+    $job = new ProcessPullRequestReview($pr);
+    $job->handle($diffService, new PromptBuilder(), new DiffLineMapper(), $mockAIReviewer, $githubApp);
+
+    $pr->refresh();
+    expect($pr->status)->toBe(PullRequestStatus::Pending)
+        ->and($pr->head_sha)->toBe('new-head-sha')
+        ->and($pr->pending_head_sha)->toBeNull();
+
+    Queue::assertPushed(ProcessPullRequestReview::class, 1);
+    Queue::assertPushed(PostReviewComments::class, 1);
+});
+
 it('creates a linked review when a previous review exists', function (): void {
     $owner = User::factory()->create(['github_token' => 'test-token']);
     $workspace = Workspace::factory()->create(['owner_id' => $owner->id]);
