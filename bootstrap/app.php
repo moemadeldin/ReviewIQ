@@ -9,6 +9,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RequireWorkspace;
 use App\Http\Middleware\SetCurrentWorkspace;
 use App\Http\Middleware\VerifyGitHubWebhookSignature;
+use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -44,6 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->group('auth', [
+            Authenticate::class,
             'current_workspace',
             'require_workspace',
             'workspace_access',
