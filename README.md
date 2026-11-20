@@ -22,7 +22,7 @@ ReviewIQ is an AI-powered pull request review tool. It watches your GitHub repos
 - **Manual & Automatic Re-review** — One-click re-review from the review page, plus a `reviews:retry` scheduler that retries pending/failed reviews and resets stale "reviewing" PRs (every 5 minutes)
 - **Custom Review Rules** — Per-repository custom rules injected into the AI prompt
 - **Multi-tenant Workspaces** — Team workspaces with roles, member management, and email invitations
-- **In-App Notifications** — Real-time notification bell (Laravel Reveb + Echo) when a review completes, with deep links to the review page
+- **In-App Notifications** — Broadcasts completion live to a React/TypeScript frontend (Laravel Reverb + Echo) with a real-time notification bell and deep links to the review page
 - **Full Authentication** — Fortify-based headless auth: registration, login, password reset, email verification, and two-factor authentication
 
 ## Tech Stack
@@ -210,6 +210,10 @@ php artisan tinker
 - `GET /notifications`, `PATCH /notifications/{notification}/read`, `PATCH /notifications/read-all` — in-app notifications
 - `GET /invitations/{token}/accept`, `POST /invitations/{token}/accept` — workspace invitation acceptance
 - `GET /workspaces/{workspace}/reviews/{pullRequest}/data` — review details
+
+## Known limitations
+
+- Token-level streaming was removed; only the completed review is broadcast live.
 
 ## License
 
