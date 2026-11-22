@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\GitHubController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Reviews\ReviewController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
-use App\Http\Controllers\Workspaces\WorkspacePageController;
 use App\Http\Requests\Workspaces\WorkspaceOwnerRequest;
 use App\Models\Review;
 use App\Models\User;
@@ -19,11 +17,9 @@ arch()->preset()->strict()->ignoring([
     OpenRouterReviewService::class,
 ]);
 arch()->preset()->laravel()->ignoring([
-    GitHubController::class,
     NotificationController::class,
     ReviewController::class,
     WorkspaceController::class,
-    WorkspacePageController::class,
     WorkspaceOwnerRequest::class,
 ]);
 arch()->preset()->security()->ignoring([

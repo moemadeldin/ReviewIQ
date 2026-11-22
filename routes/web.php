@@ -6,7 +6,8 @@ use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Auth\UserEmailResetNotificationController;
 use App\Http\Controllers\Auth\UserPasswordController;
-use App\Http\Controllers\GitHubController;
+use App\Http\Controllers\GitHubCallbackController;
+use App\Http\Controllers\GitHubRedirectController;
 use App\Http\Controllers\WorkspaceInvitations\AcceptInvitationController;
 use App\Http\Controllers\WorkspaceInvitations\ShowAcceptInvitationController;
 use Illuminate\Support\Facades\Route;
@@ -55,7 +56,5 @@ Route::middleware('guest')->group(function (): void {
 });
 // GitHub OAuth (guests login; authenticated users connect their GitHub account)...
 
-Route::controller(GitHubController::class)->group(function (): void {
-    Route::get('auth/github', 'redirect')->name('auth.github');
-    Route::get('auth/github/callback', 'callback')->name('auth.github.callback');
-});
+Route::get('auth/github', GitHubRedirectController::class)->name('auth.github');
+Route::get('auth/github/callback', GitHubCallbackController::class)->name('auth.github.callback');

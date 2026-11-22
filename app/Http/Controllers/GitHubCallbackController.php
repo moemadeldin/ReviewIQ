@@ -10,18 +10,11 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
-use Symfony\Component\HttpFoundation\Response;
 
-final readonly class GitHubController
+final readonly class GitHubCallbackController
 {
-    public function redirect(): Response
-    {
-        return Socialite::driver('github')->redirect();
-    }
-
-    public function callback(Request $request, HandleGitHubCallback $action): RedirectResponse
+    public function __invoke(Request $request, HandleGitHubCallback $action): RedirectResponse
     {
         $currentUser = $request->user();
 

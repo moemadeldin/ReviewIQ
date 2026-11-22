@@ -35,7 +35,7 @@ final readonly class NotificationController
         ], 'ok');
     }
 
-    public function markAsRead(#[CurrentUser()] User $user, string $notification): JsonResponse
+    public function update(#[CurrentUser()] User $user, string $notification): JsonResponse
     {
         $notification = $user->notifications()->find($notification);
 
@@ -46,12 +46,5 @@ final readonly class NotificationController
         $notification->markAsRead();
 
         return $this->success(['message' => 'Notification marked as read'], 'ok');
-    }
-
-    public function markAllAsRead(#[CurrentUser()] User $user): JsonResponse
-    {
-        $user->unreadNotifications->markAsRead();
-
-        return $this->success(['message' => 'All notifications marked as read'], 'ok');
     }
 }
