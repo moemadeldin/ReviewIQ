@@ -57,7 +57,7 @@ final readonly class WorkspaceController
         ]);
     }
 
-    public function settings(Workspace $workspace): Response
+    public function edit(Workspace $workspace): Response
     {
         return Inertia::render('workspaces/settings', [
             'workspace' => $workspace,
